@@ -1,5 +1,9 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ErrorCode } from "@openfeature/server-sdk";
 import { describe, expect, it, vi } from "vitest";
+import { createFileAuditSink } from "../../src/audit/audit-sink.js";
 import { createLocalProvider } from "../../src/provider/local-provider.js";
 import { EVALUATION_REASONS } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
@@ -73,6 +77,55 @@ describe("createLocalProvider", () => {
       reason: EVALUATION_REASONS.SPLIT,
       variant: "on"
     });
+  });
+
+  it("writes redacted audit JSON Lines through the provider audit sink", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-provider-"));
+    const auditPath = join(tempDirectory, "audit", "events.jsonl");
+
+    try {
+      const provider = createLocalProvider({
+        snapshot: staticSnapshot,
+        auditSink: createFileAuditSink({ path: auditPath })
+      });
+
+      await expect(
+        provider.resolveBooleanEvaluation(
+          "checkout.rollout",
+          false,
+          {
+            targetingKey: "user-alpha",
+            email: "synthetic@example.test",
+            tenantId: "tenant-test-1"
+          },
+          logger
+        )
+      ).resolves.toMatchObject({
+        value: true,
+        reason: EVALUATION_REASONS.SPLIT,
+        variant: "on"
+      });
+
+      const content = await readFile(auditPath, "utf8");
+      const event = JSON.parse(content.trim());
+      expect(event).toMatchObject({
+        providerName: "openfeature-local-provider",
+        flagKey: "checkout.rollout",
+        reason: EVALUATION_REASONS.SPLIT,
+        variant: "on",
+        context: {
+          targetingKeyPresent: true,
+          keys: ["email", "targetingKey", "tenantId"],
+          redacted: true
+        }
+      });
+      expect(content).not.toContain("user-alpha");
+      expect(content).not.toContain("synthetic@example.test");
+      expect(content).not.toContain("tenant-test-1");
+      expect(content).not.toContain('"value"');
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
   });
 
   it("does not change evaluation results when audit sink writes fail", async () => {
