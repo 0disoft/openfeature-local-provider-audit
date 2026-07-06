@@ -31,6 +31,8 @@ Owner: 0disoft
   values in the current alpha implementation.
 - Keep provider audit writes non-blocking by default so slow local I/O does not delay
   resolved values.
+- Provide an explicit flush path for short-lived local processes that need to drain
+  pending audit writes before exit.
 
 ## Review Blockers
 

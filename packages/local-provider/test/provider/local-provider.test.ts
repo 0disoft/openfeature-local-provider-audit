@@ -84,10 +84,10 @@ describe("createLocalProvider", () => {
     const auditPath = join(tempDirectory, "audit", "events.jsonl");
 
     try {
+      const auditSink = createFileAuditSink({ path: auditPath });
       const provider = createLocalProvider({
         snapshot: staticSnapshot,
-        auditSink: createFileAuditSink({ path: auditPath }),
-        auditWriteMode: "blocking"
+        auditSink
       });
 
       await expect(
@@ -106,6 +106,8 @@ describe("createLocalProvider", () => {
         reason: EVALUATION_REASONS.SPLIT,
         variant: "on"
       });
+
+      await auditSink.flush?.();
 
       const content = await readFile(auditPath, "utf8");
       const event = JSON.parse(content.trim());

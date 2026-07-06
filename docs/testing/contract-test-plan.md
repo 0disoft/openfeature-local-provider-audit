@@ -21,6 +21,8 @@ Contract tests prove provider behavior that consumers can rely on.
   evaluation results.
 - Provider audit writes are non-blocking by default, with blocking mode covered for
   deterministic tests and short-lived scripts.
+- File audit sink flush waits for pending non-blocking writes before short-lived
+  processes exit.
 - Missing flag returns caller default with `DEFAULT` reason.
 - Type mismatch returns caller default with `ERROR` reason and error code.
 - Invalid JSON and invalid schema fail at load boundaries.

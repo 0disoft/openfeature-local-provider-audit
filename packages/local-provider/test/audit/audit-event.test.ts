@@ -119,7 +119,10 @@ describe("audit events", () => {
         timestamp: "2026-07-06T00:00:00.000Z"
       });
 
-      await createFileAuditSink({ path: auditPath }).write(event);
+      const auditSink = createFileAuditSink({ path: auditPath });
+
+      await auditSink.write(event);
+      await auditSink.flush?.();
 
       const content = await readFile(auditPath, "utf8");
       expect(content.split("\n")).toHaveLength(2);
@@ -133,6 +136,41 @@ describe("audit events", () => {
       });
       expect(content).not.toContain("synthetic@example.test");
       expect(content).not.toContain('"value"');
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("flushes pending file audit writes", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "flush", "audit.jsonl");
+
+    try {
+      const auditSink = createFileAuditSink({ path: auditPath });
+      const request = {
+        flagKey: "checkout.enabled",
+        defaultValue: false,
+        expectedType: "boolean" as const
+      };
+      const result = evaluateFlag(staticSnapshot, request);
+      const event = createAuditEvent({
+        providerName: "openfeature-local-provider",
+        snapshot: staticSnapshot,
+        request,
+        result,
+        eventId: "evt_flush_sink_1",
+        timestamp: "2026-07-06T00:00:00.000Z"
+      });
+
+      const pendingWrite = auditSink.write(event);
+      await auditSink.flush?.();
+      await pendingWrite;
+
+      const content = await readFile(auditPath, "utf8");
+      expect(JSON.parse(content.trim())).toMatchObject({
+        eventId: "evt_flush_sink_1",
+        flagKey: "checkout.enabled"
+      });
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

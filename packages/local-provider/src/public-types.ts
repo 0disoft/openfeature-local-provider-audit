@@ -145,6 +145,7 @@ export interface CreateAuditEventOptions {
 
 export interface AuditSink {
   write(event: AuditEvent): Promise<void>;
+  flush?(): Promise<void>;
 }
 
 export interface FileAuditSinkOptions {

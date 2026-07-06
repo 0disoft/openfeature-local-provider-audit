@@ -23,15 +23,19 @@ import {
 } from "@0disoft/openfeature-local-provider";
 
 const snapshot = parseJsonFlagSnapshot(snapshotJson);
+const auditSink = createFileAuditSink({ path: join(tmpdir(), "openfeature-audit.jsonl") });
 const provider = createLocalProvider({
   snapshot,
-  auditSink: createFileAuditSink({ path: join(tmpdir(), "openfeature-audit.jsonl") })
+  auditSink
 });
+
+await auditSink.flush?.();
 ```
 
 Audit events are redacted before they reach the sink. Provider audit writes are
 non-blocking by default, and file write failures are reported through the OpenFeature
 logger without changing the evaluated flag value.
 
-Use `auditWriteMode: "blocking"` when a test or short-lived script must wait for the
-audit write before the evaluation promise resolves.
+Use `auditSink.flush?.()` before process exit when a short-lived script must wait for
+pending non-blocking audit writes. Use `auditWriteMode: "blocking"` when each
+evaluation promise must wait for its audit write.
