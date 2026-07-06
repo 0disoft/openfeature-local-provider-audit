@@ -175,4 +175,60 @@ describe("audit events", () => {
       await rm(tempDirectory, { recursive: true, force: true });
     }
   });
+
+  it("rotates file audit logs by size and retained file count", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "rotate", "audit.jsonl");
+    const firstEvent = createTestAuditEvent("evt_rotate_1");
+    const maxBytes = Buffer.byteLength(serializeAuditEvent(firstEvent), "utf8") + 1;
+
+    try {
+      const auditSink = createFileAuditSink({
+        path: auditPath,
+        maxBytes,
+        maxFiles: 2
+      });
+
+      await auditSink.write(firstEvent);
+      await auditSink.write(createTestAuditEvent("evt_rotate_2"));
+      await auditSink.write(createTestAuditEvent("evt_rotate_3"));
+      await auditSink.flush?.();
+
+      expect(await readFile(auditPath, "utf8")).toContain("evt_rotate_3");
+      expect(await readFile(`${auditPath}.1`, "utf8")).toContain("evt_rotate_2");
+      expect(await readFile(`${auditPath}.2`, "utf8")).toContain("evt_rotate_1");
+      await expect(readFile(`${auditPath}.3`, "utf8")).rejects.toMatchObject({
+        code: "ENOENT"
+      });
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects invalid file audit rotation options", () => {
+    expect(() => createFileAuditSink({ path: "audit.jsonl", maxBytes: 0 })).toThrow(
+      "maxBytes must be greater than 0"
+    );
+    expect(() => createFileAuditSink({ path: "audit.jsonl", maxBytes: 1, maxFiles: -1 })).toThrow(
+      "maxFiles must be a non-negative integer"
+    );
+  });
 });
+
+function createTestAuditEvent(eventId: string) {
+  const request = {
+    flagKey: "checkout.enabled",
+    defaultValue: false,
+    expectedType: "boolean" as const
+  };
+  const result = evaluateFlag(staticSnapshot, request);
+
+  return createAuditEvent({
+    providerName: "openfeature-local-provider",
+    snapshot: staticSnapshot,
+    request,
+    result,
+    eventId,
+    timestamp: "2026-07-06T00:00:00.000Z"
+  });
+}

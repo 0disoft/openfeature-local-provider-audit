@@ -151,4 +151,6 @@ export interface AuditSink {
 export interface FileAuditSinkOptions {
   readonly path: string | URL;
   readonly createDirectory?: boolean;
+  readonly maxBytes?: number;
+  readonly maxFiles?: number;
 }

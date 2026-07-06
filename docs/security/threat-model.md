@@ -33,9 +33,13 @@ Owner: 0disoft
   resolved values.
 - Provide an explicit flush path for short-lived local processes that need to drain
   pending audit writes before exit.
+- Bound local file growth with optional size-based rotation and retained rotated file
+  count.
 
 ## Review Blockers
 
 - Feature flags are documented as access control.
 - Provider code accepts credentials for local evaluation.
 - Audit output becomes a personal-data collection point.
+- Audit rotation touches paths outside the configured audit file and its numbered
+  rotated siblings.

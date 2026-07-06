@@ -22,6 +22,7 @@ keeping application code on the standard OpenFeature evaluation API.
   log raw evaluation context or evaluated object values.
 - SDK audit lifecycle: short-lived examples may call `auditSink.flush?.()` before exit
   when using non-blocking audit writes.
+- SDK audit file examples may configure `maxBytes` and `maxFiles` for local rotation.
 - SDK validation evidence: replay examples must prove deterministic bucketing when implementation exists.
 - SDK release or rollout policy: example packages must not imply support for untested runtimes.
 - SDK compatibility and migration policy: changed examples require matching public API and compatibility docs.

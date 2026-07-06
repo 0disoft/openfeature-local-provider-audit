@@ -23,7 +23,11 @@ import {
 } from "@0disoft/openfeature-local-provider";
 
 const snapshot = parseJsonFlagSnapshot(snapshotJson);
-const auditSink = createFileAuditSink({ path: join(tmpdir(), "openfeature-audit.jsonl") });
+const auditSink = createFileAuditSink({
+  path: join(tmpdir(), "openfeature-audit.jsonl"),
+  maxBytes: 10 * 1024 * 1024,
+  maxFiles: 5
+});
 const provider = createLocalProvider({
   snapshot,
   auditSink
@@ -39,3 +43,6 @@ logger without changing the evaluated flag value.
 Use `auditSink.flush?.()` before process exit when a short-lived script must wait for
 pending non-blocking audit writes. Use `auditWriteMode: "blocking"` when each
 evaluation promise must wait for its audit write.
+
+Set `maxBytes` to rotate the active audit file by size. `maxFiles` controls how many
+rotated files are retained as `.1`, `.2`, and so on.
