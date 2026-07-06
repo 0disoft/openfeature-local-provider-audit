@@ -1,0 +1,26 @@
+Table users {
+  id uuid [pk]
+  email varchar [not null, unique]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table organizations {
+  id uuid [pk]
+  name varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table organization_members {
+  organization_id uuid [not null, ref: > organizations.id]
+  user_id uuid [not null, ref: > users.id]
+  role varchar [not null]
+  created_at timestamp [not null]
+
+  indexes {
+    (organization_id, user_id) [pk]
+    user_id
+    (organization_id, role)
+  }
+}

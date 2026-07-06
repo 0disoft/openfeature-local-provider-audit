@@ -1,0 +1,549 @@
+{
+  "tool": "ssealed",
+  "version": "0.5.0",
+  "generatedAt": "2026-07-06T10:25:03.981Z",
+  "scope": "backend",
+  "profile": "library",
+  "addons": [
+    "sdk"
+  ],
+  "density": "standard",
+  "runner": "none",
+  "files": [
+    {
+      "path": ".agents/checklists/backend-api.md",
+      "checksum": "sha256:087edc5d1a87a64de8acb2f606ed5757d9bfdb47cb4f2d37c5f7e55edec782a4",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/checklists/db-migration.md",
+      "checksum": "sha256:d622782ae4bfc12ea3cbfb411871ffd0bb974af3f4565524de53e0565ee6df3c",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/checklists/dependency.md",
+      "checksum": "sha256:c6f5327872acb579d12d5f9f8aba48420bd0148c07fef7280878a9f6be4e8e18",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/checklists/library-package.md",
+      "checksum": "sha256:a0bae682e50fe091d5dfb6b2713106ed0afde9d1141a5b1c0e856870c07ab958",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/checklists/ops-change.md",
+      "checksum": "sha256:868bbb6ba005cbe5077c05a53bad472c51291a8dd12cfe702086d7e88c06492e",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/checklists/performance.md",
+      "checksum": "sha256:1825b0c208f1701e582f06946374a22378e6d5f0d7694afce3867c2a2fac4e6d",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/checklists/sdk.md",
+      "checksum": "sha256:a11608335a4e32f860bba2535b9dc0b74234648d5c260a8446570ea55c382c8e",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/checklists/security.md",
+      "checksum": "sha256:a7cd54049929d68fd65c1c11212bc7ab676c4cc92a587089cc3c3debb2c5af6d",
+      "kind": "checklist"
+    },
+    {
+      "path": ".agents/context-map.md",
+      "checksum": "sha256:54e2940b36bc5e97d9c98d2eee5ef3b944ae7d4d2ee7aab0ffef74ff26c6664c",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/README.md",
+      "checksum": "sha256:4444c5010199a16e79f387171538824b2c056dabb88b68efdb39c52a8b208a95",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/backend-api/SKILL.md",
+      "checksum": "sha256:d5a845b7b464bd5106418e14cefd9f0ed56b03fca8af2140aa91052288ad5a92",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/bugfix/SKILL.md",
+      "checksum": "sha256:583cb275672e0009ff7f806e79550fded726cd6031cd58388cdddf2b57a01bee",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/db-migration/SKILL.md",
+      "checksum": "sha256:e38643a9f3df8243a266c23702df8787013dee688cd0840d48e49ddd596f76ec",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/dependency-upgrade/SKILL.md",
+      "checksum": "sha256:0c10d0549309795233bf0c71c42e651ad36f2277ca925a13beb0763643e512f2",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/feature/SKILL.md",
+      "checksum": "sha256:79ac7185824fa8e9866baa78d8ebe990677cd06822d80498759563d16255310d",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/library-package/SKILL.md",
+      "checksum": "sha256:387f7648c14e657ae0eb2b00c469423754a4f9d97f9ccd6812186fba9e26efa4",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/ops-change/SKILL.md",
+      "checksum": "sha256:ee910c3147c4fb96b81ef31ce04facc6b85c0ee7f55f1d260c12a07be04abf03",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/refactor/SKILL.md",
+      "checksum": "sha256:5d92d2a0ad6617df3876e859a187a33b1984930bd2d121b6e50a89405f7c891a",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/sdk/SKILL.md",
+      "checksum": "sha256:6ab597f0812823e54c90032ccdc58a9d510ae494653e367baa994004cb5efb70",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/skills/test-hardening/SKILL.md",
+      "checksum": "sha256:ccad174f7755a6255552a289f9d7077205467f3c812079dc03ee63a575bd4850",
+      "kind": "agent"
+    },
+    {
+      "path": ".agents/validations/backend-api.md",
+      "checksum": "sha256:3727f2c151cb6d06958d117c611d87026dc73c204e381a6c4bc2260624a6fea7",
+      "kind": "validation"
+    },
+    {
+      "path": ".agents/validations/db-migration.md",
+      "checksum": "sha256:cecf354597f0d662cb077a8adbc7169c8b32a92f2a2a90e1fefb383d9f0852a4",
+      "kind": "validation"
+    },
+    {
+      "path": ".agents/validations/default.md",
+      "checksum": "sha256:d4ab3e65105ea4339b835ba83c42c4e9c4c337a702c110077663c61c1c3ba863",
+      "kind": "validation"
+    },
+    {
+      "path": ".agents/validations/dependency-upgrade.md",
+      "checksum": "sha256:006f4a22a92d63dea1cff5fff1544e42bdf94cc09ab7c60de47604b32ecc0caf",
+      "kind": "validation"
+    },
+    {
+      "path": ".agents/validations/library-package.md",
+      "checksum": "sha256:eceaff30f94f186a34af0f0f915b7540f62227f20bbd18cb384fe4811eb6829c",
+      "kind": "validation"
+    },
+    {
+      "path": ".agents/validations/ops-change.md",
+      "checksum": "sha256:6e1f6d913b0f0d28d5761f0519a9a8aaeb0d0ee85fb02a1db475afadd4473994",
+      "kind": "validation"
+    },
+    {
+      "path": ".agents/validations/sdk.md",
+      "checksum": "sha256:bc9bbf2621c55cd5260455b45383abf89e214425673f6559db802d3afb657588",
+      "kind": "validation"
+    },
+    {
+      "path": ".editorconfig",
+      "checksum": "sha256:db0b5524e350c72589086a3e1f429f78873dbc164ea32e25effb370a973ccc5e",
+      "kind": "hygiene"
+    },
+    {
+      "path": ".gitattributes",
+      "checksum": "sha256:94fcfb0eeb01252ceaa73a6c187d6768d6f28a28284d3619ef78a4569f1cda37",
+      "kind": "hygiene"
+    },
+    {
+      "path": ".github/CODEOWNERS",
+      "checksum": "sha256:0c7003002722c703a6101984aee9019999c8c29ef9f03455de16175f3cfbd41e",
+      "kind": "github"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/architecture-question.md",
+      "checksum": "sha256:32c4d05f86ce32d1d5ecc2ccf2b2f6c2fcd64347eaa734a68ab7b40ecc68c279",
+      "kind": "github"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/bug-report.md",
+      "checksum": "sha256:015f4a53c6002d6f5a96333e1662d1b10eced01f713af3e0e8ed150e1c1df3e9",
+      "kind": "github"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/design-change.md",
+      "checksum": "sha256:ab987e8b353c2f3d439c04307860819544e13cb971f8528ab2a702dda3141012",
+      "kind": "github"
+    },
+    {
+      "path": ".github/ISSUE_TEMPLATE/risk-register-item.md",
+      "checksum": "sha256:c12827317fc5155035b5a5c582eab70d03a9f72ac880843ebb3641d6cca388a7",
+      "kind": "github"
+    },
+    {
+      "path": ".github/PULL_REQUEST_TEMPLATE.md",
+      "checksum": "sha256:d3f33f0e7741bfc7030c18b3f348b8f82e543ffbc0b05a6f5dc3daa7863a803f",
+      "kind": "github"
+    },
+    {
+      "path": ".gitignore",
+      "checksum": "sha256:804e2e2d9496ad018cf073b2f088d71783a15a70cb6fb4abfd36f082bb5d6f4c",
+      "kind": "hygiene"
+    },
+    {
+      "path": "AGENTS.md",
+      "checksum": "sha256:41a60e2d664a79b0be7b4d2e39248097256436fd2e8996b162e546429facdc9e",
+      "kind": "agent"
+    },
+    {
+      "path": "api/examples/error-response.json",
+      "checksum": "sha256:cd4d026e889238c9ebd2264bb367b7df6e0ad399bc715b164338f6802dc26064",
+      "kind": "contract"
+    },
+    {
+      "path": "api/examples/paginated-response.json",
+      "checksum": "sha256:50b8481c2348567f3ae7170eb4511d2943efcb944316a57e73fef674a6b29c52",
+      "kind": "contract"
+    },
+    {
+      "path": "api/examples/success-response.json",
+      "checksum": "sha256:6cffe23c36fb2e57da24f246d13fc42af3063a954c456af8000850f6c191db24",
+      "kind": "contract"
+    },
+    {
+      "path": "api/openapi.yaml",
+      "checksum": "sha256:8659aa506c077d2809bd5336483cfa06021d4f1c3f9f558ffafadce8fedaebdb",
+      "kind": "contract"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "checksum": "sha256:7bb8e8712a7ee4b26282c0245e83ca20ccaa5c1af6e56c675eb21acd753f6a08",
+      "kind": "document"
+    },
+    {
+      "path": "CHECKLIST.md",
+      "checksum": "sha256:92e9e1cb99f2d066d87f44abd1cdb1a1146bbe95710224a1c86e171eeb0b0006",
+      "kind": "checklist"
+    },
+    {
+      "path": "CONTRIBUTING.md",
+      "checksum": "sha256:6b2581f7e034df824f936fb09a3d6c9994301586e30507bcf4b8f7f4b1eb4acb",
+      "kind": "document"
+    },
+    {
+      "path": "db/migrations/README.md",
+      "checksum": "sha256:ca4d7484d01aacf97d636398bd4f4d8d5dc893946b2cbc623061ebc4e545fe3c",
+      "kind": "document"
+    },
+    {
+      "path": "db/schema.dbml",
+      "checksum": "sha256:72659e2418de483b15cb87f9d3b23c2ce3a211f2631ace54081c7cc6dde9b0e9",
+      "kind": "contract"
+    },
+    {
+      "path": "db/seed/README.md",
+      "checksum": "sha256:fa6066ac2373d66715dececf4aacb993f6e473a0a37fa6a12ae0feabacbe5866",
+      "kind": "document"
+    },
+    {
+      "path": "DEVELOPMENT.md",
+      "checksum": "sha256:0c438de90e7b4aa0027ec225ce643294d5d66bc0a08bac13a1bc1df024809f0d",
+      "kind": "document"
+    },
+    {
+      "path": "diagrams/auth-flow.mmd",
+      "checksum": "sha256:1ad099121cb6e2d503de842ea5e8382d19b147b7021f5c3c2a60b8b0102fb59e",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/authorization-flow.mmd",
+      "checksum": "sha256:a6af81bc147cc05aa35c08a6d0cbe4d12e11960e3d7a36f359d6cd219d784774",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/container-view.mmd",
+      "checksum": "sha256:6958779c75afab392b1a24e46456c7f82e8194bdd43b1c268e72f2d52d0e60b3",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/core-runtime-flow.mmd",
+      "checksum": "sha256:71db24742ece34f27f5f1ae5144ff7ede347cbc4bb3dee0b6c54d40b8f733cc3",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/data-model.mmd",
+      "checksum": "sha256:62bc96598d597ff965829d5390d3f025e488042f884480d09fe0db84999d356a",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/README.md",
+      "checksum": "sha256:de31e7b178e125f514c7c867d7dbd5b9782067d9233c2b6e2b9a13e19e98dcc0",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/release-flow.mmd",
+      "checksum": "sha256:c75791fa4f92522db3885c806f973e1bcb8e00b7f7f0b563dd10e3785491ca32",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/request-lifecycle.mmd",
+      "checksum": "sha256:2db346d1ce023f104210152061b657ac01ff0645acec62278bc6fc153d17204b",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/rollback-flow.mmd",
+      "checksum": "sha256:3e06412695cebd1affc60109380d40601cfcf09429a089ac363b8f1739467855",
+      "kind": "diagram"
+    },
+    {
+      "path": "diagrams/system-context.mmd",
+      "checksum": "sha256:d82e351bd752b625dda1bc2fef0fa12d8cd6026dc144ee01981307f757aa1812",
+      "kind": "diagram"
+    },
+    {
+      "path": "docs/adr/0000-template.md",
+      "checksum": "sha256:101512503e6ba5ae15250969060a8f44ca59d54955c2fadadf8c70c2c0d89a92",
+      "kind": "document"
+    },
+    {
+      "path": "docs/adr/0001-initial-architecture-boundaries.md",
+      "checksum": "sha256:846e2317cc0db8e6d052ddfffd10e7b0f524f45de368b55ac04825f81fb79296",
+      "kind": "document"
+    },
+    {
+      "path": "docs/adr/0002-contract-source-of-truth.md",
+      "checksum": "sha256:d48014875fc499550eecf717d1dc28eff9c15a69bde5130ec690d3efd73dac02",
+      "kind": "document"
+    },
+    {
+      "path": "docs/adr/README.md",
+      "checksum": "sha256:e2312ed94adfb9c479c260851a0cb19f67b6a9c98e1c0434d9aa58aa5575828b",
+      "kind": "document"
+    },
+    {
+      "path": "docs/architecture/00-system-boundary.md",
+      "checksum": "sha256:9858910aee6d3561dce90adecb9e55e31078a2c35713a66983232590ebfb2505",
+      "kind": "document"
+    },
+    {
+      "path": "docs/architecture/01-domain-model.md",
+      "checksum": "sha256:8d08084c8d4a3cce288d50b43831ca4b2522e949799ec2c505431371303d3369",
+      "kind": "document"
+    },
+    {
+      "path": "docs/architecture/02-runtime-flow.md",
+      "checksum": "sha256:7eaff6a7a429daa18798c7612760973c1e3eb8042715505f2b10f80302aa324f",
+      "kind": "document"
+    },
+    {
+      "path": "docs/architecture/03-quality-attributes.md",
+      "checksum": "sha256:53ddf09700135966e667c3e33e29b03f5701b4ea4f6771467a6adeb2d3ad77ad",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/00-api-server-boundary.md",
+      "checksum": "sha256:cfee7ab53f49d2acb6b35147b445601038159cd57b5d72034e266e391800e94e",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/01-authentication.md",
+      "checksum": "sha256:2385380a68d93f1c6e306a0cc20f58b51743d84c1db10897ef72a0793cf01486",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/02-authorization.md",
+      "checksum": "sha256:510a4805a74d936992e2db884afb65a775897c16744b74d00a92e202e21f1eb8",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/03-persistence-model.md",
+      "checksum": "sha256:22f1481d337a8221bb1e2ad6dfc6986b4b4036cefa488f6ffbb6f74ccc625d85",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/04-http-api-policy.md",
+      "checksum": "sha256:47e1f1d9d9e625925da74e30eacf6fa5a6d08d59cfc8ac6402d6f6254617f318",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/05-error-response.md",
+      "checksum": "sha256:37d02e145855dedcbd09bacedfe60d564e5af2fae3a449c923e5f1dc0e511a10",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/06-logging-and-observability.md",
+      "checksum": "sha256:f03b3ac59482984b918672f85d936b722b89a639b489148370d56cf46af947cd",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/07-migration-strategy.md",
+      "checksum": "sha256:e3f7347b65388b587333d4b806160c7507b7ef9e56eec936cd34db82e27b0a96",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/08-backend-security.md",
+      "checksum": "sha256:231b6ddaf1e3903f5c11adf9d6f2c810fdf2f0b46c3db4e908ffeb127481d49e",
+      "kind": "document"
+    },
+    {
+      "path": "docs/backend/README.md",
+      "checksum": "sha256:1c6c3d9284f3bbcc806ea60c3033f5d32bbac4c887150bfb30e3c2c4ca06ca6e",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/00-project-invariants.md",
+      "checksum": "sha256:073f47262aa5dacdffa1a9c6bd7f1efe8bd8fb0e65162b13083822c7bf17f32e",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/01-design-review-questions.md",
+      "checksum": "sha256:f762e5ad5118bee6dd8dcefa7f17ce7d60e896dfa5d1712cfcf56b6a3313f256",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/02-code-review-checklist.md",
+      "checksum": "sha256:cafc7eecbecdfa73c5606dd1bcd1a99ad8fd2a3a37c0dd218a3e4b740dd64b26",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/03-performance-budget.md",
+      "checksum": "sha256:bbf41ff7c88936f1922e887702adf442905a26a24c3e7486339549d8d931a447",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/04-security-baseline.md",
+      "checksum": "sha256:86f9228f277aae48f52d018858ca62d760df3f1c8e149cb3e282b69df4ead1bc",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/05-testing-standard.md",
+      "checksum": "sha256:0a2e42f3f00b4e02102394f350239a9985bfe5b8df337900a4a24c09b07ff991",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/06-dependency-and-change-policy.md",
+      "checksum": "sha256:f17096aee7089782dde56c0b9125a14f0685f540a6916f7db85b49b25680dfe0",
+      "kind": "document"
+    },
+    {
+      "path": "docs/engineering/07-operability-and-failure-standard.md",
+      "checksum": "sha256:4fb1d4c16b5f58e3aa23738630afee87a06da7f36bd89c0fb4422ac90e7675fe",
+      "kind": "document"
+    },
+    {
+      "path": "docs/library/compatibility.md",
+      "checksum": "sha256:8b7c2b469c39d3d04878f6a424e4d865334eb3357a3ba4820a940f4177f4e91c",
+      "kind": "document"
+    },
+    {
+      "path": "docs/library/public-api.md",
+      "checksum": "sha256:62eb0f1516059c80ad75aca6970aae039225a52cb34e2acdd4b3f499a1f6b124",
+      "kind": "document"
+    },
+    {
+      "path": "docs/library/README.md",
+      "checksum": "sha256:07df1b36d876554f3e9e52aeecb93ae6efa11860633492cec2d103ec55634f1e",
+      "kind": "document"
+    },
+    {
+      "path": "docs/library/semver.md",
+      "checksum": "sha256:e6162cf6da62c5e9b267efe33a0ecd169f42e56c65d734a788438f823f759e34",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/00-operational-contract.md",
+      "checksum": "sha256:6aa2aafbcd19eb8d9bbad676b97fafb5999f83629452c83c46947e4854a22394",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/backup-and-restore.md",
+      "checksum": "sha256:a05c94400dbfc752c734e4226f3bcc52ea79f0469581532c38b45c66501eb0b1",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/ci.md",
+      "checksum": "sha256:84230d18c038fad55557eed25f080012d1292e7d56b31b3c04c89ab49523c6ec",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/config-and-env.md",
+      "checksum": "sha256:3d40fb7c73c3a4c28f24b31347a2c6ace81a3b4d8dcff54554078b575061dc5a",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/incident-response.md",
+      "checksum": "sha256:582e4c1d30843019f0b830ca47c2ba9cade0849b49c5abceabacaa185e4f2cb7",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/observability.md",
+      "checksum": "sha256:363ff0a58487e04f1be0a90ce49fb4f9ff5e07aedb2e6dfdf515d26092bb219a",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/release.md",
+      "checksum": "sha256:1932d2a53aba0aa7f465399a8b3808968438d888d3ecd745c60a307cdf9bb2cf",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/rollback.md",
+      "checksum": "sha256:c0620ef6e1ca0e2d9cd6516eaea7460bb7986060f0aacf526ab7acb76bfe49f0",
+      "kind": "document"
+    },
+    {
+      "path": "docs/ops/secrets.md",
+      "checksum": "sha256:f87945c72489fd41ed6df3d86056f28ea14becbbbfd20c23423875629273662a",
+      "kind": "document"
+    },
+    {
+      "path": "docs/product/00-product-brief.md",
+      "checksum": "sha256:22656608af8cf6c002bdf37b68c21047b2677706f45f0cdf678ffeb31abc9359",
+      "kind": "document"
+    },
+    {
+      "path": "docs/product/01-roadmap.md",
+      "checksum": "sha256:17b1509eecc5ebaba65ea4983a0641200edbff1810262746afa96f740999d467",
+      "kind": "document"
+    },
+    {
+      "path": "docs/product/02-spec.md",
+      "checksum": "sha256:88d06c4f89a24754a69e86cd5316213ccc26b8ac1a9f9c00d1fc1794f4feb539",
+      "kind": "document"
+    },
+    {
+      "path": "docs/product/03-risk-register.md",
+      "checksum": "sha256:26b68925311621d0fd1a9244ac317a74306f393bdeb3debaa9c06ce12b76715c",
+      "kind": "document"
+    },
+    {
+      "path": "docs/README.md",
+      "checksum": "sha256:a365f979c8c97a9c079b5156932e2532a26cfbd94698d757e4894d8051391e24",
+      "kind": "document"
+    },
+    {
+      "path": "docs/sdk/compatibility.md",
+      "checksum": "sha256:bcdb7f99de793a0e14929b7575b7686242da080e74ca14c440835fc84a5cb3e5",
+      "kind": "document"
+    },
+    {
+      "path": "docs/sdk/public-api.md",
+      "checksum": "sha256:ad30679a331fd116e157d8b7671f762400419cb12acc45ff9472268a49b1b3f7",
+      "kind": "document"
+    },
+    {
+      "path": "docs/sdk/README.md",
+      "checksum": "sha256:187dfb6671576de4bd80c7f828c2129fd85730dcd96ebb93a2129391611b6067",
+      "kind": "document"
+    },
+    {
+      "path": "README.md",
+      "checksum": "sha256:be350a5e863ebd1890b876a09a5687b5e93f5cd8d088ef0b8a317646ad565af1",
+      "kind": "document"
+    },
+    {
+      "path": "VALIDATION.md",
+      "checksum": "sha256:f9cbc7b847c79ef2505b7bc8da47fb0576ecbf4b859493dd8b2a3f0be6d54a99",
+      "kind": "validation"
+    }
+  ]
+}

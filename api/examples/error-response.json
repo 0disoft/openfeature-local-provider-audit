@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "UNDECIDED_ERROR",
+    "message": "A safe public error message.",
+    "requestId": "req_UNDECIDED"
+  }
+}
