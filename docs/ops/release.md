@@ -4,16 +4,17 @@ Status: Draft
 
 ## Operational Contract
 
-Cover release types, versioning, pre-release checklist, deployment flow, post-deploy verification, stop conditions, and owner handoff.
+Release readiness depends on public API docs, compatibility notes, semver review,
+package checks, replay fixture evidence, and redaction tests once implementation exists.
 
 ## Owners
 
-- Primary owner: UNASSIGNED
-- Backup owner: UNASSIGNED
-- Escalation path: UNDECIDED
+- Primary owner: 0disoft
+- Backup owner: repository maintainer
+- Escalation path: GitHub issue or release-blocking maintainer review
 
 ## Validation
 
 - Required validation names: VALIDATION.md
-- Release blocker status: UNDECIDED
-- Remaining operational risk: UNDECIDED
+- Release blocker status: changed public behavior without matching docs and validation.
+- Remaining operational risk: no package can be released safely until runtime targets and exports are implemented and tested.

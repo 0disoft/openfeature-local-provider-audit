@@ -4,14 +4,23 @@ Status: Draft
 
 ## Contract
 
-Security baseline covers authentication, authorization, tenant boundaries, input validation, output validation, secrets, external integrations, logs, and security blockers.
+Security baseline focuses on keeping secrets and personal data out of examples, audit
+logs, replay fixtures, generated output, and package metadata.
 
 ## Required Evidence
 
-- Source of truth: UNDECIDED
-- Owner: UNASSIGNED
+- Source of truth: docs/product/02-spec.md
+- Owner: 0disoft
 - Merge-blocking validation: VALIDATION.md
 - Related checklist: CHECKLIST.md
+
+## Baseline
+
+- Redact evaluation context by default.
+- Do not treat flag targeting as authorization.
+- Do not require credentials for local evaluation.
+- Do not ship examples with emails, tokens, passwords, or real user identifiers.
+- Treat audit event shape and redaction controls as compatibility-sensitive.
 
 ## Review Blockers
 

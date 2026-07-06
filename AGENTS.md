@@ -4,14 +4,17 @@
 
 Scope: backend
 
-This repository owns API server behavior, server-side domain rules, authentication,
-authorization, persistence, migrations, observability, and backend security.
+This repository owns a local OpenFeature provider library and SDK surface for file/env
+feature flags, deterministic bucketing, evaluation reasons, snapshot/replay fixtures,
+and redacted evaluation audit logs.
 
-This repository does not own frontend routing, visual design, component hierarchy,
-design tokens, or browser interaction policy.
+This repository does not own a hosted flag service, control-plane UI, experiment
+analytics product, approval workflow, user segment database, or remote rollout
+management server.
 
-Frontend-facing behavior is contracted through `api/openapi.yaml`, `api/examples/*.json`,
-`docs/backend/04-http-api-policy.md`, and `docs/backend/05-error-response.md`.
+Consumer-facing behavior is contracted through `docs/product/02-spec.md`,
+`docs/library/public-api.md`, `docs/sdk/public-api.md`, and compatibility notes under
+`docs/library/` and `docs/sdk/`.
 
 ## Repository Shape
 

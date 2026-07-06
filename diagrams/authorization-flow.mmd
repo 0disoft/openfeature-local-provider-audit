@@ -1,5 +1,7 @@
 flowchart TD
-  A["authorization_flow: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+  App["Application authorization"] --> Decision["Allow or deny request"]
+  Decision --> Eval["Optional flag evaluation"]
+  Eval --> Provider["Local provider"]
+  Provider --> Value["Feature flag value"]
+  Value --> App
+  Provider -. "flags are not permissions" .- Boundary["Authorization remains caller-owned"]

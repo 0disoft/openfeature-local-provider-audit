@@ -5,21 +5,23 @@ Repository Type: library
 
 ## Repository Type Contract
 
-This repository type owns public API surface, package compatibility, semantic versioning, migration guidance, distribution artifacts, and consumer-facing deprecation policy.
+The public API must let consumers register a local provider, load flag snapshots,
+override with environment variables, inspect evaluation reasons, emit redacted audit
+events, and replay deterministic fixtures without depending on a hosted service.
 
 ## Source of Truth
 
-- Product decision: UNDECIDED
-- Technical owner: UNASSIGNED
-- Related ADR: UNDECIDED
+- Product decision: docs/product/02-spec.md
+- Technical owner: 0disoft
+- Related ADR: docs/adr/0001-initial-architecture-boundaries.md
 
 ## Required Decisions
 
-- Public API ownership: UNDECIDED
-- Semantic versioning policy: UNDECIDED
-- Runtime and platform compatibility: UNDECIDED
-- Package artifact and export surface: UNDECIDED
-- Deprecation and migration policy: UNDECIDED
+- Public API ownership: provider constructor, flag file loader, env override mapper, audit logger/redactor, replay helper.
+- Semantic versioning policy: public exports, reason names, audit event fields, and bucketing output changes are breaking unless documented otherwise.
+- Runtime and platform compatibility: TypeScript package first; supported runtimes must be proven before release.
+- Package artifact and export surface: exports must match this document and examples.
+- Deprecation and migration policy: provide migration notes for flag schema, override naming, and bucketing changes.
 
 ## Review Blockers
 

@@ -5,21 +5,23 @@ Repository Type: sdk
 
 ## Repository Type Contract
 
-This repository type owns public API, compatibility, examples, versioning, and consumer migration.
+SDK compatibility is measured by whether consumer examples continue to register the
+provider, resolve sample flags, emit redacted audit events, and replay deterministic
+fixtures across documented runtime targets.
 
 ## Source of Truth
 
-- Product decision: UNDECIDED
-- Technical owner: UNASSIGNED
-- Related ADR: UNDECIDED
+- Product decision: docs/product/02-spec.md
+- Technical owner: 0disoft
+- Related ADR: docs/adr/0001-initial-architecture-boundaries.md
 
 ## Required Decisions
 
-- SDK ownership boundary: UNDECIDED
-- SDK public contract: UNDECIDED
-- SDK validation evidence: UNDECIDED
-- SDK release or rollout policy: UNDECIDED
-- SDK compatibility and migration policy: UNDECIDED
+- SDK ownership boundary: examples and compatibility notes, not hosted service operations.
+- SDK public contract: examples must follow the documented provider API.
+- SDK validation evidence: sample flag files and replay fixtures become required once implementation starts.
+- SDK release or rollout policy: publish examples with the same package version as the provider.
+- SDK compatibility and migration policy: mark changed reason names, audit fields, schema, or bucketing behavior as migration-sensitive.
 
 ## Review Blockers
 

@@ -1,5 +1,8 @@
 flowchart TD
-  A["rollback_flow: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+  Regression["Detected package regression"] --> Classify{"Behavior affected?"}
+  Classify -- bucketing --> Pin["Tell users to pin previous version"]
+  Classify -- redaction --> Patch["Ship patch and security note"]
+  Classify -- docs only --> Docs["Correct docs and examples"]
+  Pin --> Replay["Use replay fixtures to prove recovery"]
+  Patch --> Replay
+  Docs --> Replay

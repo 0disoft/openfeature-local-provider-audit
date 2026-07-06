@@ -1,5 +1,7 @@
 flowchart TD
-  A["system_context: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+  App["Application using OpenFeature SDK"] --> Provider["Local provider package"]
+  Provider --> Flags["Caller-owned flag file"]
+  Provider --> Env["Environment overrides"]
+  Provider --> Audit["Local JSON Lines audit log"]
+  Provider --> Replay["Replay fixtures"]
+  Provider -. "no network call" .- Hosted["Hosted flag service out of scope"]

@@ -4,16 +4,17 @@ Status: Draft
 
 ## Operational Contract
 
-Focus on restore, including restore owner, schedule, test cadence, RTO, RPO, integrity checks, and partial restore behavior.
+The package owns no hosted data store. Backup and restore guidance applies to
+caller-owned flag files, audit logs, and replay fixtures.
 
 ## Owners
 
-- Primary owner: UNASSIGNED
-- Backup owner: UNASSIGNED
-- Escalation path: UNDECIDED
+- Primary owner: 0disoft
+- Backup owner: repository maintainer
+- Escalation path: GitHub issue or release-blocking maintainer review
 
 ## Validation
 
 - Required validation names: VALIDATION.md
-- Release blocker status: UNDECIDED
-- Remaining operational risk: UNDECIDED
+- Release blocker status: examples imply this package backs up caller data.
+- Remaining operational risk: callers must own retention and restoration of local audit artifacts.

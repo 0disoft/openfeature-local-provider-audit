@@ -1,5 +1,11 @@
-flowchart TD
-  A["request_lifecycle: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+sequenceDiagram
+  participant App as Application
+  participant OF as OpenFeature SDK
+  participant Provider as Local Provider
+  participant Audit as Audit Log
+  App->>OF: evaluate flag with default and context
+  OF->>Provider: provider evaluation call
+  Provider->>Provider: resolve file, env override, or bucket
+  Provider->>Audit: write redacted JSON Lines event
+  Provider-->>OF: value, variant, reason, source
+  OF-->>App: typed evaluation result

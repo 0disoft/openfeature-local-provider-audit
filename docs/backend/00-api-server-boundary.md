@@ -4,20 +4,19 @@ Status: Draft
 
 ## Backend Contract
 
-This backend document covers API server boundary, authentication, authorization, persistence model,
-HTTP API policy, error response, logging and observability, migration strategy,
-and backend security as applicable.
+No API server is owned in the MVP. Backend scope means this package is expected to be
+used by server-side applications, CLIs, tests, and local/offline environments.
 
 ## Required Decisions
 
-- API owner: UNASSIGNED
-- Auth model: UNDECIDED
-- Authorization checks: UNDECIDED
-- Persistence model: UNDECIDED
-- Error response policy: docs/backend/05-error-response.md
+- API owner: not applicable.
+- Auth model: not applicable.
+- Authorization checks: caller-owned.
+- Persistence model: local flag file input and optional local audit log output.
+- Error response policy: typed library errors and evaluation reasons.
 
 ## Merge Blockers
 
-- OpenAPI drift from api/openapi.yaml.
-- Authorization behavior hidden in one handler or UI.
-- Migration plan missing rollback or forward-fix path.
+- HTTP or remote service behavior appears without an ADR.
+- A local-only provider starts depending on network availability.
+- Error behavior cannot be explained through public API docs.

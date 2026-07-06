@@ -1,5 +1,8 @@
 flowchart TD
-  A["release_flow: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+  Change["Change provider behavior or docs"] --> Contract["Check product, library, and SDK contracts"]
+  Contract --> Tests["Run docs, check, tests, and replay fixtures"]
+  Tests --> Semver{"Compatibility-sensitive change?"}
+  Semver -- yes --> Migration["Add semver and migration notes"]
+  Semver -- no --> Publish["Prepare package release"]
+  Migration --> Publish
+  Publish --> Verify["Verify package artifacts and examples"]

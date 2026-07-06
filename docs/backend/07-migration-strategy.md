@@ -4,20 +4,20 @@ Status: Draft
 
 ## Backend Contract
 
-This backend document covers API server boundary, authentication, authorization, persistence model,
-HTTP API policy, error response, logging and observability, migration strategy,
-and backend security as applicable.
+Migration strategy covers library compatibility, not database rollout. The riskiest
+migrations are flag schema, env override naming, bucketing output, reason names, and
+audit event shape.
 
 ## Required Decisions
 
-- API owner: UNASSIGNED
-- Auth model: UNDECIDED
-- Authorization checks: UNDECIDED
-- Persistence model: UNDECIDED
-- Error response policy: docs/backend/05-error-response.md
+- API owner: not applicable.
+- Auth model: not applicable.
+- Authorization checks: caller-owned.
+- Persistence model: no DB migrations; local artifact format migrations only.
+- Error response policy: migration notes must preserve error and reason semantics.
 
 ## Merge Blockers
 
-- OpenAPI drift from api/openapi.yaml.
-- Authorization behavior hidden in one handler or UI.
-- Migration plan missing rollback or forward-fix path.
+- A compatibility-sensitive behavior changes without semver and migration notes.
+- Replay fixtures are not updated for changed bucketing or reason behavior.
+- A remote migration or database rollout is required for normal package upgrade.

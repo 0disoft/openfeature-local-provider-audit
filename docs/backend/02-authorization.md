@@ -4,20 +4,19 @@ Status: Draft
 
 ## Backend Contract
 
-This backend document covers API server boundary, authentication, authorization, persistence model,
-HTTP API policy, error response, logging and observability, migration strategy,
-and backend security as applicable.
+The MVP owns no authorization model. Targeting context can influence flag evaluation,
+but it must not be treated as permission enforcement.
 
 ## Required Decisions
 
-- API owner: UNASSIGNED
-- Auth model: UNDECIDED
-- Authorization checks: UNDECIDED
-- Persistence model: UNDECIDED
-- Error response policy: docs/backend/05-error-response.md
+- API owner: not applicable.
+- Auth model: caller-owned.
+- Authorization checks: caller-owned and outside provider scope.
+- Persistence model: local flag files and local audit output only.
+- Error response policy: evaluation reasons must not imply allow/deny decisions.
 
 ## Merge Blockers
 
-- OpenAPI drift from api/openapi.yaml.
-- Authorization behavior hidden in one handler or UI.
-- Migration plan missing rollback or forward-fix path.
+- A flag rule is documented as an authorization control.
+- A provider API accepts secrets or credentials to decide access.
+- Audit or replay fixtures expose raw authorization context by default.

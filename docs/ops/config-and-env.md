@@ -4,16 +4,17 @@ Status: Draft
 
 ## Operational Contract
 
-Treat configuration as a runtime contract with defaults, environment ownership, validation, reload policy, and drift handling.
+Configuration scope is local flag file location, env override naming, override priority,
+audit log output settings, redaction policy, and replay fixture input.
 
 ## Owners
 
-- Primary owner: UNASSIGNED
-- Backup owner: UNASSIGNED
-- Escalation path: UNDECIDED
+- Primary owner: 0disoft
+- Backup owner: repository maintainer
+- Escalation path: GitHub issue or release-blocking maintainer review
 
 ## Validation
 
 - Required validation names: VALIDATION.md
-- Release blocker status: UNDECIDED
-- Remaining operational risk: UNDECIDED
+- Release blocker status: env override priority changes without compatibility notes.
+- Remaining operational risk: exact env variable names remain implementation-time decisions.

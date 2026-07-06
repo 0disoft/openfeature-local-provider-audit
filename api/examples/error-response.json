@@ -1,7 +1,6 @@
 {
-  "error": {
-    "code": "UNDECIDED_ERROR",
-    "message": "A safe public error message.",
-    "requestId": "req_UNDECIDED"
-  }
+  "flagKey": "checkout.new-flow",
+  "code": "FLAG_PARSE_ERROR",
+  "message": "Flag configuration could not be parsed.",
+  "reason": "ERROR"
 }

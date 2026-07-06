@@ -4,14 +4,23 @@ Status: Draft
 
 ## Boundary
 
-Define what this repository owns, what it consumes, and which contracts cannot drift.
+Runtime behavior starts and ends inside the local provider package. The package may read
+caller-supplied files and environment variables, but it must not call a remote feature
+flag service during the MVP.
 
 ## Runtime Flow
 
-UNDECIDED. Add the minimal sequence needed to explain request, state, failure, and recovery behavior.
+1. Load a flag snapshot from the configured local file.
+2. Validate flag shape and value type before accepting the snapshot.
+3. Apply environment overrides according to documented priority.
+4. Receive evaluation requests through the OpenFeature provider interface.
+5. Resolve by exact flag value, explicit override, deterministic bucket, or default fallback.
+6. Return value, variant if available, reason, and error details when applicable.
+7. Emit a redacted audit event that is safe for local logs and replay fixtures.
 
 ## Quality Attributes
 
 - Maintainability: changes must preserve source-of-truth documents.
-- Security: authentication, authorization, tenant boundaries, and secrets need explicit owners.
-- Operability: logs, metrics, rollback, and incident response must be considered before release.
+- Security: evaluation context values are never logged raw by default.
+- Operability: the same snapshot and replay context must produce the same resolution.
+- Compatibility: changes to bucketing input, hash algorithm, reason names, or override priority require migration notes.

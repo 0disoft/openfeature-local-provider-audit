@@ -1,28 +1,30 @@
 # Development
 
 Status: Draft
-Owner: UNASSIGNED
+Owner: 0disoft
 
 ## Purpose
 
-This document captures the durable design contract for Development.
-It is intentionally a scaffold and should be filled with project-specific decisions as they become known.
+Development work should preserve the package boundary before adding implementation:
+the provider must stay local, deterministic, explainable, and safe to audit without a
+network service.
 
 ## Source of Truth
 
-- Product decision: UNDECIDED
-- Technical owner: UNASSIGNED
-- Related ADR: UNDECIDED
+- Product decision: docs/product/02-spec.md
+- Technical owner: 0disoft
+- Related ADR: docs/adr/0001-initial-architecture-boundaries.md
 
 ## Required Decisions
 
-- Boundary: UNDECIDED
-- Data ownership: UNDECIDED
-- Failure and recovery behavior: UNDECIDED
+- Boundary: provider package, public API docs, SDK examples, replay fixtures, and compatibility docs.
+- Data ownership: local files and audit logs remain caller-owned.
+- Failure and recovery behavior: parse failures, type mismatches, missing flags, override failures, and bucketing fallbacks must have explicit reasons.
 - Validation needed before merge: VALIDATION.md
 
 ## Review Blockers
 
-- The change invents a product domain without a source.
+- The change introduces network, database, or runtime service assumptions before an ADR.
+- The change makes flag evaluation nondeterministic for the same snapshot and targeting key.
 - The change weakens validation or skips required evidence.
 - The change relies on generated, cache, or build output as source truth.

@@ -4,14 +4,24 @@ Status: Draft
 
 ## Contract
 
-Code review blockers include ownership drift, hidden auth or tenant rules, untested failure paths, contract drift, fake validation success, and generated-output dependency.
+Code review must treat flag resolution behavior as user-visible product behavior.
+Small implementation changes can be breaking if they alter values, reasons, redaction,
+or replay output.
 
 ## Required Evidence
 
-- Source of truth: UNDECIDED
-- Owner: UNASSIGNED
+- Source of truth: docs/product/02-spec.md
+- Owner: 0disoft
 - Merge-blocking validation: VALIDATION.md
 - Related checklist: CHECKLIST.md
+
+## Checklist
+
+- Public exports match docs/library/public-api.md and docs/sdk/public-api.md.
+- Bucketing behavior is covered by deterministic replay evidence.
+- Error paths distinguish parse error, missing flag, type mismatch, override parse failure, and fallback.
+- Audit output is redacted by default.
+- No server, database, credential, or hosted control-plane assumption is introduced.
 
 ## Review Blockers
 

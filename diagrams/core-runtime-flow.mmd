@@ -1,5 +1,12 @@
 flowchart TD
-  A["core_runtime_flow: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+  Load["Load local flag snapshot"] --> Validate["Validate schema and value types"]
+  Validate --> Register["Register provider with OpenFeature"]
+  Register --> Eval["Evaluate flag request"]
+  Eval --> Override{"Env override present?"}
+  Override -- yes --> OverrideValue["Return override value with reason"]
+  Override -- no --> Bucket{"Percentage rollout?"}
+  Bucket -- yes --> BucketValue["Resolve deterministic bucket"]
+  Bucket -- no --> FileValue["Return file value or caller default"]
+  OverrideValue --> Audit["Emit redacted audit event"]
+  BucketValue --> Audit
+  FileValue --> Audit

@@ -1,5 +1,7 @@
 flowchart TD
-  A["auth_flow: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+  Caller["Application authentication"] --> App["Application code"]
+  App --> OF["OpenFeature evaluation"]
+  OF --> Provider["Local provider"]
+  Provider --> Reason["Flag reason only"]
+  Reason --> App
+  Provider -. "does not authenticate users" .- NoAuth["No auth model in package"]

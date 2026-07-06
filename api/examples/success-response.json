@@ -1,6 +1,8 @@
 {
-  "data": {
-    "id": "resource_UNDECIDED",
-    "type": "Resource"
-  }
+  "flagKey": "checkout.new-flow",
+  "value": true,
+  "reason": "STATIC_MATCH",
+  "source": "file",
+  "variant": "enabled",
+  "auditEventId": "audit_2026-07-06T00-00-00Z_checkout-new-flow"
 }

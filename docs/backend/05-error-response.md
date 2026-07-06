@@ -4,20 +4,19 @@ Status: Draft
 
 ## Backend Contract
 
-This backend document covers API server boundary, authentication, authorization, persistence model,
-HTTP API policy, error response, logging and observability, migration strategy,
-and backend security as applicable.
+Error behavior is a library contract, not an HTTP response contract. Failures should be
+typed, explainable through evaluation reasons, and replayable when possible.
 
 ## Required Decisions
 
-- API owner: UNASSIGNED
-- Auth model: UNDECIDED
-- Authorization checks: UNDECIDED
-- Persistence model: UNDECIDED
-- Error response policy: docs/backend/05-error-response.md
+- API owner: not applicable.
+- Auth model: not applicable.
+- Authorization checks: caller-owned.
+- Persistence model: local file/env inputs only.
+- Error response policy: distinguish parse error, missing flag, type mismatch, override parse failure, and bucketing fallback.
 
 ## Merge Blockers
 
-- OpenAPI drift from api/openapi.yaml.
-- Authorization behavior hidden in one handler or UI.
-- Migration plan missing rollback or forward-fix path.
+- Errors silently return a non-default value after malformed configuration.
+- Error names or reason names change without compatibility notes.
+- Error output leaks raw targeting context, emails, tokens, or secrets.

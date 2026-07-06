@@ -1,28 +1,32 @@
 # Risk Register
 
 Status: Draft
-Owner: UNASSIGNED
+Owner: 0disoft
 
 ## Purpose
 
-This document captures the durable design contract for Risk Register.
-It is intentionally a scaffold and should be filled with project-specific decisions as they become known.
+This register tracks product risks that can make a local feature flag provider unsafe,
+surprising, or too large to maintain.
 
-## Source of Truth
+## Risks
 
-- Product decision: UNDECIDED
-- Technical owner: UNASSIGNED
-- Related ADR: UNDECIDED
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Bucketing algorithm drift | Users move between rollout groups after upgrade. | Treat bucketing output as compatibility-sensitive and cover it with replay fixtures. |
+| Env override ambiguity | Operators cannot explain why a flag resolved to a value. | Document source priority and include source/reason in evaluation metadata. |
+| Audit log privacy leak | Targeting keys or context values expose user data. | Redact context by default and log reason summaries instead of raw context. |
+| Provider grows into a platform | Project competes with hosted flag products and loses its small-team value. | Keep dashboard, remote rollout, approval workflow, analytics, and segment storage out of MVP. |
+| File reload/watch complexity | Runtime behavior becomes nondeterministic. | Start with explicit load/snapshot semantics; add watch mode only with event tests. |
 
 ## Required Decisions
 
-- Boundary: UNDECIDED
-- Data ownership: UNDECIDED
-- Failure and recovery behavior: UNDECIDED
+- Boundary: local library and SDK examples only.
+- Data ownership: local flag files and audit artifacts remain caller-owned.
+- Failure and recovery behavior: invalid config is explicit, defaults are reasoned, and replay fixtures prove recovery assumptions.
 - Validation needed before merge: VALIDATION.md
 
 ## Review Blockers
 
-- The change invents a product domain without a source.
-- The change weakens validation or skips required evidence.
-- The change relies on generated, cache, or build output as source truth.
+- A risk-bearing behavior change lacks a fixture, migration note, or rollback path.
+- A new audit field can contain unredacted user context.
+- A platform feature enters scope without replacing or updating this risk register.

@@ -4,14 +4,23 @@ Status: Draft
 
 ## Contract
 
-Performance budgets must track latency, payload size, query count, cache behavior, bundle size, background jobs, and UNDECIDED project-specific thresholds.
+Performance budgets must fit a local provider library. Evaluation should avoid network
+calls, database reads, unbounded context serialization, and avoidable per-call file reads
+unless an explicit reload mode is documented.
 
 ## Required Evidence
 
-- Source of truth: UNDECIDED
-- Owner: UNASSIGNED
+- Source of truth: docs/product/02-spec.md
+- Owner: 0disoft
 - Merge-blocking validation: VALIDATION.md
 - Related checklist: CHECKLIST.md
+
+## Budgets
+
+- Evaluation path: constant work relative to the selected flag rule where practical.
+- Audit path: redaction and JSON Lines writing must not expose raw context or block unrelated evaluations without documentation.
+- Snapshot path: file parsing and validation occur at explicit load boundaries until watch/reload mode is designed.
+- Package size: avoid dependencies that turn the provider into a platform or service runtime.
 
 ## Review Blockers
 

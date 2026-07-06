@@ -1,7 +1,4 @@
 {
-  "data": [],
-  "page": {
-    "limit": 25,
-    "nextCursor": null
-  }
+  "notApplicable": true,
+  "reason": "The MVP has no hosted HTTP resource collection or paginated API."
 }

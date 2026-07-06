@@ -1,5 +1,27 @@
-flowchart TD
-  A["data_model: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+classDiagram
+  class FlagSnapshot {
+    flagKey
+    valueType
+    variants
+    rolloutRules
+  }
+  class EvaluationContext {
+    targetingKey
+    attributes
+  }
+  class EvaluationResult {
+    value
+    variant
+    reason
+    source
+  }
+  class AuditEvent {
+    flagKey
+    reason
+    source
+    redactedContext
+    replayRef
+  }
+  FlagSnapshot --> EvaluationResult
+  EvaluationContext --> EvaluationResult
+  EvaluationResult --> AuditEvent

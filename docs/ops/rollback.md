@@ -4,16 +4,17 @@ Status: Draft
 
 ## Operational Contract
 
-Provide a short actionable decision tree with triggers, procedure, database rollback policy, validation, owners, and forward-fix criteria.
+Rollback means package pinning, patch release, reverting compatibility-sensitive changes,
+or documenting migration steps. There is no hosted deployment rollback in the MVP.
 
 ## Owners
 
-- Primary owner: UNASSIGNED
-- Backup owner: UNASSIGNED
-- Escalation path: UNDECIDED
+- Primary owner: 0disoft
+- Backup owner: repository maintainer
+- Escalation path: GitHub issue or release-blocking maintainer review
 
 ## Validation
 
 - Required validation names: VALIDATION.md
-- Release blocker status: UNDECIDED
-- Remaining operational risk: UNDECIDED
+- Release blocker status: a breaking behavior lacks rollback, migration, or semver treatment.
+- Remaining operational risk: callers must pin or downgrade packages in their own dependency managers.

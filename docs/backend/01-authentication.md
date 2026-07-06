@@ -4,20 +4,19 @@ Status: Draft
 
 ## Backend Contract
 
-This backend document covers API server boundary, authentication, authorization, persistence model,
-HTTP API policy, error response, logging and observability, migration strategy,
-and backend security as applicable.
+The MVP owns no authentication system. Applications authenticate their own callers before
+they ask OpenFeature to evaluate a flag.
 
 ## Required Decisions
 
-- API owner: UNASSIGNED
-- Auth model: UNDECIDED
-- Authorization checks: UNDECIDED
-- Persistence model: UNDECIDED
-- Error response policy: docs/backend/05-error-response.md
+- API owner: not applicable.
+- Auth model: caller-owned; this package must not inspect credentials.
+- Authorization checks: caller-owned.
+- Persistence model: local flag files and local audit output only.
+- Error response policy: typed library errors and evaluation reasons.
 
 ## Merge Blockers
 
-- OpenAPI drift from api/openapi.yaml.
-- Authorization behavior hidden in one handler or UI.
-- Migration plan missing rollback or forward-fix path.
+- A credential, token, session, or tenant model is introduced inside the provider.
+- Audit output records authentication material or raw user identifiers by default.
+- Examples imply this package replaces application access control.

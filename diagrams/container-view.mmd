@@ -1,5 +1,8 @@
 flowchart TD
-  A["container_view: input"] --> B["Review source of truth"]
-  B --> C["Change plan"]
-  C --> D["Validation"]
-  D --> E["Release or rollback decision"]
+  Consumer["Consumer app or test suite"] --> OpenFeature["OpenFeature SDK"]
+  OpenFeature --> Provider["openfeature-local-provider-audit"]
+  Provider --> Loader["Flag snapshot loader"]
+  Provider --> Resolver["Typed evaluator and bucketer"]
+  Provider --> Redactor["Audit redactor"]
+  Redactor --> Audit["JSON Lines audit writer"]
+  Resolver --> Replay["Snapshot replay helper"]

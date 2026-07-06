@@ -4,16 +4,18 @@ Status: Draft
 
 ## Operational Contract
 
-Define severity, roles, first 10 minutes, communication, timeline, postmortem, follow-up policy, and evidence preservation.
+Incident response is maintainer response to package regressions, not hosted-service
+operations. The most likely incidents are bad bucketing, privacy leaks in audit logs,
+and broken flag parsing.
 
 ## Owners
 
-- Primary owner: UNASSIGNED
-- Backup owner: UNASSIGNED
-- Escalation path: UNDECIDED
+- Primary owner: 0disoft
+- Backup owner: repository maintainer
+- Escalation path: GitHub issue or release-blocking maintainer review
 
 ## Validation
 
 - Required validation names: VALIDATION.md
-- Release blocker status: UNDECIDED
-- Remaining operational risk: UNDECIDED
+- Release blocker status: known regression in bucketing, redaction, or default behavior.
+- Remaining operational risk: no live service rollback exists; recovery is package pinning, patch release, and migration notes.
