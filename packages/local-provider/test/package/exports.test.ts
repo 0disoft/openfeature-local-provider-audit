@@ -4,7 +4,8 @@ import {
   createEnvOverrides,
   createLocalProvider,
   evaluateFlag,
-  parseJsonFlagSnapshot
+  parseJsonFlagSnapshot,
+  replayEvaluationFixture
 } from "../../src/index.js";
 
 describe("package exports", () => {
@@ -13,6 +14,7 @@ describe("package exports", () => {
     expect(typeof createEnvOverrides).toBe("function");
     expect(typeof evaluateFlag).toBe("function");
     expect(typeof parseJsonFlagSnapshot).toBe("function");
+    expect(typeof replayEvaluationFixture).toBe("function");
     expect(EVALUATION_REASONS.STATIC).toBe("STATIC");
   });
 });

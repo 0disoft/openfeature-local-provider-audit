@@ -49,11 +49,12 @@ Implementation must not expose internal modules only because examples need conve
 - `parseJsonFlagSnapshot(json)`.
 - `evaluateFlag(snapshot, request)`.
 - `createEnvOverrides(snapshot, options)`.
+- `replayEvaluationFixture(fixture)`.
 - `LocalProviderOptions` with `snapshot`, optional `name`, optional `overridesJson`, and
   optional injectable `env`.
 - `EvaluationRequest` with optional `targetingKey` for rollout evaluation.
 - `EvaluationResult` with optional `bucket` for deterministic pure-evaluator replay checks.
-- Snapshot, flag definition, rollout, evaluation, env override, reason, source, and error code types.
+- Snapshot, flag definition, rollout, evaluation, env override, replay fixture, reason, source, and error code types.
 
 ## Review Blockers
 

@@ -6,6 +6,7 @@ export { parseJsonFlagSnapshot } from "./flags/parse-json-snapshot.js";
 export { createEnvOverrides } from "./env/env-overrides.js";
 export { evaluateFlag } from "./evaluator/evaluate.js";
 export { createLocalProvider } from "./provider/local-provider.js";
+export { replayEvaluationFixture } from "./replay/replay-fixture.js";
 export {
   LOCAL_PROVIDER_ERROR_CODES,
   type LocalProviderErrorCode
@@ -28,5 +29,10 @@ export type {
   JsonObject,
   JsonValue,
   LocalProviderOptions,
-  PercentageRolloutRule
+  PercentageRolloutRule,
+  ReplayExpectedResult,
+  ReplayFixture,
+  ReplayMismatch,
+  ReplayOverrideInput,
+  ReplayResult
 } from "./public-types.js";

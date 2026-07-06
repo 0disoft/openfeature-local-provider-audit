@@ -22,6 +22,14 @@ metadata.
 - `checkout.rollout` with seed `checkout-rollout-v1`.
 - `user-alpha` maps to bucket `29586` and variant `on` at 50%.
 - `user-beta` maps to bucket `51164` and falls back to the static default at 50%.
+- Missing targeting key returns `INVALID_CONTEXT`.
+- Env override input wins before rollout evaluation.
+
+## Implemented Alpha Harness
+
+- `replayEvaluationFixture` replays one fixture through the pure evaluator.
+- The harness compares value, variant, bucket, reason, source, and error code.
+- Mismatches are returned as structured field differences.
 
 ## Review Blockers
 

@@ -66,3 +66,40 @@ export interface EnvOverrideState {
   readonly errors: Readonly<Record<string, string>>;
   readonly globalError?: string;
 }
+
+export interface ReplayFixture<T extends FlagValue = FlagValue> {
+  readonly schemaVersion: 1;
+  readonly name: string;
+  readonly snapshot: FlagSnapshot;
+  readonly overrides?: ReplayOverrideInput;
+  readonly request: EvaluationRequest<T>;
+  readonly expected: ReplayExpectedResult<T>;
+}
+
+export interface ReplayOverrideInput {
+  readonly overridesJson?: string;
+  readonly env?: EnvSource;
+}
+
+export interface ReplayExpectedResult<T extends FlagValue = FlagValue> {
+  readonly value: T;
+  readonly variant?: string;
+  readonly bucket?: number;
+  readonly reason: EvaluationReason;
+  readonly source: EvaluationSource;
+  readonly errorCode?: LocalProviderErrorCode;
+}
+
+export interface ReplayResult<T extends FlagValue = FlagValue> {
+  readonly fixtureName: string;
+  readonly passed: boolean;
+  readonly expected: ReplayExpectedResult<T>;
+  readonly actual: ReplayExpectedResult<T>;
+  readonly mismatches: readonly ReplayMismatch[];
+}
+
+export interface ReplayMismatch {
+  readonly field: string;
+  readonly expected: JsonValue | undefined;
+  readonly actual: JsonValue | undefined;
+}

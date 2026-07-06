@@ -1,7 +1,7 @@
 {
   "name": "@0disoft/openfeature-local-provider",
-  "version": "0.2.0",
-  "description": "Local OpenFeature provider for JSON flag snapshots, typed evaluation, and explicit environment overrides.",
+  "version": "0.3.0",
+  "description": "Local OpenFeature provider for JSON flag snapshots, typed evaluation, environment overrides, bucketing, and replay fixtures.",
   "license": "Apache-2.0",
   "type": "module",
   "main": "./dist/index.cjs",

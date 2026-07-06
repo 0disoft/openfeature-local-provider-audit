@@ -1,6 +1,6 @@
 # Replay Fixture v1
 
-Status: Draft
+Status: Implemented alpha
 Repository Type: library
 
 ## Purpose
@@ -14,6 +14,22 @@ exports of production audit logs.
 - Fixtures include the flag snapshot, override input, evaluation request, expected value, reason, source, and relevant error code.
 - Bucketing fixtures must include stable expected buckets or variants.
 - Fixture updates are required when bucketing, reason taxonomy, env priority, schema, or default behavior changes.
+- Replay uses the pure evaluator and must not depend on OpenFeature adapter behavior.
+
+## Fixture Shape
+
+- `schemaVersion`: currently `1`.
+- `name`: stable fixture name for failure reports.
+- `snapshot`: local flag snapshot under test.
+- `overrides`: optional explicit override input with `overridesJson` or injectable `env`.
+- `request`: evaluator request including flag key, default value, expected type, and optional targeting key.
+- `expected`: expected value, variant, bucket, reason, source, and optional error code.
+
+## Public API
+
+- `replayEvaluationFixture(fixture)` evaluates one fixture and returns pass/fail metadata.
+- Mismatches are reported by field and do not throw, so CI and custom harnesses can aggregate failures.
+- Error message text is intentionally excluded from fixture comparison to avoid overfitting tests to non-contract copy.
 
 ## Review Blockers
 
