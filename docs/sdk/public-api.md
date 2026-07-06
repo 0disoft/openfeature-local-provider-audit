@@ -18,6 +18,8 @@ keeping application code on the standard OpenFeature evaluation API.
 
 - SDK ownership boundary: provider setup examples, local config examples, audit examples, and replay fixture helpers.
 - SDK public contract: examples must use documented exports only.
+- SDK audit contract: examples may pass `auditSink` to `createLocalProvider`, but must not
+  log raw evaluation context or evaluated object values.
 - SDK validation evidence: replay examples must prove deterministic bucketing when implementation exists.
 - SDK release or rollout policy: example packages must not imply support for untested runtimes.
 - SDK compatibility and migration policy: changed examples require matching public API and compatibility docs.

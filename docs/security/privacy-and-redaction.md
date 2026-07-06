@@ -22,7 +22,9 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 - Audit context stores presence and key names only.
 - Snapshot and override data are represented by SHA-256 hashes.
 - Evaluated values are excluded from audit events.
-- JSON Lines serialization is explicit and does not write to a sink by itself.
+- JSON Lines serialization is explicit.
+- File audit sinks append only serialized redacted events.
+- Provider audit sink failures are logged without changing the evaluated result.
 
 ## Review Blockers
 

@@ -60,6 +60,7 @@ export interface LocalProviderOptions {
   readonly name?: string;
   readonly overridesJson?: string;
   readonly env?: EnvSource;
+  readonly auditSink?: AuditSink;
 }
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
@@ -137,4 +138,13 @@ export interface CreateAuditEventOptions {
   readonly overrides?: ReplayOverrideInput;
   readonly eventId?: string;
   readonly timestamp?: string;
+}
+
+export interface AuditSink {
+  write(event: AuditEvent): Promise<void>;
+}
+
+export interface FileAuditSinkOptions {
+  readonly path: string | URL;
+  readonly createDirectory?: boolean;
 }

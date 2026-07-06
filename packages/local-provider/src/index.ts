@@ -8,6 +8,7 @@ export { evaluateFlag } from "./evaluator/evaluate.js";
 export { createLocalProvider } from "./provider/local-provider.js";
 export { replayEvaluationFixture } from "./replay/replay-fixture.js";
 export { createAuditEvent, redactContext, serializeAuditEvent } from "./audit/audit-event.js";
+export { createFileAuditSink } from "./audit/audit-sink.js";
 export {
   LOCAL_PROVIDER_ERROR_CODES,
   type LocalProviderErrorCode
@@ -24,8 +25,10 @@ export type {
   EnvOverrideState,
   EnvSource,
   AuditEvent,
+  AuditSink,
   CreateAuditEventOptions,
   EvaluationContext,
+  FileAuditSinkOptions,
   FlagDefinition,
   FlagSnapshot,
   FlagType,

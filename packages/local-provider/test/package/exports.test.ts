@@ -3,6 +3,7 @@ import {
   EVALUATION_REASONS,
   createAuditEvent,
   createEnvOverrides,
+  createFileAuditSink,
   createLocalProvider,
   evaluateFlag,
   parseJsonFlagSnapshot,
@@ -19,6 +20,7 @@ describe("package exports", () => {
     expect(typeof parseJsonFlagSnapshot).toBe("function");
     expect(typeof replayEvaluationFixture).toBe("function");
     expect(typeof createAuditEvent).toBe("function");
+    expect(typeof createFileAuditSink).toBe("function");
     expect(typeof serializeAuditEvent).toBe("function");
     expect(typeof redactContext).toBe("function");
     expect(EVALUATION_REASONS.STATIC).toBe("STATIC");

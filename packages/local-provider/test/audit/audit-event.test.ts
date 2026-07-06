@@ -1,4 +1,8 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { createFileAuditSink } from "../../src/audit/audit-sink.js";
 import {
   createAuditEvent,
   redactContext,
@@ -90,5 +94,47 @@ describe("audit events", () => {
       keys: [],
       redacted: true
     });
+  });
+
+  it("appends redacted audit events to a JSON Lines file", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "nested", "audit.jsonl");
+
+    try {
+      const request = {
+        flagKey: "checkout.enabled",
+        defaultValue: false,
+        expectedType: "boolean" as const,
+        context: {
+          email: "synthetic@example.test"
+        }
+      };
+      const result = evaluateFlag(staticSnapshot, request);
+      const event = createAuditEvent({
+        providerName: "openfeature-local-provider",
+        snapshot: staticSnapshot,
+        request,
+        result,
+        eventId: "evt_file_sink_1",
+        timestamp: "2026-07-06T00:00:00.000Z"
+      });
+
+      await createFileAuditSink({ path: auditPath }).write(event);
+
+      const content = await readFile(auditPath, "utf8");
+      expect(content.split("\n")).toHaveLength(2);
+      expect(JSON.parse(content.trim())).toMatchObject({
+        eventId: "evt_file_sink_1",
+        flagKey: "checkout.enabled",
+        context: {
+          keys: ["email"],
+          redacted: true
+        }
+      });
+      expect(content).not.toContain("synthetic@example.test");
+      expect(content).not.toContain('"value"');
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
   });
 });

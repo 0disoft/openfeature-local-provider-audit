@@ -1,5 +1,5 @@
 import { ErrorCode } from "@openfeature/server-sdk";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createLocalProvider } from "../../src/provider/local-provider.js";
 import { EVALUATION_REASONS } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
@@ -71,6 +71,52 @@ describe("createLocalProvider", () => {
     ).resolves.toMatchObject({
       value: true,
       reason: EVALUATION_REASONS.SPLIT,
+      variant: "on"
+    });
+  });
+
+  it("does not change evaluation results when audit sink writes fail", async () => {
+    const warn = vi.fn();
+    const provider = createLocalProvider({
+      snapshot: staticSnapshot,
+      auditSink: {
+        async write() {
+          throw new Error("audit path is unavailable");
+        }
+      }
+    });
+
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", false, {}, { ...logger, warn })
+    ).resolves.toMatchObject({
+      value: true,
+      reason: EVALUATION_REASONS.STATIC,
+      variant: "on"
+    });
+    expect(warn).toHaveBeenCalledWith("openfeature-local-provider audit sink write failed");
+  });
+
+  it("does not change evaluation results when audit failure logging throws", async () => {
+    const provider = createLocalProvider({
+      snapshot: staticSnapshot,
+      auditSink: {
+        async write() {
+          throw new Error("audit path is unavailable");
+        }
+      }
+    });
+    const throwingLogger = {
+      ...logger,
+      warn() {
+        throw new Error("logger unavailable");
+      }
+    };
+
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", false, {}, throwingLogger)
+    ).resolves.toMatchObject({
+      value: true,
+      reason: EVALUATION_REASONS.STATIC,
       variant: "on"
     });
   });
