@@ -36,6 +36,7 @@ export interface EvaluationRequest<T extends FlagValue = FlagValue> {
   readonly flagKey: string;
   readonly defaultValue: T;
   readonly expectedType: FlagType;
+  readonly overrides?: EnvOverrideState;
 }
 
 export interface EvaluationResult<T extends FlagValue = FlagValue> {
@@ -52,4 +53,14 @@ export interface EvaluationResult<T extends FlagValue = FlagValue> {
 export interface LocalProviderOptions {
   readonly snapshot: FlagSnapshot;
   readonly name?: string;
+  readonly overridesJson?: string;
+  readonly env?: EnvSource;
+}
+
+export type EnvSource = Readonly<Record<string, string | undefined>>;
+
+export interface EnvOverrideState {
+  readonly values: Readonly<Record<string, FlagValue>>;
+  readonly errors: Readonly<Record<string, string>>;
+  readonly globalError?: string;
 }

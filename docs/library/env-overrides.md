@@ -1,6 +1,6 @@
 # Environment Overrides
 
-Status: Draft
+Status: Implemented alpha
 Repository Type: library
 
 ## Purpose
@@ -16,6 +16,10 @@ The contract must avoid ambiguous automatic environment variable mapping.
   - A JSON map override source.
   - A per-flag `envVar` name declared in the flag file.
 - Override parse failures must be visible as error reason metadata.
+- Provider options read overrides at provider creation time. Runtime environment changes
+  after provider construction do not alter evaluation until a new provider is created.
+- Override values never create new flags. Unknown flag keys still return the caller's
+  OpenFeature default value with default reason metadata.
 
 ## Priority
 
@@ -23,6 +27,15 @@ The contract must avoid ambiguous automatic environment variable mapping.
 2. Explicit per-flag env variable.
 3. File static value or percentage rollout.
 4. Caller-provided OpenFeature default value.
+
+## Public API Shape
+
+- `createEnvOverrides(snapshot, { overridesJson, env })` builds an override state for
+  pure evaluator calls and tests.
+- `createLocalProvider({ snapshot, overridesJson, env })` applies the same override state
+  to OpenFeature provider evaluation.
+- `overridesJson` must be a JSON object keyed by flag key.
+- `env` is an injectable environment source for tests and non-`process.env` runtimes.
 
 ## Review Blockers
 

@@ -38,6 +38,42 @@ export function evaluateFlag<T extends FlagValue>(
     };
   }
 
+  const overrideError = getOverrideError(request);
+  if (overrideError !== undefined) {
+    return {
+      flagKey: request.flagKey,
+      value: request.defaultValue,
+      reason: EVALUATION_REASONS.ERROR,
+      source: EVALUATION_SOURCES.ERROR,
+      errorCode: LOCAL_PROVIDER_ERROR_CODES.OVERRIDE_PARSE_ERROR,
+      errorMessage: overrideError,
+      flagMetadata: flag.metadata ?? {}
+    };
+  }
+
+  const overrideValue = request.overrides?.values[request.flagKey];
+  if (overrideValue !== undefined) {
+    if (!flagValueMatchesType(overrideValue, request.expectedType)) {
+      return {
+        flagKey: request.flagKey,
+        value: request.defaultValue,
+        reason: EVALUATION_REASONS.ERROR,
+        source: EVALUATION_SOURCES.ERROR,
+        errorCode: LOCAL_PROVIDER_ERROR_CODES.OVERRIDE_PARSE_ERROR,
+        errorMessage: `Override for flag "${request.flagKey}" does not match type "${request.expectedType}".`,
+        flagMetadata: flag.metadata ?? {}
+      };
+    }
+
+    return {
+      flagKey: request.flagKey,
+      value: overrideValue as T,
+      reason: EVALUATION_REASONS.ENV_OVERRIDE,
+      source: EVALUATION_SOURCES.ENV,
+      flagMetadata: flag.metadata ?? {}
+    };
+  }
+
   const value = flag.variants[flag.defaultVariant];
 
   if (value === undefined || !flagValueMatchesType(value, request.expectedType)) {
@@ -60,4 +96,12 @@ export function evaluateFlag<T extends FlagValue>(
     source: EVALUATION_SOURCES.FILE,
     flagMetadata: flag.metadata ?? {}
   };
+}
+
+function getOverrideError(request: EvaluationRequest<FlagValue>): string | undefined {
+  if (request.overrides?.globalError !== undefined) {
+    return request.overrides.globalError;
+  }
+
+  return request.overrides?.errors[request.flagKey];
 }

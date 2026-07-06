@@ -10,6 +10,7 @@ export const staticSnapshot: FlagSnapshot = {
         on: true,
         off: false
       },
+      envVar: "OPENFEATURE_LOCAL_FLAG_CHECKOUT_ENABLED",
       metadata: {
         owner: "checkout"
       }
@@ -20,14 +21,16 @@ export const staticSnapshot: FlagSnapshot = {
       variants: {
         short: "Buy now",
         long: "Complete checkout"
-      }
+      },
+      envVar: "OPENFEATURE_LOCAL_FLAG_CHECKOUT_COPY"
     },
     "checkout.limit": {
       type: "number",
       defaultVariant: "standard",
       variants: {
         standard: 5
-      }
+      },
+      envVar: "OPENFEATURE_LOCAL_FLAG_CHECKOUT_LIMIT"
     },
     "checkout.config": {
       type: "object",
@@ -37,7 +40,8 @@ export const staticSnapshot: FlagSnapshot = {
           retries: 2,
           mode: "safe"
         }
-      }
+      },
+      envVar: "OPENFEATURE_LOCAL_FLAG_CHECKOUT_CONFIG"
     }
   }
 };

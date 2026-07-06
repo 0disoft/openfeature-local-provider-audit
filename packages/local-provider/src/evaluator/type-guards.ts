@@ -38,6 +38,6 @@ export function flagValueMatchesType(value: FlagValue, expectedType: FlagType): 
     case "number":
       return typeof value === "number" && Number.isFinite(value);
     case "object":
-      return typeof value === "object";
+      return value !== null && typeof value === "object";
   }
 }

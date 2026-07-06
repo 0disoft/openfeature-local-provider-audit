@@ -35,12 +35,23 @@ events, and replay deterministic fixtures without depending on a hosted service.
 - Provider creation API.
 - JSON flag snapshot parser.
 - Pure flag evaluator.
+- Explicit environment override mapper.
 - Local provider options.
 - Flag snapshot and flag definition types.
-- Evaluation result, reason, source, and error code types.
+- Evaluation request, result, env override state, reason, source, and error code types.
 - Audit event and replay fixture types once implemented.
 
 Implementation must not expose internal modules only because examples need convenience imports.
+
+## Implemented Alpha Export Surface
+
+- `createLocalProvider(options)`.
+- `parseJsonFlagSnapshot(json)`.
+- `evaluateFlag(snapshot, request)`.
+- `createEnvOverrides(snapshot, options)`.
+- `LocalProviderOptions` with `snapshot`, optional `name`, optional `overridesJson`, and
+  optional injectable `env`.
+- Snapshot, flag definition, evaluation, env override, reason, source, and error code types.
 
 ## Review Blockers
 

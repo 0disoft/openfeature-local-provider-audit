@@ -3,6 +3,7 @@ export {
   isLocalProviderError
 } from "./errors/local-provider-error.js";
 export { parseJsonFlagSnapshot } from "./flags/parse-json-snapshot.js";
+export { createEnvOverrides } from "./env/env-overrides.js";
 export { evaluateFlag } from "./evaluator/evaluate.js";
 export { createLocalProvider } from "./provider/local-provider.js";
 export {
@@ -18,6 +19,8 @@ export {
 export type {
   EvaluationRequest,
   EvaluationResult,
+  EnvOverrideState,
+  EnvSource,
   FlagDefinition,
   FlagSnapshot,
   FlagType,

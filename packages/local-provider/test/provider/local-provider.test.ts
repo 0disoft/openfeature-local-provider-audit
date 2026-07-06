@@ -41,4 +41,20 @@ describe("createLocalProvider", () => {
       errorCode: ErrorCode.TYPE_MISMATCH
     });
   });
+
+  it("uses env override options captured at provider creation", async () => {
+    const provider = createLocalProvider({
+      snapshot: staticSnapshot,
+      env: {
+        OPENFEATURE_LOCAL_FLAG_CHECKOUT_ENABLED: "false"
+      }
+    });
+
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", true, {}, logger)
+    ).resolves.toMatchObject({
+      value: false,
+      reason: EVALUATION_REASONS.ENV_OVERRIDE
+    });
+  });
 });
