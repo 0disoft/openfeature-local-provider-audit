@@ -57,4 +57,21 @@ describe("createLocalProvider", () => {
       reason: EVALUATION_REASONS.ENV_OVERRIDE
     });
   });
+
+  it("passes OpenFeature targetingKey into rollout evaluation", async () => {
+    const provider = createLocalProvider({ snapshot: staticSnapshot });
+
+    await expect(
+      provider.resolveBooleanEvaluation(
+        "checkout.rollout",
+        false,
+        { targetingKey: "user-alpha" },
+        logger
+      )
+    ).resolves.toMatchObject({
+      value: true,
+      reason: EVALUATION_REASONS.SPLIT,
+      variant: "on"
+    });
+  });
 });

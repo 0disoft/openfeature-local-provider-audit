@@ -6,6 +6,7 @@ import type {
   FlagValue
 } from "../public-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
+import { selectRolloutVariant } from "./bucketing.js";
 import { flagValueMatchesType } from "./type-guards.js";
 
 export function evaluateFlag<T extends FlagValue>(
@@ -72,6 +73,47 @@ export function evaluateFlag<T extends FlagValue>(
       source: EVALUATION_SOURCES.ENV,
       flagMetadata: flag.metadata ?? {}
     };
+  }
+
+  if (flag.rollout !== undefined) {
+    if (request.targetingKey === undefined || !request.targetingKey.trim()) {
+      return {
+        flagKey: request.flagKey,
+        value: request.defaultValue,
+        reason: EVALUATION_REASONS.ERROR,
+        source: EVALUATION_SOURCES.ERROR,
+        errorCode: LOCAL_PROVIDER_ERROR_CODES.INVALID_CONTEXT,
+        errorMessage: `Flag "${request.flagKey}" requires a non-empty targetingKey for rollout evaluation.`,
+        flagMetadata: flag.metadata ?? {}
+      };
+    }
+
+    const selection = selectRolloutVariant(request.flagKey, request.targetingKey, flag.rollout);
+    if (selection.variant !== undefined) {
+      const rolloutValue = flag.variants[selection.variant];
+      if (rolloutValue === undefined || !flagValueMatchesType(rolloutValue, request.expectedType)) {
+        return {
+          flagKey: request.flagKey,
+          value: request.defaultValue,
+          reason: EVALUATION_REASONS.ERROR,
+          source: EVALUATION_SOURCES.ERROR,
+          errorCode: LOCAL_PROVIDER_ERROR_CODES.TYPE_MISMATCH,
+          errorMessage: `Flag "${request.flagKey}" rollout variant does not match its declared type.`,
+          bucket: selection.bucket,
+          flagMetadata: flag.metadata ?? {}
+        };
+      }
+
+      return {
+        flagKey: request.flagKey,
+        value: rolloutValue as T,
+        variant: selection.variant,
+        reason: EVALUATION_REASONS.SPLIT,
+        source: EVALUATION_SOURCES.FILE,
+        bucket: selection.bucket,
+        flagMetadata: flag.metadata ?? {}
+      };
+    }
   }
 
   const value = flag.variants[flag.defaultVariant];

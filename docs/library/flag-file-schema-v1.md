@@ -15,6 +15,11 @@ flag values.
 - The top-level document has `schemaVersion: 1` and a `flags` object.
 - Every flag has a declared type: `boolean`, `string`, `number`, or `object`.
 - Every flag defines variants and a default variant.
+- A flag may define `rollout` as a non-empty ordered array of percentage rules.
+- Rollout rule variants must reference existing variants.
+- Rollout percentages must be greater than 0, at most 100, support at most three decimal
+  places, and total no more than 100.
+- Rollout rules for one flag must use at most one shared optional seed.
 - Object flag values are allowed but audit output must not include evaluated object values by default.
 - YAML and file watching are deferred and require ADR approval.
 

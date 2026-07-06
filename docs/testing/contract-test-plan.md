@@ -13,6 +13,8 @@ Contract tests prove provider behavior that consumers can rely on.
 - Explicit JSON and per-flag environment override priority.
 - Environment override parse errors return caller defaults with `ERROR` reason metadata.
 - Flag keys are not automatically mapped to environment variable names.
+- Deterministic rollout returns stable bucket, variant, `SPLIT` reason, and file source.
+- Missing rollout targeting key returns caller default with `ERROR` reason and `INVALID_CONTEXT`.
 - Missing flag returns caller default with `DEFAULT` reason.
 - Type mismatch returns caller default with `ERROR` reason and error code.
 - Invalid JSON and invalid schema fail at load boundaries.

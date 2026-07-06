@@ -36,6 +36,7 @@ export interface EvaluationRequest<T extends FlagValue = FlagValue> {
   readonly flagKey: string;
   readonly defaultValue: T;
   readonly expectedType: FlagType;
+  readonly targetingKey?: string;
   readonly overrides?: EnvOverrideState;
 }
 
@@ -43,6 +44,7 @@ export interface EvaluationResult<T extends FlagValue = FlagValue> {
   readonly flagKey: string;
   readonly value: T;
   readonly variant?: string;
+  readonly bucket?: number;
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;
   readonly errorCode?: LocalProviderErrorCode;

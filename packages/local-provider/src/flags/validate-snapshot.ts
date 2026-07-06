@@ -1,6 +1,12 @@
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
-import type { FlagDefinition, FlagSnapshot, FlagType, FlagValue } from "../public-types.js";
+import type {
+  FlagDefinition,
+  FlagSnapshot,
+  FlagType,
+  FlagValue,
+  PercentageRolloutRule
+} from "../public-types.js";
 import { flagValueMatchesType, isFlagValue, isJsonObject } from "../evaluator/type-guards.js";
 
 const FLAG_TYPES = new Set<FlagType>(["boolean", "string", "number", "object"]);
@@ -71,13 +77,101 @@ function validateFlagDefinition(flagKey: string, value: unknown): FlagDefinition
   };
 
   const envVar = validateOptionalString(value.envVar, `Flag "${flagKey}" envVar`);
+  const rollout = validateRollout(flagKey, value.rollout, variants);
   const metadata = validateMetadata(value.metadata, `Flag "${flagKey}" metadata`);
 
   return {
     ...flag,
     ...(envVar !== undefined ? { envVar } : {}),
+    ...(rollout !== undefined ? { rollout } : {}),
     ...(metadata !== undefined ? { metadata } : {})
   };
+}
+
+function validateRollout(
+  flagKey: string,
+  value: unknown,
+  variants: Readonly<Record<string, FlagValue>>
+): readonly PercentageRolloutRule[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value) || value.length === 0) {
+    throw schemaError(`Flag "${flagKey}" rollout must be a non-empty array when provided.`);
+  }
+
+  const rollout: PercentageRolloutRule[] = [];
+  const seeds = new Set<string>();
+  let totalBuckets = 0;
+
+  for (const [index, rawRule] of value.entries()) {
+    if (!isJsonObject(rawRule)) {
+      throw schemaError(`Flag "${flagKey}" rollout rule ${index} must be an object.`);
+    }
+
+    const variant = validateRolloutVariant(flagKey, index, rawRule.variant, variants);
+    const percentage = validateRolloutPercentage(flagKey, index, rawRule.percentage);
+    const seed = validateOptionalString(
+      rawRule.seed,
+      `Flag "${flagKey}" rollout rule ${index} seed`
+    );
+
+    totalBuckets += Math.round(percentage * 1_000);
+    if (totalBuckets > 100_000) {
+      throw schemaError(`Flag "${flagKey}" rollout percentages must not exceed 100.`);
+    }
+
+    if (seed !== undefined) {
+      seeds.add(seed);
+    }
+    if (seeds.size > 1) {
+      throw schemaError(`Flag "${flagKey}" rollout rules must use one shared seed.`);
+    }
+
+    rollout.push({
+      variant,
+      percentage,
+      ...(seed !== undefined ? { seed } : {})
+    });
+  }
+
+  return rollout;
+}
+
+function validateRolloutVariant(
+  flagKey: string,
+  index: number,
+  value: unknown,
+  variants: Readonly<Record<string, FlagValue>>
+): string {
+  if (typeof value !== "string" || !value.trim()) {
+    throw schemaError(
+      `Flag "${flagKey}" rollout rule ${index} variant must be a non-empty string.`
+    );
+  }
+  if (!(value in variants)) {
+    throw schemaError(
+      `Flag "${flagKey}" rollout rule ${index} variant must reference an existing variant.`
+    );
+  }
+  return value;
+}
+
+function validateRolloutPercentage(flagKey: string, index: number, value: unknown): number {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0 || value > 100) {
+    throw schemaError(
+      `Flag "${flagKey}" rollout rule ${index} percentage must be greater than 0 and at most 100.`
+    );
+  }
+
+  const scaled = value * 1_000;
+  if (Math.abs(scaled - Math.round(scaled)) > Number.EPSILON * 1_000) {
+    throw schemaError(
+      `Flag "${flagKey}" rollout rule ${index} percentage supports up to 3 decimal places.`
+    );
+  }
+
+  return value;
 }
 
 function validateVariants(

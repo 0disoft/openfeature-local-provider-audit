@@ -17,6 +17,12 @@ metadata.
 - Error reason and source metadata.
 - Redaction-safe fixture data only.
 
+## Implemented Alpha Fixtures
+
+- `checkout.rollout` with seed `checkout-rollout-v1`.
+- `user-alpha` maps to bucket `29586` and variant `on` at 50%.
+- `user-beta` maps to bucket `51164` and falls back to the static default at 50%.
+
 ## Review Blockers
 
 - Bucketing implementation lacks replay fixtures.

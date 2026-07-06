@@ -1,6 +1,6 @@
 # Bucketing v1
 
-Status: Draft
+Status: Implemented alpha
 Repository Type: library
 
 ## Purpose
@@ -12,17 +12,32 @@ variants.
 ## Contract
 
 - Bucketing requires a stable flag key and targeting key.
-- The hash algorithm, canonical input, bucket range, seed behavior, and percentage rounding are public compatibility contracts once implemented.
-- Missing or invalid targeting input must return a documented fallback reason instead of producing unstable output.
+- The hash algorithm, canonical input, bucket range, seed behavior, and percentage rounding are public compatibility contracts.
+- Missing or invalid targeting input returns the caller default with `ERROR` reason and `INVALID_CONTEXT` error code.
 - Replay fixtures must cover bucket boundaries and representative targeting keys.
 
-## Decisions Still Needed
+## Bucketing v1 Decisions
 
-- Hash algorithm name and version.
-- Canonical input format.
-- Bucket range and percentage precision.
-- Seed defaulting behavior.
-- Unicode and normalization behavior for targeting keys.
+- Hash algorithm: SHA-256.
+- Canonical input format: `${seed}\n${flagKey}\n${targetingKey}` encoded as UTF-8.
+- Bucket source: first 8 bytes of the SHA-256 digest interpreted as unsigned big-endian.
+- Bucket range: integer `0..99999`, computed as `digestPrefix % 100000`.
+- Percentage precision: three decimal places. `50` means buckets `0..49999`.
+- Rollout rules are evaluated cumulatively in array order. If no rollout rule matches,
+  evaluation falls back to the flag's `defaultVariant` with `STATIC` reason.
+- Seed default: `v1`.
+- Seed scope: rollout rules for a single flag must use at most one shared seed. If no rule
+  declares a seed, `v1` is used.
+- Unicode behavior: no normalization is applied. The exact JavaScript string value is UTF-8
+  encoded for hashing.
+
+## Evaluation Priority
+
+1. Explicit JSON override map.
+2. Explicit per-flag env variable.
+3. Percentage rollout when `targetingKey` is present.
+4. File static default variant.
+5. Caller-provided OpenFeature default value on missing flag or error paths.
 
 ## Review Blockers
 

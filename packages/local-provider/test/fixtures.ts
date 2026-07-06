@@ -42,6 +42,22 @@ export const staticSnapshot: FlagSnapshot = {
         }
       },
       envVar: "OPENFEATURE_LOCAL_FLAG_CHECKOUT_CONFIG"
+    },
+    "checkout.rollout": {
+      type: "boolean",
+      defaultVariant: "off",
+      variants: {
+        on: true,
+        off: false
+      },
+      rollout: [
+        {
+          variant: "on",
+          percentage: 50,
+          seed: "checkout-rollout-v1"
+        }
+      ],
+      envVar: "OPENFEATURE_LOCAL_FLAG_CHECKOUT_ROLLOUT"
     }
   }
 };

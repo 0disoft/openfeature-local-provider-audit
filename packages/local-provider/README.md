@@ -4,8 +4,8 @@ Status: alpha implementation
 
 This package provides a local OpenFeature provider for JSON flag snapshots. The current
 implementation supports schema version 1 parsing, static typed evaluation, explicit
-environment overrides, missing flag defaults, type mismatch error results, and a minimal
-OpenFeature provider adapter.
+environment overrides, deterministic percentage bucketing, missing flag defaults, type
+mismatch error results, and a minimal OpenFeature provider adapter.
 
-Deferred features include deterministic bucketing, audit JSON Lines, replay fixtures,
-YAML, file watching, CLI, browser support, HTTP API, and database integration.
+Deferred features include audit JSON Lines, replay fixtures, YAML, file watching, CLI,
+browser support, HTTP API, and database integration.

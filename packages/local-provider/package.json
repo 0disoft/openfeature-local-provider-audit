@@ -1,6 +1,6 @@
 {
   "name": "@0disoft/openfeature-local-provider",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local OpenFeature provider for JSON flag snapshots, typed evaluation, and explicit environment overrides.",
   "license": "Apache-2.0",
   "type": "module",

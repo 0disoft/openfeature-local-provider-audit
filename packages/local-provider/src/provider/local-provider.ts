@@ -7,7 +7,14 @@ import type {
 } from "@openfeature/server-sdk";
 import { createEnvOverrides } from "../env/env-overrides.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
-import type { EnvOverrideState, FlagSnapshot, LocalProviderOptions } from "../public-types.js";
+import type {
+  EnvOverrideState,
+  EvaluationRequest,
+  FlagSnapshot,
+  FlagType,
+  FlagValue,
+  LocalProviderOptions
+} from "../public-types.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
 
 const DEFAULT_PROVIDER_NAME = "openfeature-local-provider";
@@ -42,64 +49,71 @@ class LocalFeatureProvider implements Provider {
   async resolveBooleanEvaluation(
     flagKey: string,
     defaultValue: boolean,
-    _context: EvaluationContext,
+    context: EvaluationContext,
     _logger: Logger
   ): Promise<ResolutionDetails<boolean>> {
     return toOpenFeatureResolution(
-      evaluateFlag(this.snapshot, {
-        flagKey,
-        defaultValue,
-        expectedType: "boolean",
-        overrides: this.overrides
-      })
+      evaluateFlag(
+        this.snapshot,
+        this.createEvaluationRequest(flagKey, defaultValue, "boolean", context)
+      )
     );
   }
 
   async resolveStringEvaluation(
     flagKey: string,
     defaultValue: string,
-    _context: EvaluationContext,
+    context: EvaluationContext,
     _logger: Logger
   ): Promise<ResolutionDetails<string>> {
     return toOpenFeatureResolution(
-      evaluateFlag(this.snapshot, {
-        flagKey,
-        defaultValue,
-        expectedType: "string",
-        overrides: this.overrides
-      })
+      evaluateFlag(
+        this.snapshot,
+        this.createEvaluationRequest(flagKey, defaultValue, "string", context)
+      )
     );
   }
 
   async resolveNumberEvaluation(
     flagKey: string,
     defaultValue: number,
-    _context: EvaluationContext,
+    context: EvaluationContext,
     _logger: Logger
   ): Promise<ResolutionDetails<number>> {
     return toOpenFeatureResolution(
-      evaluateFlag(this.snapshot, {
-        flagKey,
-        defaultValue,
-        expectedType: "number",
-        overrides: this.overrides
-      })
+      evaluateFlag(
+        this.snapshot,
+        this.createEvaluationRequest(flagKey, defaultValue, "number", context)
+      )
     );
   }
 
   async resolveObjectEvaluation<T extends JsonValue>(
     flagKey: string,
     defaultValue: T,
-    _context: EvaluationContext,
+    context: EvaluationContext,
     _logger: Logger
   ): Promise<ResolutionDetails<T>> {
     return toOpenFeatureResolution(
-      evaluateFlag(this.snapshot, {
-        flagKey,
-        defaultValue,
-        expectedType: "object",
-        overrides: this.overrides
-      })
+      evaluateFlag(
+        this.snapshot,
+        this.createEvaluationRequest(flagKey, defaultValue, "object", context)
+      )
     ) as ResolutionDetails<T>;
+  }
+
+  private createEvaluationRequest<T extends FlagValue>(
+    flagKey: string,
+    defaultValue: T,
+    expectedType: FlagType,
+    context: EvaluationContext
+  ): EvaluationRequest<T> {
+    return {
+      flagKey,
+      defaultValue,
+      expectedType,
+      overrides: this.overrides,
+      ...(typeof context.targetingKey === "string" ? { targetingKey: context.targetingKey } : {})
+    };
   }
 }

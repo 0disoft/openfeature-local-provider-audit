@@ -77,4 +77,68 @@ describe("parseJsonFlagSnapshot", () => {
 
     throw new Error("Expected parseJsonFlagSnapshot to throw.");
   });
+
+  it("parses valid rollout rules", () => {
+    const snapshot = parseJsonFlagSnapshot(
+      JSON.stringify({
+        schemaVersion: 1,
+        flags: {
+          "checkout.rollout": {
+            type: "boolean",
+            defaultVariant: "off",
+            variants: {
+              on: true,
+              off: false
+            },
+            rollout: [
+              {
+                variant: "on",
+                percentage: 50,
+                seed: "checkout-rollout-v1"
+              }
+            ]
+          }
+        }
+      })
+    );
+
+    expect(snapshot.flags["checkout.rollout"]?.rollout?.[0]).toEqual({
+      variant: "on",
+      percentage: 50,
+      seed: "checkout-rollout-v1"
+    });
+  });
+
+  it("rejects rollout rules with unknown variants", () => {
+    try {
+      parseJsonFlagSnapshot(
+        JSON.stringify({
+          schemaVersion: 1,
+          flags: {
+            "checkout.rollout": {
+              type: "boolean",
+              defaultVariant: "off",
+              variants: {
+                off: false
+              },
+              rollout: [
+                {
+                  variant: "on",
+                  percentage: 50
+                }
+              ]
+            }
+          }
+        })
+      );
+    } catch (error) {
+      expect(isLocalProviderError(error)).toBe(true);
+      if (isLocalProviderError(error)) {
+        expect(error.code).toBe(LOCAL_PROVIDER_ERROR_CODES.SCHEMA_ERROR);
+      }
+      return;
+    }
+
+    throw new Error("Expected parseJsonFlagSnapshot to throw.");
+  });
 });
