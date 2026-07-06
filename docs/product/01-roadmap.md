@@ -21,13 +21,15 @@ a feature flag platform.
 3. Add deterministic bucketing and replay fixtures that prove stable rollout assignment.
 4. Add JSON Lines audit events with redaction defaults and snapshot/replay documentation.
 5. Publish SDK examples that show OpenFeature registration and local test usage.
-6. Evaluate YAML support, file reload/watch behavior, and additional language support only after the core provider is stable.
+6. Use the accepted Apache-2.0, `@0disoft/openfeature-local-provider`, Node.js 22/24, and OpenFeature peer dependency policy for package skeleton work.
+7. Evaluate YAML support, file reload/watch behavior, CLI, browser SDK, and additional language support only after the core provider is stable.
 
 ## Deferred
 
 - Hosted dashboard, remote service, streaming updates, approval workflow, experiment analytics, and user segment database.
 - Runtime file watching until startup-load semantics and event behavior are tested.
 - Multi-language SDKs until the TypeScript package surface proves useful.
+- Package split until replay or test helpers have proven independent release value.
 
 ## Review Blockers
 

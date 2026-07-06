@@ -5,8 +5,7 @@ Status: Draft
 ## Validation Source of Truth
 
 This document owns stable validation names for this local OpenFeature provider package.
-Until an executable runner exists, validation is documentation and repository-hygiene
-evidence only.
+Executable validation now runs through pnpm package scripts.
 
 ## Standard Validation Names
 
@@ -26,9 +25,17 @@ Final responses must list executed validations, passed validations, skipped vali
 
 ## Runner Policy
 
-Task runner files are optional. Runner `none` means no executable task runner is generated.
-If a runner is generated, runner command names must match this document.
+The configured runner is pnpm. Runner command names must match this document.
 Unconfigured runner commands must fail, not pass with a fake success.
+
+## Runner Commands
+
+- format: `pnpm run format:check`
+- lint: `pnpm run lint`
+- typecheck: `pnpm run typecheck`
+- test: `pnpm run test`
+- smoke: `pnpm run build` and `pnpm run pack:check`
+- check: `pnpm run check`
 
 ## Hygiene Validation
 
@@ -51,4 +58,6 @@ library, sdk validation must stay repository-shape focused and must not imply ge
 
 - docs: product, library, SDK, architecture, backend, ops, and engineering documents agree on the local-provider boundary.
 - contract: public API docs identify bucketing, reason names, env override priority, audit event fields, and replay fixtures as compatibility-sensitive.
+- security: privacy and threat-model docs confirm raw context, secrets, and evaluated object values are not logged by default.
+- test: contract and replay test plans cover default-return behavior, redaction, and deterministic bucketing once implementation exists.
 - check: repository hygiene confirms no unowned API server, DB schema, secret, or generated output is treated as source truth.

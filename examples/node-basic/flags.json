@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "flags": {
+    "checkout.enabled": {
+      "type": "boolean",
+      "defaultVariant": "on",
+      "variants": {
+        "on": true,
+        "off": false
+      },
+      "metadata": {
+        "owner": "checkout"
+      }
+    }
+  }
+}

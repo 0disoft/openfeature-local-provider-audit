@@ -1,0 +1,51 @@
+{
+  "name": "@0disoft/openfeature-local-provider",
+  "version": "0.0.0",
+  "description": "Local OpenFeature provider for JSON flag snapshots, static typed evaluation, and deterministic future audit contracts.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "pack:check": "pnpm run build && publint && attw --pack .",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "@openfeature/server-sdk": "^1.22.0"
+  },
+  "devDependencies": {
+    "@openfeature/core": "1.11.0",
+    "@openfeature/server-sdk": "1.22.0"
+  },
+  "keywords": [
+    "openfeature",
+    "feature-flags",
+    "provider",
+    "local",
+    "testing"
+  ]
+}

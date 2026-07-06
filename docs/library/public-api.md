@@ -19,12 +19,32 @@ events, and replay deterministic fixtures without depending on a hosted service.
 
 - Public API ownership: provider constructor, flag file loader, env override mapper, audit logger/redactor, replay helper.
 - Semantic versioning policy: public exports, reason names, audit event fields, and bucketing output changes are breaking unless documented otherwise.
-- Runtime and platform compatibility: TypeScript package first; supported runtimes must be proven before release.
+- Runtime and platform compatibility: TypeScript package for server-side Node.js 22 LTS and Node.js 24 LTS first.
 - Package artifact and export surface: exports must match this document and examples.
 - Deprecation and migration policy: provide migration notes for flag schema, override naming, and bucketing changes.
+- Dependency policy: provider code integrates with `@openfeature/server-sdk` through a peer dependency.
+
+## Package Identity
+
+- Primary package name: `@0disoft/openfeature-local-provider`.
+- License: Apache-2.0.
+- Package name does not include `audit`; audit remains a built-in capability.
+
+## Candidate Public Exports
+
+- Provider creation API.
+- JSON flag snapshot parser.
+- Pure flag evaluator.
+- Local provider options.
+- Flag snapshot and flag definition types.
+- Evaluation result, reason, source, and error code types.
+- Audit event and replay fixture types once implemented.
+
+Implementation must not expose internal modules only because examples need convenience imports.
 
 ## Review Blockers
 
 - Public exports change without semver and migration notes.
 - Compatibility claims lack runtime or consumer evidence.
 - Package artifacts drift from documented public API.
+- Package metadata drifts from the accepted package identity.

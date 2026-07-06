@@ -1,0 +1,30 @@
+{
+  "name": "openfeature-local-provider-audit-repo",
+  "version": "0.0.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@11.7.0",
+  "engines": {
+    "node": ">=22 <25"
+  },
+  "scripts": {
+    "build": "pnpm --filter @0disoft/openfeature-local-provider build",
+    "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run pack:check",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
+    "pack:check": "pnpm --filter @0disoft/openfeature-local-provider pack:check",
+    "test": "pnpm --filter @0disoft/openfeature-local-provider test",
+    "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.4",
+    "@biomejs/biome": "2.5.2",
+    "@types/node": "26.1.0",
+    "publint": "0.3.21",
+    "tsup": "8.5.1",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}

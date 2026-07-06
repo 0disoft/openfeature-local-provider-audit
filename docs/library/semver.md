@@ -21,6 +21,18 @@ Semantic versioning protects consumers from silent changes to flag evaluation be
 - Package artifact and export surface: package exports must be included in compatibility review.
 - Deprecation and migration policy: warn before removing old schema or reason names when feasible.
 
+## Compatibility-Sensitive Changes
+
+- Changed evaluated flag value for the same snapshot, env override input, flag key, default value, and targeting key.
+- Changed bucketing algorithm, hash input, seed behavior, bucket range, or percentage rounding.
+- Changed env override priority or env naming contract.
+- Changed reason names or error code mapping.
+- Removed or retyped audit event fields.
+- Changed redaction defaults.
+- Changed package exports or runtime support claims.
+- Changed OpenFeature SDK dependency type from peer dependency to bundled dependency.
+- Changed package name or license metadata.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

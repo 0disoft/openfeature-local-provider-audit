@@ -1,0 +1,16 @@
+{
+  "name": "openfeature-local-provider-node-basic-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@0disoft/openfeature-local-provider": "workspace:*",
+    "@openfeature/server-sdk": "1.22.0"
+  },
+  "devDependencies": {
+    "tsx": "4.23.0"
+  }
+}

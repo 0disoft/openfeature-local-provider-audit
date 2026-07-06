@@ -13,7 +13,8 @@ analytics product, approval workflow, user segment database, or remote rollout
 management server.
 
 Consumer-facing behavior is contracted through `docs/product/02-spec.md`,
-`docs/library/public-api.md`, `docs/sdk/public-api.md`, and compatibility notes under
+`docs/product/04-scope-cut.md`, `docs/library/public-api.md`, `docs/sdk/public-api.md`,
+the detailed contracts under `docs/library/`, and compatibility notes under
 `docs/library/` and `docs/sdk/`.
 
 ## Repository Shape
@@ -28,6 +29,12 @@ Addons: sdk
 ## Source of Truth
 
 - Product scope: docs/product/02-spec.md
+- MVP scope cut: docs/product/04-scope-cut.md
+- Repository strategy: docs/repository/00-repository-strategy.md
+- Package/license/runtime policy: docs/adr/0004-package-license-runtime-policy.md
+- Detailed library contracts: docs/library/*.md
+- Security and privacy: docs/security/*.md
+- Testing plans: docs/testing/*.md
 - Architecture decisions: docs/adr/*.md
 - Validation: VALIDATION.md
 - Agent routing: .agents/context-map.md

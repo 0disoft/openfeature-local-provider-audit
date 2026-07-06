@@ -15,6 +15,9 @@ API, and the underlying flag source can later be replaced by another provider.
 - Product decision: local file/env provider with deterministic bucketing, evaluation reasons, audit log, and replay fixtures.
 - Technical owner: 0disoft
 - Related ADR: docs/adr/0001-initial-architecture-boundaries.md
+- Scope cut: docs/product/04-scope-cut.md
+- Library contracts: docs/library/flag-file-schema-v1.md, docs/library/env-overrides.md, docs/library/bucketing-v1.md, docs/library/evaluation-reasons.md, docs/library/audit-event-v1.md, docs/library/replay-fixture-v1.md
+- Security contracts: docs/security/privacy-and-redaction.md, docs/security/threat-model.md
 
 ## MVP Scope
 
@@ -34,6 +37,7 @@ API, and the underlying flag source can later be replaced by another provider.
 - Approval workflow, experiment analytics, or segment database.
 - All-language SDK support in the first version.
 - Full replacement for flagd, LaunchDarkly, Flagsmith, or GO Feature Flag.
+- YAML, file watch/reload, browser SDK, CLI, and general-purpose targeting rule language in the MVP.
 
 ## Required Decisions
 
@@ -48,5 +52,6 @@ API, and the underlying flag source can later be replaced by another provider.
 - Audit events include raw user identifiers, emails, or context fields by default.
 - Bucketing behavior changes without replay fixture updates.
 - Env override priority changes without migration notes.
+- A deferred feature from docs/product/04-scope-cut.md enters the MVP without an ADR.
 - The change weakens validation or skips required evidence.
 - The change relies on generated, cache, or build output as source truth.
