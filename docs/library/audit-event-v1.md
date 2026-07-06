@@ -1,6 +1,6 @@
 # Audit Event v1
 
-Status: Draft
+Status: Implemented alpha
 Repository Type: library
 
 ## Purpose
@@ -11,10 +11,10 @@ raw user context by default.
 ## Contract
 
 - Audit events are JSON Lines records.
-- Audit output is redacted by default.
+- Audit output is redacted by default through `createAuditEvent` and `serializeAuditEvent`.
 - Raw targeting keys, emails, user IDs, IP addresses, tokens, passwords, authorization claims, and tenant identifiers must not be written by default.
 - Evaluated flag values are excluded by default, especially object values.
-- Cross-event correlation requires an explicit opt-in design such as keyed HMAC, not plain hashing of personal identifiers.
+- Cross-event correlation requires an explicit future opt-in design such as keyed HMAC, not plain hashing of personal identifiers.
 - Audit sink failures must not silently change the evaluated flag value.
 
 ## Event Fields
@@ -32,6 +32,15 @@ raw user context by default.
 - `snapshotHash`
 - `overrideHash`
 - `context`
+
+## Implemented Alpha Behavior
+
+- `snapshotHash` is SHA-256 over stable JSON for the local snapshot.
+- `overrideHash` is SHA-256 over stable JSON for explicit override input when provided.
+- `context` records only `targetingKeyPresent`, sorted context key names, and `redacted: true`.
+- Raw context values and evaluated flag values are not serialized.
+- `serializeAuditEvent(event)` returns one JSON record followed by `\n`.
+- Sink wiring is not implemented in this slice; callers can write the returned JSON Line.
 
 ## Review Blockers
 

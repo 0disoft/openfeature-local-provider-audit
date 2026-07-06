@@ -26,6 +26,8 @@ Owner: 0disoft
 - Return caller defaults with error reason metadata on runtime evaluation failure.
 - Redact audit output by default.
 - Keep audit failure behavior separate from value resolution behavior.
+- Keep audit serialization separate from sink writes so local I/O failures cannot change
+  resolved values in the current alpha implementation.
 
 ## Review Blockers
 

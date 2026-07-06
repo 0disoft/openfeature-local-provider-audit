@@ -7,6 +7,7 @@ export { createEnvOverrides } from "./env/env-overrides.js";
 export { evaluateFlag } from "./evaluator/evaluate.js";
 export { createLocalProvider } from "./provider/local-provider.js";
 export { replayEvaluationFixture } from "./replay/replay-fixture.js";
+export { createAuditEvent, redactContext, serializeAuditEvent } from "./audit/audit-event.js";
 export {
   LOCAL_PROVIDER_ERROR_CODES,
   type LocalProviderErrorCode
@@ -22,6 +23,9 @@ export type {
   EvaluationResult,
   EnvOverrideState,
   EnvSource,
+  AuditEvent,
+  CreateAuditEventOptions,
+  EvaluationContext,
   FlagDefinition,
   FlagSnapshot,
   FlagType,
@@ -34,5 +38,6 @@ export type {
   ReplayFixture,
   ReplayMismatch,
   ReplayOverrideInput,
-  ReplayResult
+  ReplayResult,
+  RedactedAuditContext
 } from "./public-types.js";

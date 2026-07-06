@@ -16,6 +16,7 @@ Contract tests prove provider behavior that consumers can rely on.
 - Deterministic rollout returns stable bucket, variant, `SPLIT` reason, and file source.
 - Missing rollout targeting key returns caller default with `ERROR` reason and `INVALID_CONTEXT`.
 - Replay fixtures compare pure evaluator output without relying on the OpenFeature adapter.
+- Audit event serialization excludes raw context and evaluated flag values by default.
 - Missing flag returns caller default with `DEFAULT` reason.
 - Type mismatch returns caller default with `ERROR` reason and error code.
 - Invalid JSON and invalid schema fail at load boundaries.

@@ -113,6 +113,7 @@ class LocalFeatureProvider implements Provider {
       defaultValue,
       expectedType,
       overrides: this.overrides,
+      context,
       ...(typeof context.targetingKey === "string" ? { targetingKey: context.targetingKey } : {})
     };
   }

@@ -37,8 +37,11 @@ export interface EvaluationRequest<T extends FlagValue = FlagValue> {
   readonly defaultValue: T;
   readonly expectedType: FlagType;
   readonly targetingKey?: string;
+  readonly context?: EvaluationContext;
   readonly overrides?: EnvOverrideState;
 }
+
+export type EvaluationContext = Readonly<Record<string, unknown>>;
 
 export interface EvaluationResult<T extends FlagValue = FlagValue> {
   readonly flagKey: string;
@@ -102,4 +105,36 @@ export interface ReplayMismatch {
   readonly field: string;
   readonly expected: JsonValue | undefined;
   readonly actual: JsonValue | undefined;
+}
+
+export interface AuditEvent {
+  readonly schemaVersion: 1;
+  readonly eventId: string;
+  readonly timestamp: string;
+  readonly providerName: string;
+  readonly flagKey: string;
+  readonly requestedType: FlagType;
+  readonly reason: EvaluationReason;
+  readonly source: EvaluationSource;
+  readonly variant?: string;
+  readonly errorCode?: LocalProviderErrorCode;
+  readonly snapshotHash: string;
+  readonly overrideHash?: string;
+  readonly context: RedactedAuditContext;
+}
+
+export interface RedactedAuditContext {
+  readonly targetingKeyPresent: boolean;
+  readonly keys: readonly string[];
+  readonly redacted: true;
+}
+
+export interface CreateAuditEventOptions {
+  readonly providerName: string;
+  readonly snapshot: FlagSnapshot;
+  readonly request: EvaluationRequest;
+  readonly result: EvaluationResult;
+  readonly overrides?: ReplayOverrideInput;
+  readonly eventId?: string;
+  readonly timestamp?: string;
 }

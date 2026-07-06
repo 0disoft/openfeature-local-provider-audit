@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
   EVALUATION_REASONS,
+  createAuditEvent,
   createEnvOverrides,
   createLocalProvider,
   evaluateFlag,
   parseJsonFlagSnapshot,
+  redactContext,
+  serializeAuditEvent,
   replayEvaluationFixture
 } from "../../src/index.js";
 
@@ -15,6 +18,9 @@ describe("package exports", () => {
     expect(typeof evaluateFlag).toBe("function");
     expect(typeof parseJsonFlagSnapshot).toBe("function");
     expect(typeof replayEvaluationFixture).toBe("function");
+    expect(typeof createAuditEvent).toBe("function");
+    expect(typeof serializeAuditEvent).toBe("function");
+    expect(typeof redactContext).toBe("function");
     expect(EVALUATION_REASONS.STATIC).toBe("STATIC");
   });
 });
