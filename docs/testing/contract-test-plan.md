@@ -19,6 +19,8 @@ Contract tests prove provider behavior that consumers can rely on.
 - Audit event serialization excludes raw context and evaluated flag values by default.
 - File audit sink writes JSON Lines records, and provider audit write failures do not change
   evaluation results.
+- Provider audit writes are non-blocking by default, with blocking mode covered for
+  deterministic tests and short-lived scripts.
 - Missing flag returns caller default with `DEFAULT` reason.
 - Type mismatch returns caller default with `ERROR` reason and error code.
 - Invalid JSON and invalid schema fail at load boundaries.

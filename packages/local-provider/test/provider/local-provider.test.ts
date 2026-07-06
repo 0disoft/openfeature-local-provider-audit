@@ -86,7 +86,8 @@ describe("createLocalProvider", () => {
     try {
       const provider = createLocalProvider({
         snapshot: staticSnapshot,
-        auditSink: createFileAuditSink({ path: auditPath })
+        auditSink: createFileAuditSink({ path: auditPath }),
+        auditWriteMode: "blocking"
       });
 
       await expect(
@@ -128,6 +129,32 @@ describe("createLocalProvider", () => {
     }
   });
 
+  it("does not wait for non-blocking audit sink writes", async () => {
+    const deferred = createDeferred();
+    const writeStarted = vi.fn();
+    const provider = createLocalProvider({
+      snapshot: staticSnapshot,
+      auditSink: {
+        async write() {
+          writeStarted();
+          await deferred.promise;
+        }
+      }
+    });
+
+    const evaluation = provider.resolveBooleanEvaluation("checkout.enabled", false, {}, logger);
+
+    await expect(
+      Promise.race([
+        evaluation.then(() => "resolved"),
+        new Promise<"timeout">((resolve) => setTimeout(() => resolve("timeout"), 50))
+      ])
+    ).resolves.toBe("resolved");
+    expect(writeStarted).toHaveBeenCalledOnce();
+    deferred.resolve();
+    await deferred.promise;
+  });
+
   it("does not change evaluation results when audit sink writes fail", async () => {
     const warn = vi.fn();
     const provider = createLocalProvider({
@@ -136,7 +163,8 @@ describe("createLocalProvider", () => {
         async write() {
           throw new Error("audit path is unavailable");
         }
-      }
+      },
+      auditWriteMode: "blocking"
     });
 
     await expect(
@@ -156,7 +184,8 @@ describe("createLocalProvider", () => {
         async write() {
           throw new Error("audit path is unavailable");
         }
-      }
+      },
+      auditWriteMode: "blocking"
     });
     const throwingLogger = {
       ...logger,
@@ -174,3 +203,15 @@ describe("createLocalProvider", () => {
     });
   });
 });
+
+function createDeferred(): { readonly promise: Promise<void>; resolve(): void } {
+  let resolvePromise: () => void = () => undefined;
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  return {
+    promise,
+    resolve: resolvePromise
+  };
+}

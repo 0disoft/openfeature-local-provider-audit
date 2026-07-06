@@ -10,6 +10,7 @@ import { createEnvOverrides } from "../env/env-overrides.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
 import type {
   AuditSink,
+  AuditWriteMode,
   EnvOverrideState,
   EvaluationRequest,
   EvaluationResult,
@@ -35,7 +36,8 @@ export function createLocalProvider(options: LocalProviderOptions): Provider {
     options.snapshot,
     createEnvOverrides(options.snapshot, overrideOptions),
     options.name ?? DEFAULT_PROVIDER_NAME,
-    options.auditSink
+    options.auditSink,
+    options.auditWriteMode ?? "nonBlocking"
   );
 }
 
@@ -46,7 +48,8 @@ class LocalFeatureProvider implements Provider {
     private readonly snapshot: FlagSnapshot,
     private readonly overrides: EnvOverrideState,
     name: string,
-    private readonly auditSink: AuditSink | undefined
+    private readonly auditSink: AuditSink | undefined,
+    private readonly auditWriteMode: AuditWriteMode
   ) {
     this.metadata = { name };
   }
@@ -97,7 +100,11 @@ class LocalFeatureProvider implements Provider {
     const request = this.createEvaluationRequest(flagKey, defaultValue, expectedType, context);
     const result = evaluateFlag(this.snapshot, request);
 
-    await this.writeAuditEvent(request, result, logger);
+    const auditWrite = this.writeAuditEvent(request, result, logger);
+
+    if (this.auditWriteMode === "blocking") {
+      await auditWrite;
+    }
 
     return toOpenFeatureResolution(result) as ResolutionDetails<T>;
   }

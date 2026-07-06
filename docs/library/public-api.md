@@ -55,10 +55,10 @@ Implementation must not expose internal modules only because examples need conve
 - `redactContext(context)`.
 - `createFileAuditSink(options)`.
 - `LocalProviderOptions` with `snapshot`, optional `name`, optional `overridesJson`, and
-  optional injectable `env`, and optional `auditSink`.
+  optional injectable `env`, optional `auditSink`, and optional `auditWriteMode`.
 - `EvaluationRequest` with optional `targetingKey` for rollout evaluation.
 - `EvaluationResult` with optional `bucket` for deterministic pure-evaluator replay checks.
-- Snapshot, flag definition, rollout, evaluation, env override, replay fixture, audit event, audit sink, reason, source, and error code types.
+- Snapshot, flag definition, rollout, evaluation, env override, replay fixture, audit event, audit sink, audit write mode, reason, source, and error code types.
 
 ## Review Blockers
 

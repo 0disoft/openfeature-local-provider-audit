@@ -29,6 +29,8 @@ Owner: 0disoft
 - Keep audit serialization redacted before sink writes.
 - Catch provider audit sink write failures so local I/O failures cannot change resolved
   values in the current alpha implementation.
+- Keep provider audit writes non-blocking by default so slow local I/O does not delay
+  resolved values.
 
 ## Review Blockers
 

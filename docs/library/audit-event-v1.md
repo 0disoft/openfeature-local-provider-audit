@@ -42,8 +42,11 @@ raw user context by default.
 - Raw context values and evaluated flag values are not serialized.
 - `serializeAuditEvent(event)` returns one JSON record followed by `\n`.
 - `createFileAuditSink(options)` appends JSON Lines records to a caller-provided path.
-- `createLocalProvider({ auditSink })` writes audit events after evaluation and logs sink
-  failures without changing the returned resolution.
+- `createLocalProvider({ auditSink })` schedules audit writes after evaluation and logs
+  sink failures without changing the returned resolution.
+- Provider audit writes are non-blocking by default. Use
+  `createLocalProvider({ auditWriteMode: "blocking" })` when a test or short-lived script
+  must wait for the sink write before resolution.
 - Audit rotation and retention policy are not implemented in this slice.
 
 ## Review Blockers

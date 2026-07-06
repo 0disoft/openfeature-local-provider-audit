@@ -61,7 +61,10 @@ export interface LocalProviderOptions {
   readonly overridesJson?: string;
   readonly env?: EnvSource;
   readonly auditSink?: AuditSink;
+  readonly auditWriteMode?: AuditWriteMode;
 }
+
+export type AuditWriteMode = "nonBlocking" | "blocking";
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
 

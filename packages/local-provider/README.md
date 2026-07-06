@@ -29,5 +29,9 @@ const provider = createLocalProvider({
 });
 ```
 
-Audit events are redacted before they reach the sink. File write failures are reported
-through the OpenFeature logger and do not change the evaluated flag value.
+Audit events are redacted before they reach the sink. Provider audit writes are
+non-blocking by default, and file write failures are reported through the OpenFeature
+logger without changing the evaluated flag value.
+
+Use `auditWriteMode: "blocking"` when a test or short-lived script must wait for the
+audit write before the evaluation promise resolves.
