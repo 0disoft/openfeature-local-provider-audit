@@ -1,7 +1,7 @@
 {
   "name": "@0disoft/openfeature-local-provider",
-  "version": "0.9.2",
-  "description": "Local OpenFeature provider for JSON flag snapshots, typed evaluation, environment overrides, bucketing, replay fixtures, redacted audit events, and lockable rotating file audit sinks.",
+  "version": "0.10.0",
+  "description": "Local OpenFeature provider for JSON/YAML flag snapshots, typed evaluation, environment overrides, bucketing, replay fixtures, redacted audit events, and lockable rotating file audit sinks.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -52,5 +52,8 @@
     "provider",
     "local",
     "testing"
-  ]
+  ],
+  "dependencies": {
+    "yaml": "2.9.0"
+  }
 }

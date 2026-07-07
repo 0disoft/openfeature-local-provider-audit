@@ -1,6 +1,6 @@
 # OpenFeature Local Provider
 
-Local OpenFeature provider for JSON flag snapshots, explicit environment overrides,
+Local OpenFeature provider for JSON/YAML flag snapshots, explicit environment overrides,
 deterministic percentage rollout, replay fixtures, and redacted audit logs.
 
 ```sh
@@ -35,7 +35,7 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 
 ## What It Owns
 
-- JSON flag snapshot parsing and schema v1 validation.
+- JSON and YAML flag snapshot parsing with schema v1 validation.
 - Typed OpenFeature evaluation for boolean, string, number, and object values.
 - Explicit per-flag environment overrides.
 - Deterministic percentage rollout with replayable bucketing.

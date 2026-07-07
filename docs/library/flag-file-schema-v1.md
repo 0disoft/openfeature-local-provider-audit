@@ -5,13 +5,16 @@ Repository Type: library
 
 ## Purpose
 
-Flag file schema v1 defines the local JSON input accepted by the provider. The schema is
-compatibility-sensitive because malformed or changed configuration can alter evaluated
-flag values.
+Flag file schema v1 defines the local JSON-compatible snapshot object accepted by the
+provider. JSON remains canonical, and YAML is accepted only as an alternate
+serialization that must parse into the same schema. The schema is compatibility-sensitive
+because malformed or changed configuration can alter evaluated flag values.
 
 ## Contract
 
-- JSON is the only MVP file format.
+- JSON is the canonical file format.
+- YAML input is accepted through `parseYamlFlagSnapshot(yaml)` as a post-MVP extension
+  approved by docs/adr/0006-yaml-snapshot-loader.md.
 - The top-level document has `schemaVersion: 1` and a `flags` object.
 - Every flag has a declared type: `boolean`, `string`, `number`, or `object`.
 - Every flag defines variants and a default variant.
@@ -21,11 +24,11 @@ flag values.
   places, and total no more than 100.
 - Rollout rules for one flag must use at most one shared optional seed.
 - Object flag values are allowed but audit output must not include evaluated object values by default.
-- YAML and file watching are deferred and require ADR approval.
+- File watching is deferred and requires ADR approval.
 
 ## Failure Behavior
 
-- Invalid JSON produces a parse error.
+- Invalid JSON or YAML produces a parse error.
 - Invalid schema produces a schema error.
 - Unknown flag keys return the caller's OpenFeature default value with default reason metadata.
 - Type mismatches return the caller's default value with error reason metadata.
@@ -34,4 +37,5 @@ flag values.
 
 - A schema change can alter evaluated values without semver and replay fixture updates.
 - Example flag files contain real user identifiers, secrets, endpoints, or production configuration.
-- YAML or watcher behavior appears without a new ADR.
+- Watcher behavior appears without a new ADR.
+- YAML input bypasses the same schema validation used by JSON input.

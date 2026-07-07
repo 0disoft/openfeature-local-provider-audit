@@ -11,6 +11,7 @@ metadata.
 ## Required Replay Coverage
 
 - Stable bucket outputs for representative targeting keys.
+- Equivalent JSON and YAML snapshots must produce the same replayed output.
 - Boundary percentages.
 - Missing targeting key behavior.
 - Env override priority over file rollout.

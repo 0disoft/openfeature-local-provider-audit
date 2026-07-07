@@ -1,6 +1,6 @@
 # @0disoft/openfeature-local-provider
 
-Local OpenFeature provider for JSON flag snapshots, typed evaluation, explicit
+Local OpenFeature provider for JSON/YAML flag snapshots, typed evaluation, explicit
 environment overrides, deterministic rollout bucketing, replay fixtures, and redacted
 audit logs.
 
@@ -76,6 +76,28 @@ const enabled = await client.getBooleanValue("checkout.rollout", false, {
 ```
 
 Rollout selection is deterministic for the same flag key, targeting key, and seed.
+
+## YAML Snapshots
+
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import { createLocalProvider, parseYamlFlagSnapshot } from "@0disoft/openfeature-local-provider";
+
+const snapshot = parseYamlFlagSnapshot(`
+schemaVersion: 1
+flags:
+  checkout.enabled:
+    type: boolean
+    defaultVariant: "on"
+    variants:
+      "on": true
+      "off": false
+`);
+
+await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
+```
+
+YAML input must parse into the same schema v1 snapshot contract used by JSON input.
 
 ## Environment Overrides
 

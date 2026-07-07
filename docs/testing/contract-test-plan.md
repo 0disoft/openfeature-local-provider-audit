@@ -10,6 +10,7 @@ Contract tests prove provider behavior that consumers can rely on.
 ## Required Contract Coverage
 
 - Boolean, string, number, and object static evaluation.
+- JSON and YAML snapshot parsing through the same schema validation boundary.
 - Explicit JSON and per-flag environment override priority.
 - Environment override parse errors return caller defaults with `ERROR` reason metadata.
 - Flag keys are not automatically mapped to environment variable names.
@@ -35,10 +36,10 @@ Contract tests prove provider behavior that consumers can rely on.
 
 ## Implemented Coverage
 
-- Unit tests cover schema parsing, static typed evaluation, missing flags, type mismatch,
-  environment overrides, deterministic bucketing, replay fixtures, redacted audit event
-  serialization, file audit sink behavior, provider default-return behavior, and package
-  exports.
+- Unit tests cover JSON and YAML schema parsing, static typed evaluation, missing flags,
+  type mismatch, environment overrides, deterministic bucketing, replay fixtures,
+  redacted audit event serialization, file audit sink behavior, provider default-return
+  behavior, and package exports.
 - The Node basic example exercises OpenFeature registration, JSON snapshot loading,
   deterministic rollout, replay verification, and audit sink flushing.
 - CI runs contract coverage on Node.js 22.x and Node.js 24.x.

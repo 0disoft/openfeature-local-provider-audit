@@ -21,7 +21,8 @@ API, and the underlying flag source can later be replaced by another provider.
 
 ## MVP Scope
 
-- JSON flag file support first. YAML may be added later through an explicit parser decision.
+- JSON flag file support remains canonical. YAML snapshot loading is an accepted
+  post-MVP extension through docs/adr/0006-yaml-snapshot-loader.md.
 - Environment variable override layer with documented priority over file defaults.
 - Boolean, string, number, and object flag values.
 - Deterministic percentage bucketing from a stable targeting key and flag key.
@@ -37,7 +38,7 @@ API, and the underlying flag source can later be replaced by another provider.
 - Approval workflow, experiment analytics, or segment database.
 - All-language SDK support in the first version.
 - Full replacement for flagd, LaunchDarkly, Flagsmith, or GO Feature Flag.
-- YAML, file watch/reload, browser SDK, CLI, and general-purpose targeting rule language in the MVP.
+- File watch/reload, browser SDK, CLI, and general-purpose targeting rule language in the MVP.
 
 ## Required Decisions
 

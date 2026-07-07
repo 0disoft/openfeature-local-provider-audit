@@ -34,6 +34,7 @@ events, and replay deterministic fixtures without depending on a hosted service.
 
 - Provider creation API.
 - JSON flag snapshot parser.
+- YAML flag snapshot parser.
 - Pure flag evaluator.
 - Explicit environment override mapper.
 - Local provider options.
@@ -47,6 +48,7 @@ Implementation must not expose internal modules only because examples need conve
 
 - `createLocalProvider(options)`.
 - `parseJsonFlagSnapshot(json)`.
+- `parseYamlFlagSnapshot(yaml)`.
 - `evaluateFlag(snapshot, request)`.
 - `createEnvOverrides(snapshot, options)`.
 - `replayEvaluationFixture(fixture)`.

@@ -27,7 +27,6 @@ a feature flag platform.
 
 ## Next Evaluation Areas
 
-- YAML support.
 - File reload/watch behavior.
 - CLI helpers.
 - Browser SDK.

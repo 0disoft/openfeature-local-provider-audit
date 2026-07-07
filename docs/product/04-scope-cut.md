@@ -11,6 +11,8 @@ instead of drifting into a feature flag platform.
 ## In MVP
 
 - JSON flag snapshot loading.
+- YAML flag snapshot loading as a post-MVP extension approved by
+  docs/adr/0006-yaml-snapshot-loader.md.
 - Explicit environment override support.
 - Boolean, string, number, and object evaluation.
 - Static flag evaluation and default fallback.
@@ -24,7 +26,7 @@ instead of drifting into a feature flag platform.
 
 - Hosted dashboard, remote management server, streaming updates, approval workflow, experiment analytics, and segment database.
 - HTTP API and managed database.
-- YAML loader, file watching, hot reload, browser SDK, multi-language SDKs, and CLI.
+- File watching, hot reload, browser SDK, multi-language SDKs, and CLI.
 - General-purpose targeting rule language, country or plan rules, regex rules, and stored user segments.
 
 ## Deferred Extension Rule

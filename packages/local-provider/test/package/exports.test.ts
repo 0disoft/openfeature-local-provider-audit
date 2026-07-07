@@ -7,6 +7,7 @@ import {
   createLocalProvider,
   evaluateFlag,
   parseJsonFlagSnapshot,
+  parseYamlFlagSnapshot,
   redactContext,
   serializeAuditEvent,
   replayEvaluationFixture
@@ -18,6 +19,7 @@ describe("package exports", () => {
     expect(typeof createEnvOverrides).toBe("function");
     expect(typeof evaluateFlag).toBe("function");
     expect(typeof parseJsonFlagSnapshot).toBe("function");
+    expect(typeof parseYamlFlagSnapshot).toBe("function");
     expect(typeof replayEvaluationFixture).toBe("function");
     expect(typeof createAuditEvent).toBe("function");
     expect(typeof createFileAuditSink).toBe("function");
