@@ -25,7 +25,9 @@ Owner: 0disoft
 
 - Flag schema v1, reason taxonomy, audit event v1, bucketing v1, and package exports are treated as compatibility contracts.
 - Semver policy covers flag value changes.
-- Release workflow avoids long-lived publish tokens unless an ADR accepts that risk.
+- Release candidate workflow avoids long-lived publish tokens.
+- Public npm publishing remains blocked until trusted publishing is configured or an ADR
+  accepts another publish method.
 
 ## Review Blockers
 

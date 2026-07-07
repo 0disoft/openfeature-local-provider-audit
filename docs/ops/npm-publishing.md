@@ -19,8 +19,22 @@ public release.
 
 ## Decisions Still Needed
 
-- Release workflow.
 - npm publishing method.
+
+## Implemented Alpha Release Candidate Flow
+
+- `.github/workflows/release.yml` builds release candidates on `v*` tag pushes.
+- The workflow rejects tags that do not match the package version.
+- The workflow runs package validation and uploads the packed `.tgz` artifact.
+- It does not publish to npm and does not use a long-lived npm token.
+
+## Preferred Publish Direction
+
+- Use npm trusted publishing for the eventual public publish path.
+- Configure npm to trust this GitHub repository and the release workflow before adding a
+  publish step.
+- Keep long-lived npm tokens out of this repository unless a future ADR explicitly
+  accepts that risk.
 
 ## Release Gate Candidates
 
