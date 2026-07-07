@@ -1,8 +1,8 @@
 # @0disoft/openfeature-local-provider
 
 Local OpenFeature provider for JSON/YAML flag snapshots, typed evaluation, explicit
-environment overrides, deterministic rollout bucketing, replay fixtures, and redacted
-audit logs.
+CLI validation, environment overrides, deterministic rollout bucketing, replay fixtures,
+and redacted audit logs.
 
 ## Install
 
@@ -98,6 +98,17 @@ await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
 ```
 
 YAML input must parse into the same schema v1 snapshot contract used by JSON input.
+
+## CLI Validation
+
+```sh
+npx -p @0disoft/openfeature-local-provider openfeature-local-provider validate ./flags.yaml
+npx -p @0disoft/openfeature-local-provider openfeature-local-provider validate ./flags.json --json
+```
+
+The CLI is read-only. It validates local JSON/YAML snapshots, prints a small summary,
+and exits with `0` for success, `1` for snapshot validation failure, or `2` for usage
+errors.
 
 ## File Loading And Reload
 

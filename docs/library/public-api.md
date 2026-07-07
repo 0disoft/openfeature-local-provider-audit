@@ -23,12 +23,15 @@ events, and replay deterministic fixtures without depending on a hosted service.
 - Package artifact and export surface: exports must match this document and examples.
 - Deprecation and migration policy: provide migration notes for flag schema, override naming, and bucketing changes.
 - Dependency policy: provider code integrates with `@openfeature/server-sdk` through a peer dependency.
+- Package CLI policy: command helpers must stay local, read-only, and file-based unless
+  a later ADR changes the package boundary.
 
 ## Package Identity
 
 - Primary package name: `@0disoft/openfeature-local-provider`.
 - License: Apache-2.0.
 - Package name does not include `audit`; audit remains a built-in capability.
+- Package binary: `openfeature-local-provider`.
 
 ## Public Export Contract
 
@@ -71,6 +74,9 @@ Implementation must not expose internal modules only because examples need conve
 - `EvaluationResult` with optional `bucket` for deterministic pure-evaluator replay checks.
 - Snapshot, flag definition, rollout, evaluation, env override, replay fixture, audit event, audit sink, audit write mode, reason, source, and error code types.
 - `AuditSink` implementations may expose optional `flush()` to wait for pending writes.
+- `openfeature-local-provider validate <file>` validates a local JSON/YAML snapshot and
+  returns exit code `0` on success, `1` on snapshot validation failure, and `2` on usage
+  error.
 
 ## Review Blockers
 

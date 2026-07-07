@@ -17,6 +17,7 @@ surprising, or too large to maintain.
 | Audit log privacy leak | Targeting keys or context values expose user data. | Redact context by default and log reason summaries instead of raw context. |
 | Provider grows into a platform | Project competes with hosted flag products and loses its small-team value. | Keep dashboard, remote rollout, approval workflow, analytics, and segment storage out of MVP. |
 | File reload/watch complexity | Runtime behavior becomes nondeterministic. | Keep evaluation file-I/O free, preserve the last valid snapshot on reload failure, and cover watch mode with event tests. |
+| CLI scope creep | A helper command turns into flag management tooling. | Keep CLI helpers local, read-only, file-based, and covered by ADR review before adding commands. |
 
 ## Required Decisions
 

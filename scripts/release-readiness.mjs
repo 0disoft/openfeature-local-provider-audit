@@ -8,7 +8,7 @@ const RELEASE_WORKFLOW = path.join(ROOT, ".github", "workflows", "release.yml");
 const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
-const REQUIRED_PACKAGE_FILES = ["dist", "LICENSE", "README.md"];
+const REQUIRED_PACKAGE_FILES = ["bin", "dist", "LICENSE", "README.md"];
 
 const blockers = [];
 const warnings = [];
@@ -97,6 +97,11 @@ function checkPackageMetadata(localPackage) {
   expectEqual(localPackage.main, "./dist/index.cjs", "package CJS entry");
   expectEqual(localPackage.module, "./dist/index.js", "package ESM entry");
   expectEqual(localPackage.types, "./dist/index.d.ts", "package types entry");
+  expectEqual(
+    localPackage.bin?.["openfeature-local-provider"],
+    "./bin/openfeature-local-provider.js",
+    "package CLI bin entry"
+  );
   expectEqual(localPackage.engines?.node, ">=22 <25", "package Node engine range");
   expectEqual(
     localPackage.peerDependencies?.["@openfeature/server-sdk"],

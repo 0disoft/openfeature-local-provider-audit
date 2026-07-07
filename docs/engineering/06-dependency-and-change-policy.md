@@ -20,8 +20,12 @@ decision, not filler.
 - Runtime dependencies need a clear role in provider evaluation, file parsing, redaction, or replay.
 - Hashing and bucketing dependencies are compatibility-sensitive.
 - YAML support is accepted through docs/adr/0006-yaml-snapshot-loader.md and must keep
-  JSON-compatible schema validation. File watch, browser, Bun, Node, or other runtime
-  support must be proven before being documented as supported.
+  JSON-compatible schema validation.
+- File reload/watch support is accepted through docs/adr/0007-file-reload-watch.md and
+  must keep evaluation file-I/O free.
+- CLI helper support is accepted through docs/adr/0008-cli-helpers.md and must stay
+  local, read-only, and file-based.
+- Browser, Bun, Deno, or other runtime support must be proven before being documented as supported.
 - Dependencies must not introduce a hosted-service assumption.
 
 ## Review Blockers

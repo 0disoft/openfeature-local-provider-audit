@@ -36,6 +36,7 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 ## What It Owns
 
 - JSON and YAML flag snapshot parsing with schema v1 validation.
+- Local CLI validation for JSON/YAML flag snapshots.
 - Typed OpenFeature evaluation for boolean, string, number, and object values.
 - Explicit per-flag environment overrides.
 - Deterministic percentage rollout with replayable bucketing.

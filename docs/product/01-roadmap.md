@@ -24,17 +24,17 @@ a feature flag platform.
 6. Use the accepted Apache-2.0, `@0disoft/openfeature-local-provider`, Node.js 22/24, and OpenFeature peer dependency policy for package skeleton work.
 7. Publish `@0disoft/openfeature-local-provider` publicly through npm trusted publishing
    with provenance and GitHub Release artifacts.
+8. Add JSON/YAML file loading, reloadable providers, and file watch helpers.
+9. Add local snapshot validation CLI helpers.
 
 ## Next Evaluation Areas
 
-- CLI helpers.
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
 
 ## Deferred
 
 - Hosted dashboard, remote service, streaming updates, approval workflow, experiment analytics, and user segment database.
-- Runtime file watching until startup-load semantics and event behavior are tested.
 - Multi-language SDKs until the TypeScript package surface proves useful.
 - Package split until replay or test helpers have proven independent release value.
 

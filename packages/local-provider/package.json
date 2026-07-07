@@ -1,7 +1,7 @@
 {
   "name": "@0disoft/openfeature-local-provider",
-  "version": "0.11.0",
-  "description": "Local OpenFeature provider for JSON/YAML flag snapshots, file reload/watch, typed evaluation, environment overrides, bucketing, replay fixtures, redacted audit events, and lockable rotating file audit sinks.",
+  "version": "0.12.0",
+  "description": "Local OpenFeature provider for JSON/YAML flag snapshots, CLI validation, file reload/watch, typed evaluation, environment overrides, bucketing, replay fixtures, redacted audit events, and lockable rotating file audit sinks.",
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
@@ -12,6 +12,9 @@
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "bin": {
+    "openfeature-local-provider": "./bin/openfeature-local-provider.js"
+  },
   "exports": {
     ".": {
       "import": {
@@ -25,6 +28,7 @@
     }
   },
   "files": [
+    "bin",
     "dist",
     "LICENSE",
     "README.md"
@@ -34,7 +38,7 @@
     "node": ">=22 <25"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "build": "tsup src/index.ts src/cli.ts --format esm,cjs --dts --sourcemap --clean",
     "pack:check": "pnpm run build && publint && attw --pack .",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
