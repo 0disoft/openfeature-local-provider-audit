@@ -5,21 +5,27 @@ import {
   createEnvOverrides,
   createFileAuditSink,
   createLocalProvider,
+  createReloadableLocalProvider,
   evaluateFlag,
+  loadFlagSnapshotFile,
   parseJsonFlagSnapshot,
   parseYamlFlagSnapshot,
   redactContext,
   serializeAuditEvent,
-  replayEvaluationFixture
+  replayEvaluationFixture,
+  watchFlagSnapshotFile
 } from "../../src/index.js";
 
 describe("package exports", () => {
   it("exposes the documented root API", () => {
     expect(typeof createLocalProvider).toBe("function");
+    expect(typeof createReloadableLocalProvider).toBe("function");
     expect(typeof createEnvOverrides).toBe("function");
     expect(typeof evaluateFlag).toBe("function");
+    expect(typeof loadFlagSnapshotFile).toBe("function");
     expect(typeof parseJsonFlagSnapshot).toBe("function");
     expect(typeof parseYamlFlagSnapshot).toBe("function");
+    expect(typeof watchFlagSnapshotFile).toBe("function");
     expect(typeof replayEvaluationFixture).toBe("function");
     expect(typeof createAuditEvent).toBe("function");
     expect(typeof createFileAuditSink).toBe("function");

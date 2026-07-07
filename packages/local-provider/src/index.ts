@@ -4,9 +4,10 @@ export {
 } from "./errors/local-provider-error.js";
 export { parseJsonFlagSnapshot } from "./flags/parse-json-snapshot.js";
 export { parseYamlFlagSnapshot } from "./flags/parse-yaml-snapshot.js";
+export { loadFlagSnapshotFile, watchFlagSnapshotFile } from "./flags/snapshot-file.js";
 export { createEnvOverrides } from "./env/env-overrides.js";
 export { evaluateFlag } from "./evaluator/evaluate.js";
-export { createLocalProvider } from "./provider/local-provider.js";
+export { createLocalProvider, createReloadableLocalProvider } from "./provider/local-provider.js";
 export { replayEvaluationFixture } from "./replay/replay-fixture.js";
 export { createAuditEvent, redactContext, serializeAuditEvent } from "./audit/audit-event.js";
 export { createFileAuditSink } from "./audit/audit-sink.js";
@@ -39,10 +40,15 @@ export type {
   JsonValue,
   LocalProviderOptions,
   PercentageRolloutRule,
+  FlagSnapshotFileWatcher,
+  LoadFlagSnapshotFileOptions,
   ReplayExpectedResult,
   ReplayFixture,
   ReplayMismatch,
   ReplayOverrideInput,
   ReplayResult,
-  RedactedAuditContext
+  RedactedAuditContext,
+  ReloadableLocalProvider,
+  SnapshotFileFormat,
+  WatchFlagSnapshotFileOptions
 } from "./public-types.js";

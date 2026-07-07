@@ -27,7 +27,6 @@ a feature flag platform.
 
 ## Next Evaluation Areas
 
-- File reload/watch behavior.
 - CLI helpers.
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.

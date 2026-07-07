@@ -17,9 +17,11 @@ unless an explicit reload mode is documented.
 
 ## Budgets
 
-- Evaluation path: constant work relative to the selected flag rule where practical.
+- Evaluation path: constant work relative to the selected flag rule where practical and
+  no per-evaluation file I/O.
 - Audit path: redaction and JSON Lines writing must not expose raw context or block unrelated evaluations without documentation.
-- Snapshot path: file parsing and validation occur at explicit load boundaries until watch/reload mode is designed.
+- Snapshot path: file parsing and validation occur at explicit load, reload, or watch
+  boundaries. Failed reloads preserve the last valid snapshot.
 - Package size: avoid dependencies that turn the provider into a platform or service runtime.
 
 ## Review Blockers

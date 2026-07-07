@@ -17,6 +17,7 @@ which behavior becomes part of the public compatibility contract.
 - Package policy ADR: docs/adr/0004-package-license-runtime-policy.md
 - Package manager policy ADR: docs/adr/0005-pnpm-workspace-policy.md
 - YAML snapshot loader ADR: docs/adr/0006-yaml-snapshot-loader.md
+- File reload/watch ADR: docs/adr/0007-file-reload-watch.md
 
 ## Required Decisions
 

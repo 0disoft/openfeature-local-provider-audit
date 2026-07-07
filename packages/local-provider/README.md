@@ -99,6 +99,41 @@ await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
 
 YAML input must parse into the same schema v1 snapshot contract used by JSON input.
 
+## File Loading And Reload
+
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import {
+  createReloadableLocalProvider,
+  loadFlagSnapshotFile,
+  watchFlagSnapshotFile
+} from "@0disoft/openfeature-local-provider";
+
+const path = new URL("./flags.yaml", import.meta.url);
+const provider = createReloadableLocalProvider({
+  snapshot: await loadFlagSnapshotFile(path)
+});
+
+await OpenFeature.setProviderAndWait(provider);
+
+const watcher = await watchFlagSnapshotFile({
+  path,
+  onSnapshot(snapshot) {
+    provider.updateSnapshot(snapshot);
+  },
+  onError(error) {
+    console.warn("Flag reload failed", error);
+  }
+});
+```
+
+`loadFlagSnapshotFile` supports `.json`, `.yaml`, and `.yml` files by extension.
+Watcher reload failures are reported through `onError` and do not replace the last
+valid snapshot. Evaluation never reads from disk on the flag resolution path.
+
+Call `watcher.close()` during process shutdown when the file watcher is no longer
+needed.
+
 ## Environment Overrides
 
 ```ts

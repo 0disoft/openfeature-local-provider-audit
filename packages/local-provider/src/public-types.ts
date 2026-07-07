@@ -1,3 +1,4 @@
+import type { Provider } from "@openfeature/server-sdk";
 import type { EvaluationReason, EvaluationSource } from "./reasons.js";
 import type { LocalProviderErrorCode } from "./errors/error-codes.js";
 
@@ -62,6 +63,33 @@ export interface LocalProviderOptions {
   readonly env?: EnvSource;
   readonly auditSink?: AuditSink;
   readonly auditWriteMode?: AuditWriteMode;
+}
+
+export interface ReloadableLocalProvider extends Provider {
+  getSnapshot(): FlagSnapshot;
+  updateSnapshot(snapshot: FlagSnapshot): void;
+}
+
+export type SnapshotFileFormat = "auto" | "json" | "yaml";
+
+export interface LoadFlagSnapshotFileOptions {
+  readonly format?: SnapshotFileFormat;
+  readonly encoding?: BufferEncoding;
+}
+
+export interface WatchFlagSnapshotFileOptions extends LoadFlagSnapshotFileOptions {
+  readonly path: string | URL;
+  readonly debounceMs?: number;
+  readonly persistent?: boolean;
+  onSnapshot(snapshot: FlagSnapshot): void | Promise<void>;
+  onError?(error: unknown): void;
+}
+
+export interface FlagSnapshotFileWatcher {
+  readonly path: string | URL;
+  getSnapshot(): FlagSnapshot | undefined;
+  reload(): Promise<FlagSnapshot>;
+  close(): void;
 }
 
 export type AuditWriteMode = "nonBlocking" | "blocking";

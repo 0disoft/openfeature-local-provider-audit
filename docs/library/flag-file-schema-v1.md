@@ -15,6 +15,8 @@ because malformed or changed configuration can alter evaluated flag values.
 - JSON is the canonical file format.
 - YAML input is accepted through `parseYamlFlagSnapshot(yaml)` as a post-MVP extension
   approved by docs/adr/0006-yaml-snapshot-loader.md.
+- File loading and watch reload are accepted through docs/adr/0007-file-reload-watch.md
+  and must feed the same snapshot schema validation boundary.
 - The top-level document has `schemaVersion: 1` and a `flags` object.
 - Every flag has a declared type: `boolean`, `string`, `number`, or `object`.
 - Every flag defines variants and a default variant.
@@ -24,7 +26,8 @@ because malformed or changed configuration can alter evaluated flag values.
   places, and total no more than 100.
 - Rollout rules for one flag must use at most one shared optional seed.
 - Object flag values are allowed but audit output must not include evaluated object values by default.
-- File watching is deferred and requires ADR approval.
+- File watching must keep evaluation file-I/O free and preserve the last valid snapshot
+  when reload fails.
 
 ## Failure Behavior
 
@@ -37,5 +40,6 @@ because malformed or changed configuration can alter evaluated flag values.
 
 - A schema change can alter evaluated values without semver and replay fixture updates.
 - Example flag files contain real user identifiers, secrets, endpoints, or production configuration.
-- Watcher behavior appears without a new ADR.
+- Watcher behavior reads from disk during each evaluation.
+- A failed watcher reload replaces the last valid snapshot.
 - YAML input bypasses the same schema validation used by JSON input.

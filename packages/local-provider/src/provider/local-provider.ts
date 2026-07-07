@@ -13,12 +13,14 @@ import type {
   AuditSink,
   AuditWriteMode,
   EnvOverrideState,
+  EnvSource,
   EvaluationRequest,
   EvaluationResult,
   FlagSnapshot,
   FlagType,
   FlagValue,
-  LocalProviderOptions
+  LocalProviderOptions,
+  ReloadableLocalProvider
 } from "../public-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
@@ -26,6 +28,16 @@ import { toOpenFeatureResolution } from "./openfeature-resolution.js";
 const DEFAULT_PROVIDER_NAME = "openfeature-local-provider";
 
 export function createLocalProvider(options: LocalProviderOptions): Provider {
+  return createLocalFeatureProvider(options);
+}
+
+export function createReloadableLocalProvider(
+  options: LocalProviderOptions
+): ReloadableLocalProvider {
+  return createLocalFeatureProvider(options);
+}
+
+function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeatureProvider {
   const overrideOptions =
     options.overridesJson === undefined
       ? { env: options.env ?? process.env }
@@ -36,24 +48,43 @@ export function createLocalProvider(options: LocalProviderOptions): Provider {
 
   return new LocalFeatureProvider(
     options.snapshot,
-    createEnvOverrides(options.snapshot, overrideOptions),
+    overrideOptions,
     options.name ?? DEFAULT_PROVIDER_NAME,
     options.auditSink,
     options.auditWriteMode ?? "nonBlocking"
   );
 }
 
-class LocalFeatureProvider implements Provider {
+type OverrideOptions =
+  | { readonly env: EnvSource }
+  | { readonly overridesJson: string; readonly env: EnvSource };
+
+interface ProviderState {
+  readonly snapshot: FlagSnapshot;
+  readonly overrides: EnvOverrideState;
+}
+
+class LocalFeatureProvider implements ReloadableLocalProvider {
   readonly metadata: { readonly name: string };
+  private state: ProviderState;
 
   constructor(
-    private readonly snapshot: FlagSnapshot,
-    private readonly overrides: EnvOverrideState,
+    snapshot: FlagSnapshot,
+    private readonly overrideOptions: OverrideOptions,
     name: string,
     private readonly auditSink: AuditSink | undefined,
     private readonly auditWriteMode: AuditWriteMode
   ) {
+    this.state = this.createState(snapshot);
     this.metadata = { name };
+  }
+
+  getSnapshot(): FlagSnapshot {
+    return this.state.snapshot;
+  }
+
+  updateSnapshot(snapshot: FlagSnapshot): void {
+    this.state = this.createState(snapshot);
   }
 
   async resolveBooleanEvaluation(
@@ -99,10 +130,17 @@ class LocalFeatureProvider implements Provider {
     context: EvaluationContext,
     logger: Logger
   ): Promise<ResolutionDetails<T>> {
-    const request = this.createEvaluationRequest(flagKey, defaultValue, expectedType, context);
-    const result = this.evaluateSafely(request, logger);
+    const state = this.state;
+    const request = this.createEvaluationRequest(
+      flagKey,
+      defaultValue,
+      expectedType,
+      context,
+      state
+    );
+    const result = this.evaluateSafely(request, state, logger);
 
-    const auditWrite = this.writeAuditEvent(request, result, logger);
+    const auditWrite = this.writeAuditEvent(request, result, state, logger);
 
     if (this.auditWriteMode === "blocking") {
       await auditWrite;
@@ -113,10 +151,11 @@ class LocalFeatureProvider implements Provider {
 
   private evaluateSafely<T extends FlagValue>(
     request: EvaluationRequest<T>,
+    state: ProviderState,
     logger: Logger
   ): EvaluationResult<T> {
     try {
-      return evaluateFlag(this.snapshot, request);
+      return evaluateFlag(state.snapshot, request);
     } catch {
       this.warn(logger, "openfeature-local-provider evaluation failed");
 
@@ -136,13 +175,14 @@ class LocalFeatureProvider implements Provider {
     flagKey: string,
     defaultValue: T,
     expectedType: FlagType,
-    context: EvaluationContext
+    context: EvaluationContext,
+    state: ProviderState
   ): EvaluationRequest<T> {
     return {
       flagKey,
       defaultValue,
       expectedType,
-      overrides: this.overrides,
+      overrides: state.overrides,
       context,
       ...(typeof context.targetingKey === "string" ? { targetingKey: context.targetingKey } : {})
     };
@@ -151,6 +191,7 @@ class LocalFeatureProvider implements Provider {
   private async writeAuditEvent<T extends FlagValue>(
     request: EvaluationRequest<T>,
     result: EvaluationResult<T>,
+    state: ProviderState,
     logger: Logger
   ): Promise<void> {
     if (this.auditSink === undefined) {
@@ -161,7 +202,7 @@ class LocalFeatureProvider implements Provider {
       await this.auditSink.write(
         createAuditEvent({
           providerName: this.metadata.name,
-          snapshot: this.snapshot,
+          snapshot: state.snapshot,
           request,
           result
         })
@@ -177,5 +218,12 @@ class LocalFeatureProvider implements Provider {
     } catch {
       // Logging failures must not alter flag resolution.
     }
+  }
+
+  private createState(snapshot: FlagSnapshot): ProviderState {
+    return {
+      snapshot,
+      overrides: createEnvOverrides(snapshot, this.overrideOptions)
+    };
   }
 }

@@ -1,0 +1,47 @@
+# File Reload and Watch
+
+Status: Accepted
+Owner: 0disoft
+
+## Context
+
+The package started with explicit in-memory snapshots so evaluation remained deterministic
+and did not perform file I/O on the hot path. Some consumers need local development and
+test processes to pick up changed flag files without recreating the OpenFeature client.
+File watch/reload was deferred until the snapshot, replay, audit, and default-return
+contracts were covered by tests.
+
+## Decision
+
+- Add explicit file loading with `loadFlagSnapshotFile(path, options)`.
+- Add a reloadable provider with `createReloadableLocalProvider(options)`.
+- Add file watching with `watchFlagSnapshotFile(options)`.
+- Keep evaluation file-I/O free. Reload and watch happen at explicit load boundaries and
+  replace the provider snapshot atomically for subsequent evaluations.
+- Support JSON, YAML, and extension-based auto-detection for `.json`, `.yaml`, and `.yml`.
+- Watch reload failures must be reported through `onError` and must not replace the last
+  valid snapshot.
+- Do not add hot remote configuration, HTTP APIs, hosted control planes, CLI, browser,
+  Bun, Deno, or multi-language SDK support as part of this decision.
+
+## Compatibility Impact
+
+- Existing `createLocalProvider` behavior remains snapshot-immutable.
+- Reloadable providers are opt-in through a new public export.
+- Updating a reloadable provider changes future evaluations only; in-flight evaluations
+  use the snapshot captured at evaluation start.
+- Audit events must use the same snapshot that produced the evaluation result.
+
+## Validation
+
+- Unit tests must cover JSON and YAML file loading, reloadable provider updates, manual
+  watcher reload, event-driven watcher reload, and invalid reload error handling.
+- Existing replay and provider tests must continue to pass.
+- Release readiness must stay green before publishing.
+
+## Review Blockers
+
+- Evaluation reads from disk on each flag resolution.
+- A failed reload clears or corrupts the last valid snapshot.
+- Watch behavior introduces a network, database, hosted service, or platform assumption.
+- Audit events hash a different snapshot from the one used for evaluation.

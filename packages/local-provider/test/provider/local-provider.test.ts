@@ -4,7 +4,10 @@ import { join } from "node:path";
 import { ErrorCode } from "@openfeature/server-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { createFileAuditSink } from "../../src/audit/audit-sink.js";
-import { createLocalProvider } from "../../src/provider/local-provider.js";
+import {
+  createLocalProvider,
+  createReloadableLocalProvider
+} from "../../src/provider/local-provider.js";
 import { EVALUATION_REASONS } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
 
@@ -31,6 +34,40 @@ describe("createLocalProvider", () => {
       value: true,
       reason: EVALUATION_REASONS.STATIC,
       variant: "on"
+    });
+  });
+
+  it("updates future evaluations through a reloadable provider", async () => {
+    const provider = createReloadableLocalProvider({ snapshot: staticSnapshot });
+
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", false, {}, logger)
+    ).resolves.toMatchObject({
+      value: true,
+      reason: EVALUATION_REASONS.STATIC,
+      variant: "on"
+    });
+
+    provider.updateSnapshot({
+      schemaVersion: 1,
+      flags: {
+        "checkout.enabled": {
+          type: "boolean",
+          defaultVariant: "off",
+          variants: {
+            on: true,
+            off: false
+          }
+        }
+      }
+    });
+
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", true, {}, logger)
+    ).resolves.toMatchObject({
+      value: false,
+      reason: EVALUATION_REASONS.STATIC,
+      variant: "off"
     });
   });
 
