@@ -60,5 +60,5 @@ library, sdk validation must stay repository-shape focused and must not imply ge
 - docs: product, library, SDK, architecture, backend, ops, and engineering documents agree on the local-provider boundary.
 - contract: public API docs identify bucketing, reason names, env override priority, audit event fields, and replay fixtures as compatibility-sensitive.
 - security: privacy and threat-model docs confirm raw context, secrets, and evaluated object values are not logged by default.
-- test: contract and replay test plans cover default-return behavior, redaction, and deterministic bucketing once implementation exists.
+- test: contract and replay tests cover default-return behavior, redaction, and deterministic bucketing.
 - check: repository hygiene confirms no unowned API server, DB schema, secret, or generated output is treated as source truth.

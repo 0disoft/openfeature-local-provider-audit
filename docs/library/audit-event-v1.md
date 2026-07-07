@@ -34,7 +34,7 @@ raw user context by default.
 - `overrideHash`
 - `context`
 
-## Implemented Alpha Behavior
+## Implemented Behavior
 
 - `snapshotHash` is SHA-256 over stable JSON for the local snapshot.
 - `overrideHash` is SHA-256 over stable JSON for explicit override input when provided.

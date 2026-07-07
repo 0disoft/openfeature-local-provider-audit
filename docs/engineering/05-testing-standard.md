@@ -14,7 +14,7 @@ checking happy-path provider registration.
 - Merge-blocking validation: VALIDATION.md
 - Related checklist: CHECKLIST.md
 
-## Required Coverage Once Implementation Exists
+## Required Coverage
 
 - Boolean, string, number, and object evaluations.
 - Missing flag default behavior with reason metadata.

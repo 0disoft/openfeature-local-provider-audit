@@ -17,7 +17,7 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 - Object flag values are treated as sensitive by default.
 - Correlation across events requires explicit opt-in and a keyed design.
 
-## Implemented Alpha Controls
+## Implemented Controls
 
 - Audit context stores presence and key names only.
 - Snapshot and override data are represented by SHA-256 hashes.

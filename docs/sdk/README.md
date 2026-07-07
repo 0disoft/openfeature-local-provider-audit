@@ -18,8 +18,9 @@ file examples, env override examples, audit output examples, and replay fixture 
 
 - SDK ownership boundary: examples and helper APIs for integrating this provider with OpenFeature.
 - SDK public contract: no example may rely on undocumented internal exports.
-- SDK validation evidence: examples must be covered by docs or fixture checks once a runner exists.
-- SDK release or rollout policy: publish only after provider behavior and replay fixtures are stable.
+- SDK validation evidence: examples are covered by docs, CI, and fixture checks.
+- SDK release or rollout policy: publish examples with the provider package and keep them
+  on documented exports.
 - SDK compatibility and migration policy: example changes must track public API and semver notes.
 
 ## Review Blockers

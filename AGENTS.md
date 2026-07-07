@@ -42,7 +42,7 @@ Addons: sdk
 
 ## Hard Rules
 
-- Do not generate or infer application source code from this scaffold.
+- Do not generate unowned application, service, UI, database, or infrastructure source code.
 - Do not invent technology choices. Use UNDECIDED when a decision is not known.
 - Do not create fake credentials, tokens, secrets, or private values.
 - Do not rely on generated, cache, or build output as source truth.

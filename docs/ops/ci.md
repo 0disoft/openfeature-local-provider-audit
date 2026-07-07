@@ -4,10 +4,10 @@ Status: Draft
 
 ## Operational Contract
 
-CI should prove docs, package checks, type safety, tests, replay fixtures, and hygiene once
-a runner exists. Until then, final reports must be explicit about skipped executable checks.
+CI proves docs, package checks, type safety, tests, replay fixtures, and package hygiene
+on the supported Node.js runtime matrix.
 
-## Implemented Alpha Runner
+## Implemented Runner
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`.
 - Trigger: pushes and pull requests targeting `main`.

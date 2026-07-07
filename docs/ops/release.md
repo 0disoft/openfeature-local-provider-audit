@@ -5,7 +5,8 @@ Status: Draft
 ## Operational Contract
 
 Release readiness depends on public API docs, compatibility notes, semver review,
-package checks, replay fixture evidence, and redaction tests once implementation exists.
+package checks, replay fixture evidence, redaction tests, release readiness policy
+checks, npm trusted publishing, and GitHub Release artifact publication.
 
 ## Implemented Workflow
 

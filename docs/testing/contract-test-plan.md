@@ -7,7 +7,7 @@ Owner: 0disoft
 
 Contract tests prove provider behavior that consumers can rely on.
 
-## Required Coverage Once Implementation Exists
+## Required Contract Coverage
 
 - Boolean, string, number, and object static evaluation.
 - Explicit JSON and per-flag environment override priority.
@@ -32,6 +32,16 @@ Contract tests prove provider behavior that consumers can rely on.
 - Provider adapter converts internal runtime evaluation exceptions to caller defaults
   with `ERROR` reason and `PROVIDER_NOT_READY` error details.
 - Package exports match docs/library/public-api.md.
+
+## Implemented Coverage
+
+- Unit tests cover schema parsing, static typed evaluation, missing flags, type mismatch,
+  environment overrides, deterministic bucketing, replay fixtures, redacted audit event
+  serialization, file audit sink behavior, provider default-return behavior, and package
+  exports.
+- The Node basic example exercises OpenFeature registration, JSON snapshot loading,
+  deterministic rollout, replay verification, and audit sink flushing.
+- CI runs contract coverage on Node.js 22.x and Node.js 24.x.
 
 ## Review Blockers
 

@@ -30,7 +30,7 @@ events, and replay deterministic fixtures without depending on a hosted service.
 - License: Apache-2.0.
 - Package name does not include `audit`; audit remains a built-in capability.
 
-## Candidate Public Exports
+## Public Export Contract
 
 - Provider creation API.
 - JSON flag snapshot parser.
@@ -39,11 +39,11 @@ events, and replay deterministic fixtures without depending on a hosted service.
 - Local provider options.
 - Flag snapshot and flag definition types.
 - Evaluation request, result, env override state, reason, source, and error code types.
-- Audit event and replay fixture types once implemented.
+- Audit event and replay fixture types.
 
 Implementation must not expose internal modules only because examples need convenience imports.
 
-## Implemented Alpha Export Surface
+## Implemented Export Surface
 
 - `createLocalProvider(options)`.
 - `parseJsonFlagSnapshot(json)`.

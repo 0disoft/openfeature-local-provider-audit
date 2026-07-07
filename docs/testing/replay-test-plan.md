@@ -8,7 +8,7 @@ Owner: 0disoft
 Replay tests protect deterministic output, especially bucketing behavior and reason
 metadata.
 
-## Required Coverage Once Implementation Exists
+## Required Replay Coverage
 
 - Stable bucket outputs for representative targeting keys.
 - Boundary percentages.
@@ -17,7 +17,7 @@ metadata.
 - Error reason and source metadata.
 - Redaction-safe fixture data only.
 
-## Implemented Alpha Fixtures
+## Implemented Fixtures
 
 - `checkout.rollout` with seed `checkout-rollout-v1`.
 - `user-alpha` maps to bucket `29586` and variant `on` at 50%.
@@ -25,7 +25,7 @@ metadata.
 - Missing targeting key returns `INVALID_CONTEXT`.
 - Env override input wins before rollout evaluation.
 
-## Implemented Alpha Harness
+## Implemented Harness
 
 - `replayEvaluationFixture` replays one fixture through the pure evaluator.
 - The harness compares value, variant, bucket, reason, source, and error code.

@@ -14,7 +14,7 @@ a feature flag platform.
 - Technical owner: 0disoft
 - Related ADR: docs/adr/0001-initial-architecture-boundaries.md
 
-## Milestones
+## Completed Milestones
 
 1. Define the flag file schema, env override naming, and evaluation reason taxonomy.
 2. Implement provider contract tests for typed values, missing flags, invalid files, and defaults.
@@ -22,7 +22,16 @@ a feature flag platform.
 4. Add JSON Lines audit events with redaction defaults and snapshot/replay documentation.
 5. Publish SDK examples that show OpenFeature registration and local test usage.
 6. Use the accepted Apache-2.0, `@0disoft/openfeature-local-provider`, Node.js 22/24, and OpenFeature peer dependency policy for package skeleton work.
-7. Evaluate YAML support, file reload/watch behavior, CLI, browser SDK, and additional language support only after the core provider is stable.
+7. Publish `@0disoft/openfeature-local-provider` publicly through npm trusted publishing
+   with provenance and GitHub Release artifacts.
+
+## Next Evaluation Areas
+
+- YAML support.
+- File reload/watch behavior.
+- CLI helpers.
+- Browser SDK.
+- Additional language support after the TypeScript package surface proves useful.
 
 ## Deferred
 

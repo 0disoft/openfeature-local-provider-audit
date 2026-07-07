@@ -28,7 +28,7 @@ Owner: 0disoft
 - Keep audit failure behavior separate from value resolution behavior.
 - Keep audit serialization redacted before sink writes.
 - Catch provider audit sink write failures so local I/O failures cannot change resolved
-  values in the current alpha implementation.
+  values in the current implementation.
 - Keep provider audit writes non-blocking by default so slow local I/O does not delay
   resolved values.
 - Provide an explicit flush path for short-lived local processes that need to drain

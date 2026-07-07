@@ -23,7 +23,7 @@ OpenFeature SDK dependency policy.
 
 - A root `LICENSE` file records Apache-2.0 now.
 - Package skeleton work must use the approved package name.
-- Runtime compatibility claims must be backed by Node.js 22 and 24 checks once a runner exists.
+- Runtime compatibility claims are backed by Node.js 22 and 24 CI checks.
 - Consumer examples must install OpenFeature explicitly through the peer dependency path.
 - Adding runtime support or bundling OpenFeature directly requires a new ADR or an update to this one.
 
