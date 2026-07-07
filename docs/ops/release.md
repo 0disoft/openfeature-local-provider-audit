@@ -17,6 +17,8 @@ package checks, replay fixture evidence, and redaction tests once implementation
   GitHub Actions artifact.
 - Publishing: if the version is not already present on npm, the workflow publishes with
   npm trusted publishing and provenance.
+- GitHub Release: if the tag does not already have a GitHub Release, the workflow creates
+  one and attaches the packed `.tgz`.
 
 ## Owners
 
@@ -29,4 +31,5 @@ package checks, replay fixture evidence, and redaction tests once implementation
 - Required validation names: VALIDATION.md
 - Release blocker status: changed public behavior without matching docs and validation.
 - Remaining operational risk: npm trusted publisher settings must continue to match
-  `0disoft/openfeature-local-provider-audit` and `.github/workflows/release.yml`.
+  `0disoft/openfeature-local-provider-audit` and `.github/workflows/release.yml`; GitHub
+  Release creation requires `contents: write` on the release workflow.

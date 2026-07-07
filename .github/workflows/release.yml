@@ -6,7 +6,7 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -43,6 +43,9 @@ jobs:
       - name: Check
         run: pnpm run check
 
+      - name: Release readiness
+        run: pnpm run release-readiness
+
       - name: Smoke example
         run: pnpm --filter openfeature-local-provider-node-basic-example start
 
@@ -72,3 +75,17 @@ jobs:
         if: steps.published.outputs.exists != 'true'
         working-directory: packages/local-provider
         run: npm publish --provenance --access public
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "GitHub Release ${GITHUB_REF_NAME} already exists."
+            exit 0
+          fi
+
+          package_version="$(node -p "require('./packages/local-provider/package.json').version")"
+          gh release create "${GITHUB_REF_NAME}" .tmp/release/*.tgz \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "Release ${GITHUB_REF_NAME} for @0disoft/openfeature-local-provider ${package_version}."

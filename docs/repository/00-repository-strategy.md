@@ -29,7 +29,7 @@ split into multiple repositories before the first implementation.
 - Package manager and workspace layout: pnpm workspace with the primary package in `packages/local-provider`.
 - Public visibility: package is public on npm.
 - Release automation and npm publishing method: tag-triggered GitHub Actions release
-  workflow with npm trusted publishing.
+  workflow with npm trusted publishing, provenance, and GitHub Release asset upload.
 
 ## Review Blockers
 

@@ -1,50 +1,71 @@
-# OpenFeature Local Provider with Audit Log
+# OpenFeature Local Provider
 
-Status: Draft
-Scope: backend
-Repository Type: library
-Addons: sdk
+Local OpenFeature provider for JSON flag snapshots, explicit environment overrides,
+deterministic percentage rollout, replay fixtures, and redacted audit logs.
 
-This repository defines a small local/default OpenFeature provider for teams that need
-feature flags without a SaaS control plane. The initial product direction is file/env
-flag loading, typed evaluations, deterministic percentage bucketing, evaluation reasons,
-and JSON Lines audit/replay evidence.
+```sh
+npm install @0disoft/openfeature-local-provider @openfeature/server-sdk
+```
 
-## Source Files
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import { createLocalProvider, parseJsonFlagSnapshot } from "@0disoft/openfeature-local-provider";
 
-- AGENTS.md: agent working rules
-- CHECKLIST.md: checklist router
-- VALIDATION.md: validation names and reporting requirements
-- .agents/context-map.md: agent route map
-- docs/product/02-spec.md: product contract and MVP boundary
-- docs/product/04-scope-cut.md: explicit MVP inclusion and exclusion list
-- docs/library/public-api.md: package API contract
-- docs/library/*.md: schema, env override, bucketing, reasons, audit, replay, semver, and compatibility contracts
-- docs/security/*.md: privacy, redaction, and local threat model
-- docs/testing/*.md: contract and replay test plans
-- docs/sdk/public-api.md: SDK-facing API contract
-- docs/: design, operations, architecture, and engineering standards
+const snapshot = parseJsonFlagSnapshot(
+  JSON.stringify({
+    schemaVersion: 1,
+    flags: {
+      "checkout.enabled": {
+        type: "boolean",
+        defaultVariant: "on",
+        variants: {
+          on: true,
+          off: false
+        }
+      }
+    }
+  })
+);
 
-## Repository Shape Notes
+await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
 
-- library: owns the provider API, flag file model, env override rules, bucketing behavior,
-  audit event shape, package compatibility, and migration guidance.
-- sdk: owns consumer examples, OpenFeature integration guidance, compatibility notes, and
-  replay fixtures.
+const client = OpenFeature.getClient();
+const enabled = await client.getBooleanValue("checkout.enabled", false);
+```
 
+## What It Owns
 
-## Repository Hygiene
+- JSON flag snapshot parsing and schema v1 validation.
+- Typed OpenFeature evaluation for boolean, string, number, and object values.
+- Explicit per-flag environment overrides.
+- Deterministic percentage rollout with replayable bucketing.
+- Redacted audit event generation and optional JSON Lines file sinks.
+- Replay fixtures for compatibility-sensitive evaluation behavior.
 
-.editorconfig, .gitattributes, and .gitignore are generated to keep line endings,
-binary diffs, local files, build outputs, caches, and secret files under control.
+## What It Does Not Own
 
-## Scope Notes
+- Hosted flag management.
+- Remote control planes, streaming updates, dashboards, or approval workflows.
+- User segment databases or experiment analytics.
+- Browser, Bun, Deno, HTTP API, database, Kubernetes, or Terraform runtime support.
 
-This project intentionally stays local-provider-first. It must not grow into a hosted
-feature flag platform, dashboard, user segmentation database, streaming control plane, or
-experiment analytics service without a new product decision and ADR.
+## Runtime And Package Policy
 
-Accepted package decisions: Apache-2.0 license, `@0disoft/openfeature-local-provider`
-package name, server-side Node.js 22/24 runtime targets, and `@openfeature/server-sdk`
-as a peer dependency. The implementation uses a pnpm workspace. Release workflow remains
-a pre-implementation decision.
+- Package: `@0disoft/openfeature-local-provider`.
+- License: Apache-2.0.
+- Runtime: server-side Node.js 22 LTS and Node.js 24 LTS.
+- OpenFeature SDK: `@openfeature/server-sdk` is a peer dependency.
+- Package manager: pnpm workspace.
+- Public releases: tag-triggered GitHub Actions workflow with npm trusted publishing
+  and provenance.
+
+## Repository Map
+
+- [packages/local-provider](packages/local-provider): published package source.
+- [examples/node-basic](examples/node-basic): runnable Node/OpenFeature example.
+- [docs/library/public-api.md](docs/library/public-api.md): public API contract.
+- [docs/library](docs/library): flag schema, env override, bucketing, audit, replay,
+  semver, and compatibility contracts.
+- [docs/security](docs/security): privacy, redaction, and threat model.
+- [docs/ops](docs/ops): CI, release, rollback, and npm publishing policy.
+- [VALIDATION.md](VALIDATION.md): stable validation commands.

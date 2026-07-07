@@ -28,6 +28,8 @@ Owner: 0disoft
 - Release candidate workflow avoids long-lived publish tokens.
 - Public npm publishing uses npm trusted publishing from the configured GitHub Actions
   release workflow.
+- GitHub Releases are created by the release workflow and include the packed `.tgz`
+  artifact.
 
 ## Review Blockers
 
@@ -36,3 +38,4 @@ Owner: 0disoft
 - Public package metadata is inconsistent with docs/adr/0004-package-license-runtime-policy.md.
 - Security or license policy is missing for a public release.
 - Trusted publisher settings drift from the GitHub repository or workflow filename.
+- Release workflow permissions cannot create the GitHub Release or request npm OIDC.

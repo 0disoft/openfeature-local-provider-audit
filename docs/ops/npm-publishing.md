@@ -28,6 +28,7 @@ smoke evidence before public release.
 - The workflow checks whether the package version is already published.
 - If the version is not already published, the workflow publishes with
   `npm publish --provenance --access public`.
+- The workflow creates a GitHub Release for the tag and attaches the packed `.tgz`.
 - It does not use a long-lived npm token.
 
 ## Release Gate Candidates
@@ -40,6 +41,7 @@ smoke evidence before public release.
 - Packed install smoke test.
 - License check.
 - Peer dependency smoke test.
+- Release readiness policy check.
 
 ## Review Blockers
 
@@ -49,3 +51,4 @@ smoke evidence before public release.
 - A public release is prepared before security policy is present.
 - npm trusted publisher configuration no longer matches the GitHub organization,
   repository, or workflow filename recorded above.
+- Release workflow permissions cannot create the GitHub Release or request npm OIDC.

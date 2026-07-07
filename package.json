@@ -10,11 +10,12 @@
   },
   "scripts": {
     "build": "pnpm --filter @0disoft/openfeature-local-provider build",
-    "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run pack:check",
+    "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run pack:check && pnpm run release-readiness",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
     "pack:check": "pnpm --filter @0disoft/openfeature-local-provider pack:check",
+    "release-readiness": "node scripts/release-readiness.mjs",
     "test": "pnpm --filter @0disoft/openfeature-local-provider test",
     "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck"
   },

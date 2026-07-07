@@ -13,8 +13,8 @@ a runner exists. Until then, final reports must be explicit about skipped execut
 - Trigger: pushes and pull requests targeting `main`.
 - Runtime matrix: Node.js 22.x and 24.x.
 - Package manager: Corepack activates the repository `packageManager` pnpm version.
-- Validation sequence: `format:check`, `lint`, `typecheck`, `test`, `pack:check`, and
-  the Node basic example smoke command.
+- Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
+  `pack:check`, and the Node basic example smoke command.
 
 ## Owners
 

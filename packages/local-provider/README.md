@@ -1,15 +1,117 @@
 # @0disoft/openfeature-local-provider
 
-Status: alpha implementation
+Local OpenFeature provider for JSON flag snapshots, typed evaluation, explicit
+environment overrides, deterministic rollout bucketing, replay fixtures, and redacted
+audit logs.
 
-This package provides a local OpenFeature provider for JSON flag snapshots. The current
-implementation supports schema version 1 parsing, static typed evaluation, explicit
-environment overrides, deterministic percentage bucketing, pure evaluator replay
-fixtures, redacted audit event generation, optional file audit sinks, missing flag
-defaults, type mismatch error results, and a minimal OpenFeature provider adapter.
+## Install
 
-Deferred features include YAML, file watching, CLI, browser support, HTTP API, and
-database integration.
+```sh
+npm install @0disoft/openfeature-local-provider @openfeature/server-sdk
+```
+
+## Quick Start
+
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import { createLocalProvider, parseJsonFlagSnapshot } from "@0disoft/openfeature-local-provider";
+
+const snapshot = parseJsonFlagSnapshot(
+  JSON.stringify({
+    schemaVersion: 1,
+    flags: {
+      "checkout.enabled": {
+        type: "boolean",
+        defaultVariant: "on",
+        variants: {
+          on: true,
+          off: false
+        }
+      }
+    }
+  })
+);
+
+await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
+
+const client = OpenFeature.getClient();
+const enabled = await client.getBooleanValue("checkout.enabled", false);
+```
+
+## Percentage Rollout
+
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import { createLocalProvider, parseJsonFlagSnapshot } from "@0disoft/openfeature-local-provider";
+
+const snapshot = parseJsonFlagSnapshot(
+  JSON.stringify({
+    schemaVersion: 1,
+    flags: {
+      "checkout.rollout": {
+        type: "boolean",
+        defaultVariant: "off",
+        variants: {
+          on: true,
+          off: false
+        },
+        rollout: [
+          {
+            variant: "on",
+            percentage: 25,
+            seed: "checkout-rollout-v1"
+          }
+        ]
+      }
+    }
+  })
+);
+
+await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
+
+const client = OpenFeature.getClient();
+const enabled = await client.getBooleanValue("checkout.rollout", false, {
+  targetingKey: "account-123"
+});
+```
+
+Rollout selection is deterministic for the same flag key, targeting key, and seed.
+
+## Environment Overrides
+
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import { createLocalProvider, parseJsonFlagSnapshot } from "@0disoft/openfeature-local-provider";
+
+const snapshot = parseJsonFlagSnapshot(
+  JSON.stringify({
+    schemaVersion: 1,
+    flags: {
+      "checkout.enabled": {
+        type: "boolean",
+        envVar: "CHECKOUT_ENABLED",
+        defaultVariant: "on",
+        variants: {
+          on: true,
+          off: false
+        }
+      }
+    }
+  })
+);
+
+await OpenFeature.setProviderAndWait(
+  createLocalProvider({
+    snapshot,
+    env: {
+      CHECKOUT_ENABLED: "false"
+    }
+  })
+);
+```
+
+Environment variables are explicit. The provider does not invent variable names from flag
+keys.
 
 ## File Audit Sink
 
@@ -51,3 +153,11 @@ rotated files are retained as `.1`, `.2`, and so on.
 Set `lock: true` when multiple local processes may write the same audit file. The lock is
 advisory and uses a sibling `.lock` file. `lockTimeoutMs` controls acquisition timeout,
 and `staleLockMs` can remove stale lock files left by crashed processes.
+
+## Supported Runtime
+
+- Node.js 22 LTS
+- Node.js 24 LTS
+
+Browser, Bun, Deno, hosted flag services, control-plane APIs, and remote streaming are
+outside the current package boundary.

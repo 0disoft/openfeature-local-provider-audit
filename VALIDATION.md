@@ -35,6 +35,7 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - typecheck: `pnpm run typecheck`
 - test: `pnpm run test`
 - smoke: `pnpm run build` and `pnpm run pack:check`
+- docs: `pnpm run release-readiness`
 - check: `pnpm run check`
 
 ## Hygiene Validation

@@ -53,6 +53,9 @@ jobs:
       - name: Test
         run: pnpm run test
 
+      - name: Release readiness
+        run: pnpm run release-readiness
+
       - name: Package check
         run: pnpm run pack:check
 
