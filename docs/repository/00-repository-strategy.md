@@ -17,7 +17,7 @@ split into multiple repositories before the first implementation.
 - Use Apache-2.0 as the repository and package license.
 - Target server-side Node.js 22 LTS and Node.js 24 LTS for the MVP.
 - Use pnpm workspaces for the implementation.
-- Treat the release workflow as a remaining pre-implementation decision.
+- Publish the primary npm package through GitHub Actions and npm trusted publishing.
 - Keep `.ssealed/manifest.json` as scaffold baseline metadata, not product source of truth.
 
 ## Accepted Decisions
@@ -27,11 +27,9 @@ split into multiple repositories before the first implementation.
 - Runtime support matrix: Node.js 22 LTS and Node.js 24 LTS for server-side usage.
 - OpenFeature dependency policy: `@openfeature/server-sdk` is a peer dependency.
 - Package manager and workspace layout: pnpm workspace with the primary package in `packages/local-provider`.
-
-## Decisions Still Needed
-
-- Public visibility timing and alpha-readiness criteria.
-- Release automation and npm publishing method.
+- Public visibility: package is public on npm.
+- Release automation and npm publishing method: tag-triggered GitHub Actions release
+  workflow with npm trusted publishing.
 
 ## Review Blockers
 

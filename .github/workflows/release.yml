@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 jobs:
   package:
@@ -21,6 +22,8 @@ jobs:
         uses: actions/setup-node@v6.4.0
         with:
           node-version: 24.x
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
 
       - name: Enable pnpm
         run: corepack enable
@@ -54,3 +57,18 @@ jobs:
           name: openfeature-local-provider-${{ github.ref_name }}
           path: .tmp/release/*.tgz
           if-no-files-found: error
+
+      - name: Check npm published version
+        id: published
+        run: |
+          package_version="$(node -p "require('./packages/local-provider/package.json').version")"
+          if npm view "@0disoft/openfeature-local-provider@${package_version}" version >/dev/null 2>&1; then
+            echo "exists=true" >> "${GITHUB_OUTPUT}"
+          else
+            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Publish package
+        if: steps.published.outputs.exists != 'true'
+        working-directory: packages/local-provider
+        run: npm publish --provenance --access public

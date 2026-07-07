@@ -26,8 +26,8 @@ Owner: 0disoft
 - Flag schema v1, reason taxonomy, audit event v1, bucketing v1, and package exports are treated as compatibility contracts.
 - Semver policy covers flag value changes.
 - Release candidate workflow avoids long-lived publish tokens.
-- Public npm publishing remains blocked until trusted publishing is configured or an ADR
-  accepts another publish method.
+- Public npm publishing uses npm trusted publishing from the configured GitHub Actions
+  release workflow.
 
 ## Review Blockers
 
@@ -35,3 +35,4 @@ Owner: 0disoft
 - Public package metadata is inconsistent with docs/library/public-api.md.
 - Public package metadata is inconsistent with docs/adr/0004-package-license-runtime-policy.md.
 - Security or license policy is missing for a public release.
+- Trusted publisher settings drift from the GitHub repository or workflow filename.
