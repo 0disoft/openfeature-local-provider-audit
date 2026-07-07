@@ -23,6 +23,14 @@ fixtures across documented runtime targets.
 - SDK release or rollout policy: publish examples with the same package version as the provider.
 - SDK compatibility and migration policy: mark changed reason names, audit fields, schema, or bucketing behavior as migration-sensitive.
 
+## Implemented Alpha Example
+
+- `examples/node-basic` registers the provider through OpenFeature, resolves a local
+  rollout flag, flushes the redacted audit sink, and verifies the same rollout path with
+  `replayEvaluationFixture`.
+- The example context uses synthetic non-personal fields and does not include emails,
+  tokens, passwords, or real user identifiers.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

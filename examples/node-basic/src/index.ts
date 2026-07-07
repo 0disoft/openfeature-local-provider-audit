@@ -5,7 +5,8 @@ import { OpenFeature } from "@openfeature/server-sdk";
 import {
   createFileAuditSink,
   createLocalProvider,
-  parseJsonFlagSnapshot
+  parseJsonFlagSnapshot,
+  replayEvaluationFixture
 } from "@0disoft/openfeature-local-provider";
 
 const snapshotText = await readFile(new URL("../flags.json", import.meta.url), "utf8");
@@ -21,11 +22,35 @@ await OpenFeature.setProviderAndWait(
 );
 
 const client = OpenFeature.getClient();
-const enabled = await client.getBooleanValue("checkout.enabled", false, {
-  targetingKey: "synthetic-user",
-  email: "synthetic@example.test"
+const targetingKey = "sample-cohort-alpha";
+const enabled = await client.getBooleanValue("checkout.rollout", false, {
+  targetingKey,
+  cohort: "sample-alpha"
+});
+const replay = replayEvaluationFixture({
+  schemaVersion: 1,
+  name: "node-basic-rollout",
+  snapshot,
+  request: {
+    flagKey: "checkout.rollout",
+    defaultValue: false,
+    expectedType: "boolean",
+    targetingKey
+  },
+  expected: {
+    value: true,
+    variant: "on",
+    bucket: 5019,
+    reason: "SPLIT",
+    source: "file"
+  }
 });
 
 await auditSink.flush?.();
 
-console.log(JSON.stringify({ "checkout.enabled": enabled }));
+console.log(
+  JSON.stringify({
+    "checkout.rollout": enabled,
+    replay: replay.passed
+  })
+);
