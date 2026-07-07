@@ -8,8 +8,8 @@ environment overrides, deterministic percentage bucketing, pure evaluator replay
 fixtures, redacted audit event generation, optional file audit sinks, missing flag
 defaults, type mismatch error results, and a minimal OpenFeature provider adapter.
 
-Deferred features include audit rotation, YAML, file watching, CLI, browser support, HTTP
-API, and database integration.
+Deferred features include YAML, file watching, CLI, browser support, HTTP API, and
+database integration.
 
 ## File Audit Sink
 

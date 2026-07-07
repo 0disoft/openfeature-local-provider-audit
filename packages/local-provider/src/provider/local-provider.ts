@@ -7,6 +7,7 @@ import type {
 } from "@openfeature/server-sdk";
 import { createAuditEvent } from "../audit/audit-event.js";
 import { createEnvOverrides } from "../env/env-overrides.js";
+import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
 import type {
   AuditSink,
@@ -19,6 +20,7 @@ import type {
   FlagValue,
   LocalProviderOptions
 } from "../public-types.js";
+import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
 
 const DEFAULT_PROVIDER_NAME = "openfeature-local-provider";
@@ -98,7 +100,7 @@ class LocalFeatureProvider implements Provider {
     logger: Logger
   ): Promise<ResolutionDetails<T>> {
     const request = this.createEvaluationRequest(flagKey, defaultValue, expectedType, context);
-    const result = evaluateFlag(this.snapshot, request);
+    const result = this.evaluateSafely(request, logger);
 
     const auditWrite = this.writeAuditEvent(request, result, logger);
 
@@ -107,6 +109,27 @@ class LocalFeatureProvider implements Provider {
     }
 
     return toOpenFeatureResolution(result) as ResolutionDetails<T>;
+  }
+
+  private evaluateSafely<T extends FlagValue>(
+    request: EvaluationRequest<T>,
+    logger: Logger
+  ): EvaluationResult<T> {
+    try {
+      return evaluateFlag(this.snapshot, request);
+    } catch {
+      this.warn(logger, "openfeature-local-provider evaluation failed");
+
+      return {
+        flagKey: request.flagKey,
+        value: request.defaultValue,
+        reason: EVALUATION_REASONS.ERROR,
+        source: EVALUATION_SOURCES.ERROR,
+        errorCode: LOCAL_PROVIDER_ERROR_CODES.PROVIDER_NOT_READY,
+        errorMessage: "Provider evaluation failed.",
+        flagMetadata: {}
+      };
+    }
   }
 
   private createEvaluationRequest<T extends FlagValue>(
@@ -144,11 +167,15 @@ class LocalFeatureProvider implements Provider {
         })
       );
     } catch {
-      try {
-        logger.warn("openfeature-local-provider audit sink write failed");
-      } catch {
-        // Audit logging must not alter flag resolution, including logger failures.
-      }
+      this.warn(logger, "openfeature-local-provider audit sink write failed");
+    }
+  }
+
+  private warn(logger: Logger, message: string): void {
+    try {
+      logger.warn(message);
+    } catch {
+      // Logging failures must not alter flag resolution.
     }
   }
 }

@@ -204,6 +204,77 @@ describe("createLocalProvider", () => {
       variant: "on"
     });
   });
+
+  it("returns default error details when runtime evaluation throws", async () => {
+    const warn = vi.fn();
+    const provider = createLocalProvider({
+      snapshot: {
+        schemaVersion: 1,
+        flags: {
+          "checkout.broken": {
+            type: "boolean",
+            defaultVariant: "on",
+            variants: {
+              on: true
+            },
+            rollout: {} as never
+          }
+        }
+      }
+    });
+
+    await expect(
+      provider.resolveBooleanEvaluation(
+        "checkout.broken",
+        false,
+        { targetingKey: "synthetic-user" },
+        { ...logger, warn }
+      )
+    ).resolves.toMatchObject({
+      value: false,
+      reason: EVALUATION_REASONS.ERROR,
+      errorCode: ErrorCode.PROVIDER_NOT_READY,
+      errorMessage: "Provider evaluation failed."
+    });
+    expect(warn).toHaveBeenCalledWith("openfeature-local-provider evaluation failed");
+  });
+
+  it("returns default error details when runtime failure logging throws", async () => {
+    const provider = createLocalProvider({
+      snapshot: {
+        schemaVersion: 1,
+        flags: {
+          "checkout.broken": {
+            type: "boolean",
+            defaultVariant: "on",
+            variants: {
+              on: true
+            },
+            rollout: {} as never
+          }
+        }
+      }
+    });
+    const throwingLogger = {
+      ...logger,
+      warn() {
+        throw new Error("logger unavailable");
+      }
+    };
+
+    await expect(
+      provider.resolveBooleanEvaluation(
+        "checkout.broken",
+        false,
+        { targetingKey: "synthetic-user" },
+        throwingLogger
+      )
+    ).resolves.toMatchObject({
+      value: false,
+      reason: EVALUATION_REASONS.ERROR,
+      errorCode: ErrorCode.PROVIDER_NOT_READY
+    });
+  });
 });
 
 function createDeferred(): { readonly promise: Promise<void>; resolve(): void } {

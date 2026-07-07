@@ -29,7 +29,8 @@ Contract tests prove provider behavior that consumers can rely on.
 - Missing flag returns caller default with `DEFAULT` reason.
 - Type mismatch returns caller default with `ERROR` reason and error code.
 - Invalid JSON and invalid schema fail at load boundaries.
-- Provider adapter does not leak internal exceptions through runtime evaluation.
+- Provider adapter converts internal runtime evaluation exceptions to caller defaults
+  with `ERROR` reason and `PROVIDER_NOT_READY` error details.
 - Package exports match docs/library/public-api.md.
 
 ## Review Blockers
