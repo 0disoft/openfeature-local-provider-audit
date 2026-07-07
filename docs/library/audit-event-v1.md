@@ -45,13 +45,16 @@ raw user context by default.
 - File audit sinks expose optional `flush()` to wait for pending non-blocking writes.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
+- File audit sinks support optional advisory `.lock` files with `lock`, `lockTimeoutMs`,
+  and `staleLockMs` for multi-process local writers.
 - `createLocalProvider({ auditSink })` schedules audit writes after evaluation and logs
   sink failures without changing the returned resolution.
 - Provider audit writes are non-blocking by default. Use
   `createLocalProvider({ auditWriteMode: "blocking" })` when a test or short-lived script
   must wait for each sink write before resolution, or call `auditSink.flush?.()` before
   process exit to drain pending non-blocking writes.
-- Rotation is local-file only and does not coordinate cross-process writers.
+- Rotation is local-file only. Cross-process coordination requires `lock: true` and
+  cooperating writers that use the same advisory lock.
 
 ## Review Blockers
 
@@ -60,3 +63,4 @@ raw user context by default.
 - Audit event fields are removed without semver notes.
 - Audit file rotation deletes or rewrites caller-provided paths outside the audit file
   family.
+- Multi-process examples share an audit file without advisory locking.

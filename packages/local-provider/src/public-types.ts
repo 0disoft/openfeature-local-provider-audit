@@ -153,4 +153,7 @@ export interface FileAuditSinkOptions {
   readonly createDirectory?: boolean;
   readonly maxBytes?: number;
   readonly maxFiles?: number;
+  readonly lock?: boolean;
+  readonly lockTimeoutMs?: number;
+  readonly staleLockMs?: number;
 }

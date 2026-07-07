@@ -24,6 +24,8 @@ Contract tests prove provider behavior that consumers can rely on.
 - File audit sink flush waits for pending non-blocking writes before short-lived
   processes exit.
 - File audit sink rotation enforces configured `maxBytes` and retained `maxFiles`.
+- File audit sink advisory locking covers lock acquisition, timeout, and stale lock
+  recovery.
 - Missing flag returns caller default with `DEFAULT` reason.
 - Type mismatch returns caller default with `ERROR` reason and error code.
 - Invalid JSON and invalid schema fail at load boundaries.

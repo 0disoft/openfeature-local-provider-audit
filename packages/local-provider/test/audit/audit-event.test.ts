@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, open, readFile, rm, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -205,6 +205,81 @@ describe("audit events", () => {
     }
   });
 
+  it("writes file audit logs while holding an advisory lock", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "locked", "audit.jsonl");
+
+    try {
+      const auditSink = createFileAuditSink({
+        path: auditPath,
+        lock: true
+      });
+
+      await auditSink.write(createTestAuditEvent("evt_lock_1"));
+      await auditSink.flush?.();
+
+      expect(await readFile(auditPath, "utf8")).toContain("evt_lock_1");
+      await expect(readFile(`${auditPath}.lock`, "utf8")).rejects.toMatchObject({
+        code: "ENOENT"
+      });
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("times out when the advisory audit lock cannot be acquired", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "locked", "audit.jsonl");
+    const lockPath = `${auditPath}.lock`;
+
+    try {
+      await mkdir(join(tempDirectory, "locked"), { recursive: true });
+      const lockHandle = await open(lockPath, "w");
+      const auditSink = createFileAuditSink({
+        path: auditPath,
+        lock: true,
+        lockTimeoutMs: 1
+      });
+
+      try {
+        await expect(auditSink.write(createTestAuditEvent("evt_lock_timeout"))).rejects.toThrow(
+          "Timed out acquiring audit file lock"
+        );
+      } finally {
+        await lockHandle.close();
+      }
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("removes stale advisory audit locks", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "locked", "audit.jsonl");
+    const lockPath = `${auditPath}.lock`;
+
+    try {
+      await mkdir(join(tempDirectory, "locked"), { recursive: true });
+      const lockHandle = await open(lockPath, "w");
+      await lockHandle.close();
+      const oldDate = new Date(Date.now() - 10_000);
+      await utimes(lockPath, oldDate, oldDate);
+
+      const auditSink = createFileAuditSink({
+        path: auditPath,
+        lock: true,
+        staleLockMs: 1
+      });
+
+      await auditSink.write(createTestAuditEvent("evt_stale_lock"));
+      await auditSink.flush?.();
+
+      expect(await readFile(auditPath, "utf8")).toContain("evt_stale_lock");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("rejects invalid file audit rotation options", () => {
     expect(() => createFileAuditSink({ path: "audit.jsonl", maxBytes: 0 })).toThrow(
       "maxBytes must be greater than 0"
@@ -212,6 +287,9 @@ describe("audit events", () => {
     expect(() => createFileAuditSink({ path: "audit.jsonl", maxBytes: 1, maxFiles: -1 })).toThrow(
       "maxFiles must be a non-negative integer"
     );
+    expect(() =>
+      createFileAuditSink({ path: "audit.jsonl", lock: true, lockTimeoutMs: -1 })
+    ).toThrow("lockTimeoutMs must be a non-negative integer");
   });
 });
 

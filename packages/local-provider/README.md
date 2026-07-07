@@ -26,7 +26,8 @@ const snapshot = parseJsonFlagSnapshot(snapshotJson);
 const auditSink = createFileAuditSink({
   path: join(tmpdir(), "openfeature-audit.jsonl"),
   maxBytes: 10 * 1024 * 1024,
-  maxFiles: 5
+  maxFiles: 5,
+  lock: true
 });
 const provider = createLocalProvider({
   snapshot,
@@ -46,3 +47,7 @@ evaluation promise must wait for its audit write.
 
 Set `maxBytes` to rotate the active audit file by size. `maxFiles` controls how many
 rotated files are retained as `.1`, `.2`, and so on.
+
+Set `lock: true` when multiple local processes may write the same audit file. The lock is
+advisory and uses a sibling `.lock` file. `lockTimeoutMs` controls acquisition timeout,
+and `staleLockMs` can remove stale lock files left by crashed processes.

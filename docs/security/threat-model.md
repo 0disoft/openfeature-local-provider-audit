@@ -35,6 +35,8 @@ Owner: 0disoft
   pending audit writes before exit.
 - Bound local file growth with optional size-based rotation and retained rotated file
   count.
+- Coordinate shared local audit files with optional advisory lock files when multiple
+  cooperating processes use the same sink path.
 
 ## Review Blockers
 
@@ -43,3 +45,5 @@ Owner: 0disoft
 - Audit output becomes a personal-data collection point.
 - Audit rotation touches paths outside the configured audit file and its numbered
   rotated siblings.
+- Multi-process audit writers assume locking without enabling or honoring the advisory
+  lock contract.
