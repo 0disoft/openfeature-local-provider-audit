@@ -13,7 +13,8 @@ checks, npm trusted publishing, and GitHub Release artifact publication.
 - GitHub Actions workflow: `.github/workflows/release.yml`.
 - Trigger: pushed tags matching `v*`.
 - Tag gate: the tag must match `v${packages/local-provider/package.json.version}`.
-- Validation: runs the repository `check` command and the Node basic example smoke.
+- Validation: runs the repository `check` command, the Node basic example smoke, and the
+  packed package smoke.
 - Artifact: packs `@0disoft/openfeature-local-provider` and uploads the `.tgz` as a
   GitHub Actions artifact.
 - Publishing: if the version is not already present on npm, the workflow publishes with

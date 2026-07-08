@@ -82,7 +82,7 @@ export interface WatchFlagSnapshotFileOptions extends LoadFlagSnapshotFileOption
   readonly debounceMs?: number;
   readonly persistent?: boolean;
   onSnapshot(snapshot: FlagSnapshot): void | Promise<void>;
-  onError?(error: unknown): void;
+  onError?(error: unknown): void | Promise<void>;
 }
 
 export interface FlagSnapshotFileWatcher {
@@ -164,9 +164,11 @@ export interface RedactedAuditContext {
 export interface CreateAuditEventOptions {
   readonly providerName: string;
   readonly snapshot: FlagSnapshot;
+  readonly snapshotHash?: string;
   readonly request: EvaluationRequest;
   readonly result: EvaluationResult;
   readonly overrides?: ReplayOverrideInput;
+  readonly overrideHash?: string;
   readonly eventId?: string;
   readonly timestamp?: string;
 }

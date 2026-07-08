@@ -2,8 +2,11 @@ import { createHash, randomUUID } from "node:crypto";
 import type {
   AuditEvent,
   CreateAuditEventOptions,
+  EnvOverrideState,
   EvaluationContext,
+  FlagSnapshot,
   JsonValue,
+  ReplayOverrideInput,
   RedactedAuditContext
 } from "../public-types.js";
 
@@ -19,10 +22,8 @@ export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
     source: options.result.source,
     ...(options.result.variant !== undefined ? { variant: options.result.variant } : {}),
     ...(options.result.errorCode !== undefined ? { errorCode: options.result.errorCode } : {}),
-    snapshotHash: sha256Hex(stableStringify(options.snapshot)),
-    ...(options.overrides !== undefined
-      ? { overrideHash: sha256Hex(stableStringify(options.overrides)) }
-      : {}),
+    snapshotHash: options.snapshotHash ?? createSnapshotHash(options.snapshot),
+    ...resolveOverrideHash(options),
     context: redactContext({
       ...options.request.context,
       ...(options.request.targetingKey !== undefined
@@ -30,6 +31,28 @@ export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
         : {})
     })
   };
+}
+
+function resolveOverrideHash(
+  options: CreateAuditEventOptions
+): { readonly overrideHash: string } | Record<string, never> {
+  if (options.overrideHash !== undefined) {
+    return { overrideHash: options.overrideHash };
+  }
+
+  if (options.overrides !== undefined) {
+    return { overrideHash: createOverrideHash(options.overrides) };
+  }
+
+  return {};
+}
+
+export function createSnapshotHash(snapshot: FlagSnapshot): string {
+  return sha256Hex(stableStringify(snapshot));
+}
+
+export function createOverrideHash(overrides: EnvOverrideState | ReplayOverrideInput): string {
+  return sha256Hex(stableStringify(overrides));
 }
 
 export function serializeAuditEvent(event: AuditEvent): string {

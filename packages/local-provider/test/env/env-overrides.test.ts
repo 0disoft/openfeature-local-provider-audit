@@ -177,4 +177,26 @@ describe("env overrides", () => {
       errorCode: LOCAL_PROVIDER_ERROR_CODES.OVERRIDE_PARSE_ERROR
     });
   });
+
+  it("rejects empty number envVar overrides instead of coercing them to zero", () => {
+    const overrides = createEnvOverrides(staticSnapshot, {
+      env: {
+        OPENFEATURE_LOCAL_FLAG_CHECKOUT_LIMIT: "   "
+      }
+    });
+
+    expect(
+      evaluateFlag(staticSnapshot, {
+        flagKey: "checkout.limit",
+        defaultValue: 7,
+        expectedType: "number",
+        overrides
+      })
+    ).toMatchObject({
+      value: 7,
+      reason: EVALUATION_REASONS.ERROR,
+      source: EVALUATION_SOURCES.ERROR,
+      errorCode: LOCAL_PROVIDER_ERROR_CODES.OVERRIDE_PARSE_ERROR
+    });
+  });
 });

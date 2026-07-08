@@ -218,6 +218,9 @@ evaluation promise must wait for its audit write.
 Set `maxBytes` to rotate the active audit file by size. `maxFiles` controls how many
 rotated files are retained as `.1`, `.2`, and so on.
 
+Treat the audit file path as trusted local configuration. Do not pass tenant, request, or
+unvalidated user input directly into `path`.
+
 Set `lock: true` when multiple local processes may write the same audit file. The lock is
 advisory and uses a sibling `.lock` file. `lockTimeoutMs` controls acquisition timeout,
 and `staleLockMs` can remove stale lock files left by crashed processes.

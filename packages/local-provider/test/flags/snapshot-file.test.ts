@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -101,6 +101,36 @@ describe("snapshot file helpers", () => {
     }
   });
 
+  it("continues watching after atomic file replacement", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
+    try {
+      const path = join(tempDirectory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true), "utf8");
+      const snapshots: boolean[] = [];
+
+      const watcher = await watchFlagSnapshotFile({
+        path,
+        debounceMs: 10,
+        onSnapshot(snapshot) {
+          snapshots.push(getCheckoutDefaultEnabled(snapshot));
+        }
+      });
+
+      await writeFile(join(tempDirectory, "flags-next.json"), createJsonSnapshot(false), "utf8");
+      await rename(join(tempDirectory, "flags-next.json"), path);
+      await waitFor(() => snapshots.at(-1) === false);
+
+      await writeFile(join(tempDirectory, "flags-next.json"), createJsonSnapshot(true), "utf8");
+      await rename(join(tempDirectory, "flags-next.json"), path);
+      await waitFor(() => snapshots.length >= 3 && snapshots.at(-1) === true);
+      watcher.close();
+
+      expect(snapshots).toEqual([true, false, true]);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("reports reload errors without replacing the last valid snapshot", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {
@@ -127,6 +157,38 @@ describe("snapshot file helpers", () => {
         currentSnapshot === undefined ? undefined : getCheckoutDefaultEnabled(currentSnapshot)
       ).toBe(true);
       watcher.close();
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps the reload queue alive when onError throws", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
+    try {
+      const path = join(tempDirectory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true), "utf8");
+      const snapshots: boolean[] = [];
+      const onError = vi.fn(() => {
+        throw new Error("logger failed");
+      });
+
+      const watcher = await watchFlagSnapshotFile({
+        path,
+        debounceMs: 10,
+        onSnapshot(snapshot) {
+          snapshots.push(getCheckoutDefaultEnabled(snapshot));
+        },
+        onError
+      });
+
+      await writeFile(path, "{", "utf8");
+      await waitFor(() => onError.mock.calls.length > 0);
+
+      await writeFile(path, createJsonSnapshot(false), "utf8");
+      await waitFor(() => snapshots.at(-1) === false);
+      watcher.close();
+
+      expect(snapshots).toEqual([true, false]);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

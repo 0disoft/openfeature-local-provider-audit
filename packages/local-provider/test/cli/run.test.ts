@@ -15,7 +15,7 @@ describe("CLI runner", () => {
       const code = await runCli(["validate", "flags.json"], io);
 
       expect(code).toBe(0);
-      expect(io.output()).toContain("OK flags.json schemaVersion=1 flags=1 format=auto");
+      expect(io.output()).toContain("OK flags.json schemaVersion=1 flags=1 format=json");
       expect(io.error()).toBe("");
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
@@ -35,7 +35,8 @@ describe("CLI runner", () => {
       expect(JSON.parse(io.output())).toEqual({
         ok: true,
         path: "flags.yaml",
-        format: "auto",
+        format: "yaml",
+        requestedFormat: "auto",
         schemaVersion: 1,
         flags: 1
       });

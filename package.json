@@ -15,6 +15,7 @@
     "format:check": "biome format .",
     "lint": "biome lint .",
     "pack:check": "pnpm --filter @0disoft/openfeature-local-provider pack:check",
+    "packed-smoke": "node scripts/packed-smoke.mjs",
     "release-readiness": "node scripts/release-readiness.mjs",
     "test": "pnpm --filter @0disoft/openfeature-local-provider test",
     "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck"

@@ -85,6 +85,7 @@ function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.packageManager, "pnpm@11.7.0", "root package manager");
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
+  expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
   expectScriptIncludes(rootPackage, "check", "pnpm run release-readiness");
 }
 
@@ -152,6 +153,7 @@ function checkReleaseWorkflow(workflow) {
     "pnpm --filter openfeature-local-provider-node-basic-example start",
     "release workflow smoke example"
   );
+  expectIncludes(workflow, "pnpm run packed-smoke", "release workflow packed smoke");
   expectIncludes(
     workflow,
     "npm publish --provenance --access public",
@@ -184,6 +186,7 @@ function checkCiWorkflow(workflow) {
     "pnpm --filter openfeature-local-provider-node-basic-example start",
     "CI smoke example"
   );
+  expectIncludes(workflow, "pnpm run packed-smoke", "CI packed smoke");
 }
 
 function checkPublishingDocs(npmDoc, releaseDocText) {

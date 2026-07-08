@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { loadFlagSnapshotFile } from "../flags/snapshot-file.js";
+import { loadFlagSnapshotFile, resolveSnapshotFileFormat } from "../flags/snapshot-file.js";
 import type { SnapshotFileFormat } from "../public-types.js";
 
 export interface CliIo {
@@ -111,6 +111,7 @@ async function validateSnapshotFile(options: ValidateCommandOptions, io: CliIo):
   const resolvedPath = resolve(io.cwd, options.filePath);
 
   try {
+    const resolvedFormat = resolveSnapshotFileFormat(resolvedPath, options.format);
     const snapshot = await loadFlagSnapshotFile(resolvedPath, { format: options.format });
     const flagCount = Object.keys(snapshot.flags).length;
 
@@ -119,7 +120,8 @@ async function validateSnapshotFile(options: ValidateCommandOptions, io: CliIo):
         `${JSON.stringify({
           ok: true,
           path: options.filePath,
-          format: options.format,
+          format: resolvedFormat,
+          requestedFormat: options.format,
           schemaVersion: snapshot.schemaVersion,
           flags: flagCount
         })}\n`
@@ -128,7 +130,7 @@ async function validateSnapshotFile(options: ValidateCommandOptions, io: CliIo):
     }
 
     io.stdout(
-      `OK ${options.filePath} schemaVersion=${snapshot.schemaVersion} flags=${flagCount} format=${options.format}\n`
+      `OK ${options.filePath} schemaVersion=${snapshot.schemaVersion} flags=${flagCount} format=${resolvedFormat}\n`
     );
     return 0;
   } catch (error) {

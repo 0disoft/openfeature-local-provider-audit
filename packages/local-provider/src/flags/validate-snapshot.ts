@@ -5,6 +5,7 @@ import type {
   FlagSnapshot,
   FlagType,
   FlagValue,
+  JsonValue,
   PercentageRolloutRule
 } from "../public-types.js";
 import { flagValueMatchesType, isFlagValue, isJsonObject } from "../evaluator/type-guards.js";
@@ -30,7 +31,7 @@ export function validateFlagSnapshot(value: unknown): FlagSnapshot {
     if (!flagKey.trim()) {
       throw schemaError("Flag keys must be non-empty strings.");
     }
-    flags[flagKey] = validateFlagDefinition(flagKey, rawFlag);
+    defineRecordEntry(flags, flagKey, validateFlagDefinition(flagKey, rawFlag));
   }
 
   const snapshot: FlagSnapshot = {
@@ -40,10 +41,10 @@ export function validateFlagSnapshot(value: unknown): FlagSnapshot {
 
   const metadata = validateMetadata(value.metadata, "snapshot metadata");
   if (metadata !== undefined) {
-    return { ...snapshot, metadata };
+    return deepFreeze({ ...snapshot, metadata });
   }
 
-  return snapshot;
+  return deepFreeze(snapshot);
 }
 
 function validateFlagDefinition(flagKey: string, value: unknown): FlagDefinition {
@@ -66,7 +67,7 @@ function validateFlagDefinition(flagKey: string, value: unknown): FlagDefinition
     throw schemaError(`Flag "${flagKey}" defaultVariant must be a non-empty string.`);
   }
 
-  if (!(value.defaultVariant in variants)) {
+  if (!hasOwn(variants, value.defaultVariant)) {
     throw schemaError(`Flag "${flagKey}" defaultVariant must reference an existing variant.`);
   }
 
@@ -149,7 +150,7 @@ function validateRolloutVariant(
       `Flag "${flagKey}" rollout rule ${index} variant must be a non-empty string.`
     );
   }
-  if (!(value in variants)) {
+  if (!hasOwn(variants, value)) {
     throw schemaError(
       `Flag "${flagKey}" rollout rule ${index} variant must reference an existing variant.`
     );
@@ -191,7 +192,7 @@ function validateVariants(
     if (!flagValueMatchesType(variantValue, flagType)) {
       throw schemaError(`Flag "${flagKey}" variant "${variantKey}" does not match type.`);
     }
-    variants[variantKey] = variantValue;
+    defineRecordEntry(variants, variantKey, cloneJsonValue(variantValue));
   }
 
   if (Object.keys(variants).length === 0) {
@@ -221,7 +222,7 @@ function validateMetadata(
     ) {
       throw schemaError(`${label} values must be strings, numbers, or booleans.`);
     }
-    metadata[key] = metadataValue;
+    defineRecordEntry(metadata, key, metadataValue);
   }
 
   return metadata;
@@ -239,4 +240,45 @@ function validateOptionalString(value: unknown, label: string): string | undefin
 
 function schemaError(message: string): LocalProviderError {
   return new LocalProviderError(LOCAL_PROVIDER_ERROR_CODES.SCHEMA_ERROR, message);
+}
+
+function hasOwn<T>(record: Readonly<Record<string, T>>, key: string): boolean {
+  return Object.hasOwn(record, key);
+}
+
+function defineRecordEntry<T>(record: Record<string, T>, key: string, value: T): void {
+  Object.defineProperty(record, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true
+  });
+}
+
+function cloneJsonValue(value: FlagValue): FlagValue {
+  if (Array.isArray(value)) {
+    return value.map(cloneJsonValue);
+  }
+
+  if (value !== null && typeof value === "object") {
+    const cloned: Record<string, JsonValue> = {};
+    for (const [key, entryValue] of Object.entries(value)) {
+      defineRecordEntry(cloned, key, cloneJsonValue(entryValue));
+    }
+    return cloned;
+  }
+
+  return value;
+}
+
+function deepFreeze<T>(value: T): T {
+  if (value === null || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+
+  for (const entryValue of Object.values(value)) {
+    deepFreeze(entryValue);
+  }
+
+  return Object.freeze(value);
 }

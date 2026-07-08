@@ -38,10 +38,14 @@ raw user context by default.
 
 - `snapshotHash` is SHA-256 over stable JSON for the local snapshot.
 - `overrideHash` is SHA-256 over stable JSON for explicit override input when provided.
+- Provider-created audit events use hashes cached on provider state so evaluation does
+  not re-hash the full snapshot for every audit write.
 - `context` records only `targetingKeyPresent`, sorted context key names, and `redacted: true`.
 - Raw context values and evaluated flag values are not serialized.
 - `serializeAuditEvent(event)` returns one JSON record followed by `\n`.
 - `createFileAuditSink(options)` appends JSON Lines records to a caller-provided path.
+- File audit sink paths are trusted local configuration. Do not pass tenant, end-user,
+  request, or unvalidated environment input directly into `path`.
 - File audit sinks expose optional `flush()` to wait for pending non-blocking writes.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
@@ -63,4 +67,5 @@ raw user context by default.
 - Audit event fields are removed without semver notes.
 - Audit file rotation deletes or rewrites caller-provided paths outside the audit file
   family.
+- Audit sink paths are documented as safe for untrusted user input.
 - Multi-process examples share an audit file without advisory locking.

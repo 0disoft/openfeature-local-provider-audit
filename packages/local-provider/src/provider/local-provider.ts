@@ -5,10 +5,11 @@ import type {
   Provider,
   ResolutionDetails
 } from "@openfeature/server-sdk";
-import { createAuditEvent } from "../audit/audit-event.js";
+import { createAuditEvent, createOverrideHash, createSnapshotHash } from "../audit/audit-event.js";
 import { createEnvOverrides } from "../env/env-overrides.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
+import { validateFlagSnapshot } from "../flags/validate-snapshot.js";
 import type {
   AuditSink,
   AuditWriteMode,
@@ -61,7 +62,9 @@ type OverrideOptions =
 
 interface ProviderState {
   readonly snapshot: FlagSnapshot;
+  readonly snapshotHash: string;
   readonly overrides: EnvOverrideState;
+  readonly overrideHash?: string;
 }
 
 class LocalFeatureProvider implements ReloadableLocalProvider {
@@ -203,6 +206,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
         createAuditEvent({
           providerName: this.metadata.name,
           snapshot: state.snapshot,
+          snapshotHash: state.snapshotHash,
+          ...(state.overrideHash !== undefined ? { overrideHash: state.overrideHash } : {}),
           request,
           result
         })
@@ -221,9 +226,22 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   }
 
   private createState(snapshot: FlagSnapshot): ProviderState {
+    const validatedSnapshot = validateFlagSnapshot(snapshot);
+    const overrides = createEnvOverrides(validatedSnapshot, this.overrideOptions);
+
     return {
-      snapshot,
-      overrides: createEnvOverrides(snapshot, this.overrideOptions)
+      snapshot: validatedSnapshot,
+      snapshotHash: createSnapshotHash(validatedSnapshot),
+      overrides,
+      ...(hasOverrideState(overrides) ? { overrideHash: createOverrideHash(overrides) } : {})
     };
   }
+}
+
+function hasOverrideState(overrides: EnvOverrideState): boolean {
+  return (
+    Object.keys(overrides.values).length > 0 ||
+    Object.keys(overrides.errors).length > 0 ||
+    overrides.globalError !== undefined
+  );
 }

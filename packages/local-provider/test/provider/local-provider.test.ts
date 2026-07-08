@@ -71,6 +71,53 @@ describe("createLocalProvider", () => {
     });
   });
 
+  it("does not let caller mutations change provider state outside updateSnapshot", async () => {
+    const snapshot = {
+      schemaVersion: 1,
+      flags: {
+        "checkout.enabled": {
+          type: "boolean",
+          defaultVariant: "on",
+          variants: {
+            on: true,
+            off: false
+          }
+        }
+      }
+    } as const;
+    const provider = createReloadableLocalProvider({ snapshot });
+
+    (snapshot.flags["checkout.enabled"].variants as Record<string, boolean>).on = false;
+
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", false, {}, logger)
+    ).resolves.toMatchObject({
+      value: true,
+      reason: EVALUATION_REASONS.STATIC,
+      variant: "on"
+    });
+    expect(Object.isFrozen(provider.getSnapshot().flags["checkout.enabled"]?.variants)).toBe(true);
+  });
+
+  it("validates snapshots passed to updateSnapshot", () => {
+    const provider = createReloadableLocalProvider({ snapshot: staticSnapshot });
+
+    expect(() =>
+      provider.updateSnapshot({
+        schemaVersion: 1,
+        flags: {
+          "checkout.broken": {
+            type: "boolean",
+            defaultVariant: "missing",
+            variants: {
+              on: true
+            }
+          }
+        }
+      } as never)
+    ).toThrow("defaultVariant must reference an existing variant");
+  });
+
   it("maps type mismatch to OpenFeature error details", async () => {
     const provider = createLocalProvider({ snapshot: staticSnapshot });
 
@@ -168,6 +215,31 @@ describe("createLocalProvider", () => {
     }
   });
 
+  it("includes overrideHash on provider audit events without raw override values", async () => {
+    let writtenEvent: unknown;
+    const provider = createLocalProvider({
+      snapshot: staticSnapshot,
+      env: {
+        OPENFEATURE_LOCAL_FLAG_CHECKOUT_ENABLED: "false"
+      },
+      auditSink: {
+        async write(event) {
+          writtenEvent = event;
+        }
+      },
+      auditWriteMode: "blocking"
+    });
+
+    await provider.resolveBooleanEvaluation("checkout.enabled", true, {}, logger);
+
+    expect(writtenEvent).toMatchObject({
+      flagKey: "checkout.enabled",
+      reason: EVALUATION_REASONS.ENV_OVERRIDE
+    });
+    expect((writtenEvent as { overrideHash?: string }).overrideHash).toHaveLength(64);
+    expect(JSON.stringify(writtenEvent)).not.toContain("OPENFEATURE_LOCAL_FLAG_CHECKOUT_ENABLED");
+  });
+
   it("does not wait for non-blocking audit sink writes", async () => {
     const deferred = createDeferred();
     const writeStarted = vi.fn();
@@ -242,75 +314,24 @@ describe("createLocalProvider", () => {
     });
   });
 
-  it("returns default error details when runtime evaluation throws", async () => {
-    const warn = vi.fn();
-    const provider = createLocalProvider({
-      snapshot: {
-        schemaVersion: 1,
-        flags: {
-          "checkout.broken": {
-            type: "boolean",
-            defaultVariant: "on",
-            variants: {
-              on: true
-            },
-            rollout: {} as never
+  it("validates snapshots passed to createLocalProvider", () => {
+    expect(() =>
+      createLocalProvider({
+        snapshot: {
+          schemaVersion: 1,
+          flags: {
+            "checkout.broken": {
+              type: "boolean",
+              defaultVariant: "on",
+              variants: {
+                on: true
+              },
+              rollout: {} as never
+            }
           }
         }
-      }
-    });
-
-    await expect(
-      provider.resolveBooleanEvaluation(
-        "checkout.broken",
-        false,
-        { targetingKey: "synthetic-user" },
-        { ...logger, warn }
-      )
-    ).resolves.toMatchObject({
-      value: false,
-      reason: EVALUATION_REASONS.ERROR,
-      errorCode: ErrorCode.PROVIDER_NOT_READY,
-      errorMessage: "Provider evaluation failed."
-    });
-    expect(warn).toHaveBeenCalledWith("openfeature-local-provider evaluation failed");
-  });
-
-  it("returns default error details when runtime failure logging throws", async () => {
-    const provider = createLocalProvider({
-      snapshot: {
-        schemaVersion: 1,
-        flags: {
-          "checkout.broken": {
-            type: "boolean",
-            defaultVariant: "on",
-            variants: {
-              on: true
-            },
-            rollout: {} as never
-          }
-        }
-      }
-    });
-    const throwingLogger = {
-      ...logger,
-      warn() {
-        throw new Error("logger unavailable");
-      }
-    };
-
-    await expect(
-      provider.resolveBooleanEvaluation(
-        "checkout.broken",
-        false,
-        { targetingKey: "synthetic-user" },
-        throwingLogger
-      )
-    ).resolves.toMatchObject({
-      value: false,
-      reason: EVALUATION_REASONS.ERROR,
-      errorCode: ErrorCode.PROVIDER_NOT_READY
-    });
+      })
+    ).toThrow("rollout must be a non-empty array");
   });
 });
 

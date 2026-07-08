@@ -14,7 +14,8 @@ on the supported Node.js runtime matrix.
 - Runtime matrix: Node.js 22.x and 24.x.
 - Package manager: Corepack activates the repository `packageManager` pnpm version.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
-  `pack:check`, and the Node basic example smoke command.
+  `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
+  CJS, and CLI bin behavior.
 
 ## Owners
 

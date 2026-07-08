@@ -42,7 +42,7 @@ export function createEnvOverrides(
     }
 
     for (const [flagKey, value] of Object.entries(parsed)) {
-      values[flagKey] = value;
+      defineRecordEntry(values, flagKey, value);
       delete errors[flagKey];
     }
   }
@@ -71,11 +71,11 @@ function applyPerFlagEnvOverrides(
 
     const parsed = parseEnvValue(rawValue, flag.type);
     if (!parsed.ok) {
-      errors[flagKey] = parsed.error;
+      defineRecordEntry(errors, flagKey, parsed.error);
       continue;
     }
 
-    values[flagKey] = parsed.value;
+    defineRecordEntry(values, flagKey, parsed.value);
   }
 }
 
@@ -96,7 +96,7 @@ function parseJsonOverrideMap(json: string): Record<string, FlagValue> | string 
     if (!isFlagValue(value)) {
       return `Override JSON value for "${flagKey}" is not a supported flag value.`;
     }
-    values[flagKey] = value;
+    defineRecordEntry(values, flagKey, value);
   }
 
   return values;
@@ -115,7 +115,11 @@ function parseEnvValue(value: string, flagType: FlagType): ParseEnvValueResult {
     case "string":
       return parsedEnvValue(value);
     case "number": {
-      const parsed = Number(value);
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        return envValueError("Number env override must not be empty.");
+      }
+      const parsed = Number(trimmed);
       return Number.isFinite(parsed)
         ? parsedEnvValue(parsed)
         : envValueError("Number env override must be finite.");
@@ -147,4 +151,13 @@ function envValueError(error: string): ParseEnvValueResult {
     ok: false,
     error
   };
+}
+
+function defineRecordEntry<T>(record: Record<string, T>, key: string, value: T): void {
+  Object.defineProperty(record, key, {
+    configurable: true,
+    enumerable: true,
+    value,
+    writable: true
+  });
 }

@@ -61,3 +61,6 @@ jobs:
 
       - name: Smoke example
         run: pnpm --filter openfeature-local-provider-node-basic-example start
+
+      - name: Packed package smoke
+        run: pnpm run packed-smoke

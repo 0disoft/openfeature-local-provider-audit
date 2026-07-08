@@ -9,6 +9,7 @@ Owner: 0disoft
 - Environment overrides are caller-owned process input and may be mistyped.
 - Evaluation context may contain personal or security-sensitive data.
 - Audit sinks may fail or write to locations with different retention policies.
+- Audit file sink paths are trusted local configuration, not end-user input.
 - Replay fixtures are public-test artifacts and must be synthetic.
 
 ## Non-Goals
@@ -37,6 +38,8 @@ Owner: 0disoft
   count.
 - Coordinate shared local audit files with optional advisory lock files when multiple
   cooperating processes use the same sink path.
+- Keep audit file paths out of tenant, request, and untrusted environment control unless
+  a wrapper validates and confines them first.
 
 ## Review Blockers
 

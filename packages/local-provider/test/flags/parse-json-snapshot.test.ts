@@ -141,4 +141,53 @@ describe("parseJsonFlagSnapshot", () => {
 
     throw new Error("Expected parseJsonFlagSnapshot to throw.");
   });
+
+  it("does not treat inherited variant names as valid defaults", () => {
+    try {
+      parseJsonFlagSnapshot(
+        JSON.stringify({
+          schemaVersion: 1,
+          flags: {
+            "checkout.enabled": {
+              type: "boolean",
+              defaultVariant: "toString",
+              variants: {
+                off: false
+              }
+            }
+          }
+        })
+      );
+    } catch (error) {
+      expect(isLocalProviderError(error)).toBe(true);
+      if (isLocalProviderError(error)) {
+        expect(error.code).toBe(LOCAL_PROVIDER_ERROR_CODES.SCHEMA_ERROR);
+      }
+      return;
+    }
+
+    throw new Error("Expected parseJsonFlagSnapshot to throw.");
+  });
+
+  it("keeps prototype-like flag and variant keys as own data", () => {
+    const snapshot = parseJsonFlagSnapshot(
+      `{
+        "schemaVersion": 1,
+        "flags": {
+          "__proto__": {
+            "type": "boolean",
+            "defaultVariant": "__proto__",
+            "variants": {
+              "__proto__": true
+            }
+          }
+        }
+      }`
+    );
+
+    expect(Object.hasOwn(snapshot.flags, "__proto__")).toBe(true);
+    const protoFlag = Reflect.get(snapshot.flags, "__proto__");
+    expect(Object.hasOwn(protoFlag?.variants ?? {}, "__proto__")).toBe(true);
+    expect(Reflect.get(protoFlag?.variants ?? {}, "__proto__")).toBe(true);
+  });
 });
