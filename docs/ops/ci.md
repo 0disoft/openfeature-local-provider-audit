@@ -11,7 +11,8 @@ on the supported Node.js runtime matrix.
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`.
 - Trigger: pushes and pull requests targeting `main`.
-- Runtime matrix: Node.js 22.x and 24.x.
+- Runtime matrix: Node.js 22.x and 24.x on Ubuntu, Windows, and macOS hosted
+  runners.
 - Package manager: Corepack activates the repository `packageManager` pnpm version.
 - Official GitHub Actions are pinned to full commit SHAs, with the reviewed tag noted in
   workflow comments.
@@ -29,5 +30,5 @@ on the supported Node.js runtime matrix.
 
 - Required validation names: VALIDATION.md
 - Release blocker status: public behavior changes without docs/check/test coverage.
-- Remaining operational risk: workflow success depends on GitHub-hosted Ubuntu runners and
-  official GitHub Actions availability.
+- Remaining operational risk: workflow success depends on GitHub-hosted Ubuntu, Windows,
+  and macOS runners and official GitHub Actions availability.

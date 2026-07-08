@@ -17,11 +17,15 @@ concurrency:
 
 jobs:
   validate:
-    name: validate node ${{ matrix.node-version }}
-    runs-on: ubuntu-latest
+    name: validate node ${{ matrix.node-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
         node-version:
           - 22.x
           - 24.x

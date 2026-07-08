@@ -176,6 +176,9 @@ function checkReleaseWorkflow(workflow) {
 
 function checkCiWorkflow(workflow) {
   checkPinnedGitHubActions(workflow, "CI workflow");
+  expectIncludes(workflow, "ubuntu-latest", "CI Ubuntu runner matrix");
+  expectIncludes(workflow, "windows-latest", "CI Windows runner matrix");
+  expectIncludes(workflow, "macos-latest", "CI macOS runner matrix");
   expectIncludes(workflow, "22.x", "CI Node 22 matrix");
   expectIncludes(workflow, "24.x", "CI Node 24 matrix");
   expectIncludes(workflow, "pnpm run format:check", "CI format gate");
