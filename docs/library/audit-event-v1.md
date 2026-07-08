@@ -38,6 +38,7 @@ raw user context by default.
 
 - `snapshotHash` is SHA-256 over stable JSON for the local snapshot.
 - `overrideHash` is SHA-256 over stable JSON for explicit override input when provided.
+- Stable JSON orders object keys with locale-independent code unit comparison.
 - Provider-created audit events use hashes cached on provider state so evaluation does
   not re-hash the full snapshot for every audit write.
 - `context` records only `targetingKeyPresent`, sorted context key names, and `redacted: true`.
@@ -47,6 +48,7 @@ raw user context by default.
 - File audit sink paths are trusted local configuration. Do not pass tenant, end-user,
   request, or unvalidated environment input directly into `path`.
 - File audit sinks expose optional `flush()` to wait for pending non-blocking writes.
+  `flush()` drains all pending writes before returning or reporting write failures.
 - File audit sinks expose optional `getStats()` with pending and dropped write counters.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
@@ -75,3 +77,4 @@ raw user context by default.
 - Audit sink paths are documented as safe for untrusted user input.
 - Multi-process examples share an audit file without advisory locking.
 - Queue overflow behavior changes without tests for both reject and drop-newest modes.
+- Snapshot or override hash ordering depends on host locale.

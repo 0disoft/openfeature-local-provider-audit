@@ -66,7 +66,12 @@ Implementation must not expose internal modules only because examples need conve
 - `redactContext(context)`.
 - `createFileAuditSink(options)`.
 - `LocalProviderOptions` with `snapshot`, optional `name`, optional `overridesJson`, and
-  optional injectable `env`, optional `auditSink`, and optional `auditWriteMode`.
+  optional `maxOverridesJsonBytes`, optional injectable `env`, optional `auditSink`, and
+  optional `auditWriteMode`.
+- `LoadFlagSnapshotFileOptions` with optional `format`, optional `encoding`, and optional
+  `maxBytes`.
+- `CreateEnvOverridesOptions` with optional `overridesJson`, optional
+  `maxOverridesJsonBytes`, and optional injectable `env`.
 - `FileAuditSinkOptions` with `path`, optional `createDirectory`, optional `maxBytes`,
   optional `maxFiles`, optional `lock`, optional `lockTimeoutMs`, and optional
   `staleLockMs`, optional `maxQueueSize`, and optional `queueOverflowPolicy`.
@@ -75,6 +80,7 @@ Implementation must not expose internal modules only because examples need conve
 - Snapshot, flag definition, rollout, evaluation, env override, replay fixture, audit event, audit sink, audit write mode, reason, source, and error code types.
 - `AuditSink` implementations may expose optional `flush()` to wait for pending writes and
   optional `getStats()` for implementation-specific sink counters.
+- Snapshot and override hash generation uses locale-independent key ordering.
 - `openfeature-local-provider validate <file>` validates a local JSON/YAML snapshot and
   returns exit code `0` on success, `1` on snapshot validation failure, and `2` on usage
   error.

@@ -19,6 +19,8 @@ contracts were covered by tests.
 - Keep evaluation file-I/O free. Reload and watch happen at explicit load boundaries and
   replace the provider snapshot atomically for subsequent evaluations.
 - Support JSON, YAML, and extension-based auto-detection for `.json`, `.yaml`, and `.yml`.
+- Check snapshot file size before reading and parsing. The default maximum is 10 MiB,
+  configurable through `maxBytes`.
 - Watch reload failures must be reported through `onError` and must not replace the last
   valid snapshot.
 - Do not add hot remote configuration, HTTP APIs, hosted control planes, CLI, browser,
@@ -43,5 +45,6 @@ contracts were covered by tests.
 
 - Evaluation reads from disk on each flag resolution.
 - A failed reload clears or corrupts the last valid snapshot.
+- Snapshot files are parsed before the configured size limit is checked.
 - Watch behavior introduces a network, database, hosted service, or platform assumption.
 - Audit events hash a different snapshot from the one used for evaluation.

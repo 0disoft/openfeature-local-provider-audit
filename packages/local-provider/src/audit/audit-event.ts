@@ -63,7 +63,7 @@ export function redactContext(context: EvaluationContext = {}): RedactedAuditCon
   return {
     targetingKeyPresent:
       typeof context.targetingKey === "string" && context.targetingKey.length > 0,
-    keys: Object.keys(context).sort(),
+    keys: Object.keys(context).sort(compareCodeUnits),
     redacted: true
   };
 }
@@ -85,10 +85,20 @@ function sortForStableStringify(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value)
         .filter(([, entryValue]) => entryValue !== undefined)
-        .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey))
+        .sort(([leftKey], [rightKey]) => compareCodeUnits(leftKey, rightKey))
         .map(([entryKey, entryValue]) => [entryKey, sortForStableStringify(entryValue)])
     );
   }
 
   return value;
+}
+
+function compareCodeUnits(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
 }

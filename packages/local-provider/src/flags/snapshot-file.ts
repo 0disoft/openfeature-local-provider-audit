@@ -1,5 +1,5 @@
 import { watch, type FSWatcher } from "node:fs";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
@@ -15,6 +15,7 @@ import { parseJsonFlagSnapshot } from "./parse-json-snapshot.js";
 import { parseYamlFlagSnapshot } from "./parse-yaml-snapshot.js";
 
 const DEFAULT_DEBOUNCE_MS = 50;
+const DEFAULT_MAX_SNAPSHOT_FILE_BYTES = 10 * 1024 * 1024;
 
 interface SnapshotFileTarget {
   readonly directory: string;
@@ -25,6 +26,7 @@ export async function loadFlagSnapshotFile(
   path: string | URL,
   options: LoadFlagSnapshotFileOptions = {}
 ): Promise<FlagSnapshot> {
+  await assertFileSizeWithinLimit(path, options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES);
   const text = await readFile(path, options.encoding ?? "utf8");
   const format = resolveSnapshotFileFormat(path, options.format ?? "auto");
 
@@ -126,6 +128,18 @@ export async function watchFlagSnapshotFile(
   };
 }
 
+async function assertFileSizeWithinLimit(path: string | URL, maxBytes: number): Promise<void> {
+  assertPositiveInteger(maxBytes, "maxBytes");
+
+  const fileStats = await stat(path);
+  if (fileStats.size > maxBytes) {
+    throw new LocalProviderError(
+      LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR,
+      `Flag snapshot file exceeds maxBytes (${maxBytes}).`
+    );
+  }
+}
+
 export function resolveSnapshotFileFormat(
   path: string | URL,
   format: SnapshotFileFormat
@@ -162,4 +176,10 @@ function closeWatcher(watcher: FSWatcher, timer: ReturnType<typeof setTimeout> |
     clearTimeout(timer);
   }
   watcher.close();
+}
+
+function assertPositiveInteger(value: number, name: string): void {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new RangeError(`${name} must be a positive integer`);
+  }
 }

@@ -60,6 +60,7 @@ export interface LocalProviderOptions {
   readonly snapshot: FlagSnapshot;
   readonly name?: string;
   readonly overridesJson?: string;
+  readonly maxOverridesJsonBytes?: number;
   readonly env?: EnvSource;
   readonly auditSink?: AuditSink;
   readonly auditWriteMode?: AuditWriteMode;
@@ -75,6 +76,7 @@ export type SnapshotFileFormat = "auto" | "json" | "yaml";
 export interface LoadFlagSnapshotFileOptions {
   readonly format?: SnapshotFileFormat;
   readonly encoding?: BufferEncoding;
+  readonly maxBytes?: number;
 }
 
 export interface WatchFlagSnapshotFileOptions extends LoadFlagSnapshotFileOptions {
@@ -100,6 +102,12 @@ export interface EnvOverrideState {
   readonly values: Readonly<Record<string, FlagValue>>;
   readonly errors: Readonly<Record<string, string>>;
   readonly globalError?: string;
+}
+
+export interface CreateEnvOverridesOptions {
+  readonly overridesJson?: string;
+  readonly maxOverridesJsonBytes?: number;
+  readonly env?: EnvSource;
 }
 
 export interface ReplayFixture<T extends FlagValue = FlagValue> {

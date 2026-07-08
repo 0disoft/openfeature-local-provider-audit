@@ -35,6 +35,8 @@ The contract must avoid ambiguous automatic environment variable mapping.
 - `createLocalProvider({ snapshot, overridesJson, env })` applies the same override state
   to OpenFeature provider evaluation.
 - `overridesJson` must be a JSON object keyed by flag key.
+- `overridesJson` is limited to 10 MiB by default. Pass `maxOverridesJsonBytes` to set a
+  smaller or larger local-process limit.
 - `env` is an injectable environment source for tests and non-`process.env` runtimes.
 
 ## Review Blockers
@@ -42,4 +44,5 @@ The contract must avoid ambiguous automatic environment variable mapping.
 - Auto-generated env names are introduced.
 - Env priority changes without migration and compatibility notes.
 - Override errors are silently ignored.
+- Oversized override input is parsed before size validation.
 - Raw env values are written to audit output by default.

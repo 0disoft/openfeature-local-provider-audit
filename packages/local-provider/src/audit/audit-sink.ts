@@ -43,8 +43,22 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
     },
 
     async flush(): Promise<void> {
+      const failures: unknown[] = [];
+
       while (pendingWrites.size > 0) {
-        await Promise.all(Array.from(pendingWrites));
+        const results = await Promise.allSettled(Array.from(pendingWrites));
+        for (const result of results) {
+          if (result.status === "rejected") {
+            failures.push(result.reason);
+          }
+        }
+      }
+
+      if (failures.length === 1) {
+        throw failures[0];
+      }
+      if (failures.length > 1) {
+        throw new AggregateError(failures, "One or more audit writes failed during flush.");
       }
     },
 
@@ -317,7 +331,8 @@ function isAlreadyExistsError(error: unknown): boolean {
     error !== null &&
     typeof error === "object" &&
     "code" in error &&
-    (error as { readonly code?: unknown }).code === "EEXIST"
+    ((error as { readonly code?: unknown }).code === "EEXIST" ||
+      (error as { readonly code?: unknown }).code === "EPERM")
   );
 }
 

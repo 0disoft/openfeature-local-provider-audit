@@ -18,12 +18,13 @@ Contract tests prove provider behavior that consumers can rely on.
 - Missing rollout targeting key returns caller default with `ERROR` reason and `INVALID_CONTEXT`.
 - Replay fixtures compare pure evaluator output without relying on the OpenFeature adapter.
 - Audit event serialization excludes raw context and evaluated flag values by default.
+- Audit snapshot hashing uses locale-independent key ordering.
 - File audit sink writes JSON Lines records, and provider audit write failures do not change
   evaluation results.
 - Provider audit writes are non-blocking by default, with blocking mode covered for
   deterministic tests and short-lived scripts.
 - File audit sink flush waits for pending non-blocking writes before short-lived
-  processes exit.
+  processes exit, including writes queued after an earlier write failure.
 - File audit sink rotation enforces configured `maxBytes` and retained `maxFiles`.
 - File audit sink advisory locking covers lock acquisition, timeout, and stale lock
   recovery.
@@ -32,6 +33,7 @@ Contract tests prove provider behavior that consumers can rely on.
 - Missing flag returns caller default with `DEFAULT` reason.
 - Type mismatch returns caller default with `ERROR` reason and error code.
 - Invalid JSON and invalid schema fail at load boundaries.
+- Oversized snapshot files and explicit JSON overrides fail before parsing.
 - Provider adapter converts internal runtime evaluation exceptions to caller defaults
   with `ERROR` reason and `PROVIDER_NOT_READY` error details.
 - Package exports match docs/library/public-api.md.

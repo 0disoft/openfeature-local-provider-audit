@@ -13,6 +13,7 @@ import { validateFlagSnapshot } from "../flags/validate-snapshot.js";
 import type {
   AuditSink,
   AuditWriteMode,
+  CreateEnvOverridesOptions,
   EnvOverrideState,
   EnvSource,
   EvaluationRequest,
@@ -39,12 +40,18 @@ export function createReloadableLocalProvider(
 }
 
 function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeatureProvider {
+  const overrideBaseOptions = {
+    env: options.env ?? process.env,
+    ...(options.maxOverridesJsonBytes !== undefined
+      ? { maxOverridesJsonBytes: options.maxOverridesJsonBytes }
+      : {})
+  };
   const overrideOptions =
     options.overridesJson === undefined
-      ? { env: options.env ?? process.env }
+      ? overrideBaseOptions
       : {
-          overridesJson: options.overridesJson,
-          env: options.env ?? process.env
+          ...overrideBaseOptions,
+          overridesJson: options.overridesJson
         };
 
   return new LocalFeatureProvider(
@@ -56,9 +63,7 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
   );
 }
 
-type OverrideOptions =
-  | { readonly env: EnvSource }
-  | { readonly overridesJson: string; readonly env: EnvSource };
+type OverrideOptions = CreateEnvOverridesOptions & { readonly env: EnvSource };
 
 interface ProviderState {
   readonly snapshot: FlagSnapshot;

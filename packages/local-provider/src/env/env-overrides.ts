@@ -1,4 +1,5 @@
 import type {
+  CreateEnvOverridesOptions,
   EnvOverrideState,
   EnvSource,
   FlagSnapshot,
@@ -7,10 +8,7 @@ import type {
 } from "../public-types.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
 
-interface CreateEnvOverridesOptions {
-  readonly overridesJson?: string;
-  readonly env?: EnvSource;
-}
+const DEFAULT_MAX_OVERRIDES_JSON_BYTES = 10 * 1024 * 1024;
 
 type ParseEnvValueResult =
   | {
@@ -32,7 +30,10 @@ export function createEnvOverrides(
   applyPerFlagEnvOverrides(snapshot, options.env ?? {}, values, errors);
 
   if (options.overridesJson !== undefined) {
-    const parsed = parseJsonOverrideMap(options.overridesJson);
+    const parsed = parseJsonOverrideMap(
+      options.overridesJson,
+      options.maxOverridesJsonBytes ?? DEFAULT_MAX_OVERRIDES_JSON_BYTES
+    );
     if (typeof parsed === "string") {
       return {
         values,
@@ -79,7 +80,12 @@ function applyPerFlagEnvOverrides(
   }
 }
 
-function parseJsonOverrideMap(json: string): Record<string, FlagValue> | string {
+function parseJsonOverrideMap(json: string, maxBytes: number): Record<string, FlagValue> | string {
+  assertPositiveInteger(maxBytes, "maxOverridesJsonBytes");
+  if (Buffer.byteLength(json, "utf8") > maxBytes) {
+    return `Override JSON exceeds maxOverridesJsonBytes (${maxBytes}).`;
+  }
+
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -100,6 +106,12 @@ function parseJsonOverrideMap(json: string): Record<string, FlagValue> | string 
   }
 
   return values;
+}
+
+function assertPositiveInteger(value: number, name: string): void {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new RangeError(`${name} must be a positive integer`);
+  }
 }
 
 function parseEnvValue(value: string, flagType: FlagType): ParseEnvValueResult {

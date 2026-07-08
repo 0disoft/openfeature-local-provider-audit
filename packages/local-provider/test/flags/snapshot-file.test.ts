@@ -51,6 +51,21 @@ describe("snapshot file helpers", () => {
     }
   });
 
+  it("rejects snapshot files larger than maxBytes before parsing", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
+    try {
+      const path = join(tempDirectory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true), "utf8");
+
+      await expectLocalProviderError(
+        loadFlagSnapshotFile(path, { maxBytes: 1 }),
+        LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR
+      );
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("manually reloads watched snapshots", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {

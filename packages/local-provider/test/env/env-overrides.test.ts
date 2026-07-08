@@ -136,6 +136,27 @@ describe("env overrides", () => {
     });
   });
 
+  it("returns an error result for oversized JSON override input", () => {
+    const overrides = createEnvOverrides(staticSnapshot, {
+      overridesJson: JSON.stringify({ "checkout.enabled": true }),
+      maxOverridesJsonBytes: 1
+    });
+
+    expect(
+      evaluateFlag(staticSnapshot, {
+        flagKey: "checkout.enabled",
+        defaultValue: false,
+        expectedType: "boolean",
+        overrides
+      })
+    ).toMatchObject({
+      value: false,
+      reason: EVALUATION_REASONS.ERROR,
+      source: EVALUATION_SOURCES.ERROR,
+      errorCode: LOCAL_PROVIDER_ERROR_CODES.OVERRIDE_PARSE_ERROR
+    });
+  });
+
   it("returns an error result when a JSON override value mismatches the flag type", () => {
     const overrides = createEnvOverrides(staticSnapshot, {
       overridesJson: JSON.stringify({ "checkout.enabled": "false" })

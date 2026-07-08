@@ -30,6 +30,7 @@ export type {
   AuditQueueOverflowPolicy,
   AuditSink,
   AuditWriteMode,
+  CreateEnvOverridesOptions,
   CreateAuditEventOptions,
   EvaluationContext,
   FileAuditSinkOptions,

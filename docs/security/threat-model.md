@@ -23,7 +23,9 @@ Owner: 0disoft
 ## Required Controls
 
 - Validate flag snapshots before accepting them.
+- Reject oversized local snapshot files before parsing.
 - Make override parse failures visible.
+- Reject oversized explicit JSON overrides before parsing.
 - Return caller defaults with error reason metadata on runtime evaluation failure.
 - Redact audit output by default.
 - Keep audit failure behavior separate from value resolution behavior.
@@ -49,6 +51,7 @@ Owner: 0disoft
 - Feature flags are documented as access control.
 - Provider code accepts credentials for local evaluation.
 - Audit output becomes a personal-data collection point.
+- Snapshot or override parsing accepts unbounded local input.
 - Audit rotation touches paths outside the configured audit file and its numbered
   rotated siblings.
 - Multi-process audit writers assume locking without enabling or honoring the advisory

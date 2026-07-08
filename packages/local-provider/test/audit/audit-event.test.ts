@@ -1,14 +1,17 @@
-import { mkdir, mkdtemp, open, readFile, rm, utimes } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, mkdtemp, open, readFile, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createFileAuditSink } from "../../src/audit/audit-sink.js";
 import {
   createAuditEvent,
+  createSnapshotHash,
   redactContext,
   serializeAuditEvent
 } from "../../src/audit/audit-event.js";
 import { evaluateFlag } from "../../src/evaluator/evaluate.js";
+import type { FlagSnapshot } from "../../src/public-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
 
@@ -96,6 +99,39 @@ describe("audit events", () => {
     });
   });
 
+  it("hashes snapshots with locale-independent key ordering", () => {
+    const snapshot = {
+      schemaVersion: 1,
+      flags: {
+        "ä.flag": {
+          type: "boolean",
+          defaultVariant: "on",
+          variants: {
+            on: true,
+            off: false
+          }
+        },
+        "z.flag": {
+          type: "boolean",
+          defaultVariant: "off",
+          variants: {
+            on: true,
+            off: false
+          }
+        }
+      },
+      metadata: {
+        ä: 1,
+        z: 2
+      }
+    } satisfies FlagSnapshot;
+    const stableJson =
+      '{"flags":{"z.flag":{"defaultVariant":"off","type":"boolean","variants":{"off":false,"on":true}},"ä.flag":{"defaultVariant":"on","type":"boolean","variants":{"off":false,"on":true}}},"metadata":{"z":2,"ä":1},"schemaVersion":1}';
+
+    expect(redactContext({ ä: 1, z: 2 }).keys).toEqual(["z", "ä"]);
+    expect(createSnapshotHash(snapshot)).toBe(sha256Hex(stableJson));
+  });
+
   it("appends redacted audit events to a JSON Lines file", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
     const auditPath = join(tempDirectory, "nested", "audit.jsonl");
@@ -171,6 +207,50 @@ describe("audit events", () => {
         eventId: "evt_flush_sink_1",
         flagKey: "checkout.enabled"
       });
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("flush waits for queued writes even when an earlier write fails", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "flush-failure", "audit.jsonl");
+    const lockPath = `${auditPath}.lock`;
+
+    try {
+      await mkdir(join(tempDirectory, "flush-failure"), { recursive: true });
+      await writeFile(lockPath, "locked", "utf8");
+      const auditSink = createFileAuditSink({
+        path: auditPath,
+        lock: true,
+        lockTimeoutMs: 50
+      });
+      const firstWrite = auditSink.write(createTestAuditEvent("evt_flush_failure_1"));
+      const secondWrite = auditSink.write(createTestAuditEvent("evt_flush_failure_2"));
+      const flush = auditSink.flush;
+      if (flush === undefined) {
+        throw new Error("Expected file audit sink to expose flush.");
+      }
+      const flushResult = flush().then(
+        () => ({ status: "resolved" as const, content: "" }),
+        async (error: unknown) => ({
+          status: "rejected" as const,
+          error,
+          content: await readFile(auditPath, "utf8").catch(() => "")
+        })
+      );
+
+      try {
+        await expect(firstWrite).rejects.toThrow("Timed out acquiring audit file lock");
+      } finally {
+        await rm(lockPath, { force: true });
+      }
+
+      await secondWrite;
+
+      const result = await flushResult;
+      expect(result.status).toBe("rejected");
+      expect(result.content).toContain("evt_flush_failure_2");
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
@@ -287,7 +367,7 @@ describe("audit events", () => {
 
     try {
       await mkdir(join(tempDirectory, "queue"), { recursive: true });
-      const lockHandle = await open(lockPath, "w");
+      await writeFile(lockPath, "locked", "utf8");
       const auditSink = createFileAuditSink({
         path: auditPath,
         lock: true,
@@ -305,7 +385,6 @@ describe("audit events", () => {
           droppedWrites: 0
         });
       } finally {
-        await lockHandle.close();
         await rm(lockPath, { force: true });
       }
 
@@ -331,7 +410,7 @@ describe("audit events", () => {
 
     try {
       await mkdir(join(tempDirectory, "queue"), { recursive: true });
-      const lockHandle = await open(lockPath, "w");
+      await writeFile(lockPath, "locked", "utf8");
       const auditSink = createFileAuditSink({
         path: auditPath,
         lock: true,
@@ -348,7 +427,6 @@ describe("audit events", () => {
           droppedWrites: 1
         });
       } finally {
-        await lockHandle.close();
         await rm(lockPath, { force: true });
       }
 
@@ -405,4 +483,8 @@ function createTestAuditEvent(eventId: string) {
     eventId,
     timestamp: "2026-07-06T00:00:00.000Z"
   });
+}
+
+function sha256Hex(value: string): string {
+  return createHash("sha256").update(value, "utf8").digest("hex");
 }

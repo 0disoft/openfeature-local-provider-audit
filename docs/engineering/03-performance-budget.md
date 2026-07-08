@@ -26,7 +26,9 @@ unless an explicit reload mode is documented.
 - Provider audit path: snapshot and override hashes are computed when provider state is
   created or updated, not by re-hashing the full snapshot on every evaluation.
 - Snapshot path: file parsing and validation occur at explicit load, reload, or watch
-  boundaries. Failed reloads preserve the last valid snapshot.
+  boundaries. Snapshot files are size-checked before parsing, and failed reloads preserve
+  the last valid snapshot.
+- Override path: explicit JSON override strings are size-checked before parsing.
 - Package size: avoid dependencies that turn the provider into a platform or service runtime.
 
 ## Review Blockers
