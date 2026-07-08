@@ -280,6 +280,93 @@ describe("audit events", () => {
     }
   });
 
+  it("rejects file audit writes beyond the configured queue capacity", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "queue", "audit.jsonl");
+    const lockPath = `${auditPath}.lock`;
+
+    try {
+      await mkdir(join(tempDirectory, "queue"), { recursive: true });
+      const lockHandle = await open(lockPath, "w");
+      const auditSink = createFileAuditSink({
+        path: auditPath,
+        lock: true,
+        lockTimeoutMs: 1000,
+        maxQueueSize: 1
+      });
+      const firstWrite = auditSink.write(createTestAuditEvent("evt_queue_reject_1"));
+
+      try {
+        await expect(auditSink.write(createTestAuditEvent("evt_queue_reject_2"))).rejects.toThrow(
+          "Audit write queue is full: maxQueueSize=1"
+        );
+        expect(auditSink.getStats?.()).toEqual({
+          pendingWrites: 1,
+          droppedWrites: 0
+        });
+      } finally {
+        await lockHandle.close();
+        await rm(lockPath, { force: true });
+      }
+
+      await firstWrite;
+      await auditSink.flush?.();
+
+      expect(auditSink.getStats?.()).toEqual({
+        pendingWrites: 0,
+        droppedWrites: 0
+      });
+      const content = await readFile(auditPath, "utf8");
+      expect(content).toContain("evt_queue_reject_1");
+      expect(content).not.toContain("evt_queue_reject_2");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("drops newest file audit writes when the bounded queue is full", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "queue", "audit.jsonl");
+    const lockPath = `${auditPath}.lock`;
+
+    try {
+      await mkdir(join(tempDirectory, "queue"), { recursive: true });
+      const lockHandle = await open(lockPath, "w");
+      const auditSink = createFileAuditSink({
+        path: auditPath,
+        lock: true,
+        lockTimeoutMs: 1000,
+        maxQueueSize: 1,
+        queueOverflowPolicy: "dropNewest"
+      });
+      const firstWrite = auditSink.write(createTestAuditEvent("evt_queue_drop_1"));
+
+      try {
+        await auditSink.write(createTestAuditEvent("evt_queue_drop_2"));
+        expect(auditSink.getStats?.()).toEqual({
+          pendingWrites: 1,
+          droppedWrites: 1
+        });
+      } finally {
+        await lockHandle.close();
+        await rm(lockPath, { force: true });
+      }
+
+      await firstWrite;
+      await auditSink.flush?.();
+
+      expect(auditSink.getStats?.()).toEqual({
+        pendingWrites: 0,
+        droppedWrites: 1
+      });
+      const content = await readFile(auditPath, "utf8");
+      expect(content).toContain("evt_queue_drop_1");
+      expect(content).not.toContain("evt_queue_drop_2");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("rejects invalid file audit rotation options", () => {
     expect(() => createFileAuditSink({ path: "audit.jsonl", maxBytes: 0 })).toThrow(
       "maxBytes must be greater than 0"
@@ -290,6 +377,15 @@ describe("audit events", () => {
     expect(() =>
       createFileAuditSink({ path: "audit.jsonl", lock: true, lockTimeoutMs: -1 })
     ).toThrow("lockTimeoutMs must be a non-negative integer");
+    expect(() => createFileAuditSink({ path: "audit.jsonl", maxQueueSize: 0 })).toThrow(
+      "maxQueueSize must be greater than 0"
+    );
+    expect(() =>
+      createFileAuditSink({
+        path: "audit.jsonl",
+        queueOverflowPolicy: "dropOldest" as never
+      })
+    ).toThrow("queueOverflowPolicy must be reject or dropNewest");
   });
 });
 

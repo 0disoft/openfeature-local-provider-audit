@@ -10,16 +10,30 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   const shouldCreateDirectory = options.createDirectory !== false;
   const rotation = createRotationOptions(options);
   const lock = createLockOptions(options, auditPath);
+  const queue = createQueueOptions(options);
   const pendingWrites = new Set<Promise<void>>();
+  let queuedWrites = 0;
+  let droppedWrites = 0;
   let writeQueue = Promise.resolve();
 
   return {
     async write(event: AuditEvent): Promise<void> {
+      if (queue.maxSize !== undefined && queuedWrites >= queue.maxSize) {
+        if (queue.overflowPolicy === "dropNewest") {
+          droppedWrites += 1;
+          return;
+        }
+
+        throw new Error(`Audit write queue is full: maxQueueSize=${queue.maxSize}`);
+      }
+
+      queuedWrites += 1;
       const writeOperation = writeQueue.then(() =>
         writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
       );
       writeQueue = writeOperation.catch(() => undefined);
       const trackedWrite = writeOperation.finally(() => {
+        queuedWrites -= 1;
         pendingWrites.delete(trackedWrite);
       });
 
@@ -32,6 +46,13 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
       while (pendingWrites.size > 0) {
         await Promise.all(Array.from(pendingWrites));
       }
+    },
+
+    getStats() {
+      return {
+        pendingWrites: queuedWrites,
+        droppedWrites
+      };
     }
   };
 }
@@ -86,6 +107,11 @@ interface LockOptions {
   readonly retryMs: number;
 }
 
+interface QueueOptions {
+  readonly maxSize: number | undefined;
+  readonly overflowPolicy: NonNullable<FileAuditSinkOptions["queueOverflowPolicy"]>;
+}
+
 function createRotationOptions(options: FileAuditSinkOptions): RotationOptions | undefined {
   if (options.maxBytes === undefined) {
     return undefined;
@@ -102,6 +128,33 @@ function createRotationOptions(options: FileAuditSinkOptions): RotationOptions |
   return {
     maxBytes: options.maxBytes,
     maxFiles
+  };
+}
+
+function createQueueOptions(options: FileAuditSinkOptions): QueueOptions {
+  if (
+    options.queueOverflowPolicy !== undefined &&
+    options.queueOverflowPolicy !== "reject" &&
+    options.queueOverflowPolicy !== "dropNewest"
+  ) {
+    throw new TypeError("queueOverflowPolicy must be reject or dropNewest");
+  }
+
+  if (options.maxQueueSize === undefined) {
+    return {
+      maxSize: undefined,
+      overflowPolicy: options.queueOverflowPolicy ?? "reject"
+    };
+  }
+
+  assertNonNegativeInteger(options.maxQueueSize, "maxQueueSize");
+  if (options.maxQueueSize === 0) {
+    throw new RangeError("maxQueueSize must be greater than 0");
+  }
+
+  return {
+    maxSize: options.maxQueueSize,
+    overflowPolicy: options.queueOverflowPolicy ?? "reject"
   };
 }
 

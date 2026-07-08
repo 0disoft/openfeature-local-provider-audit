@@ -176,6 +176,14 @@ export interface CreateAuditEventOptions {
 export interface AuditSink {
   write(event: AuditEvent): Promise<void>;
   flush?(): Promise<void>;
+  getStats?(): FileAuditSinkStats;
+}
+
+export type AuditQueueOverflowPolicy = "reject" | "dropNewest";
+
+export interface FileAuditSinkStats {
+  readonly pendingWrites: number;
+  readonly droppedWrites: number;
 }
 
 export interface FileAuditSinkOptions {
@@ -186,4 +194,6 @@ export interface FileAuditSinkOptions {
   readonly lock?: boolean;
   readonly lockTimeoutMs?: number;
   readonly staleLockMs?: number;
+  readonly maxQueueSize?: number;
+  readonly queueOverflowPolicy?: AuditQueueOverflowPolicy;
 }

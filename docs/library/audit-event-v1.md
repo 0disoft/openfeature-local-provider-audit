@@ -47,10 +47,15 @@ raw user context by default.
 - File audit sink paths are trusted local configuration. Do not pass tenant, end-user,
   request, or unvalidated environment input directly into `path`.
 - File audit sinks expose optional `flush()` to wait for pending non-blocking writes.
+- File audit sinks expose optional `getStats()` with pending and dropped write counters.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
 - File audit sinks support optional advisory `.lock` files with `lock`, `lockTimeoutMs`,
   and `staleLockMs` for multi-process local writers.
+- File audit sinks may bound their in-memory write queue with `maxQueueSize`.
+  `queueOverflowPolicy: "reject"` rejects the newest write when full, while
+  `"dropNewest"` resolves without writing the newest event and increments the dropped
+  write counter.
 - `createLocalProvider({ auditSink })` schedules audit writes after evaluation and logs
   sink failures without changing the returned resolution.
 - Provider audit writes are non-blocking by default. Use
@@ -69,3 +74,4 @@ raw user context by default.
   family.
 - Audit sink paths are documented as safe for untrusted user input.
 - Multi-process examples share an audit file without advisory locking.
+- Queue overflow behavior changes without tests for both reject and drop-newest modes.

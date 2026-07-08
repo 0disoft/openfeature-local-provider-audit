@@ -20,6 +20,9 @@ unless an explicit reload mode is documented.
 - Evaluation path: constant work relative to the selected flag rule where practical and
   no per-evaluation file I/O.
 - Audit path: redaction and JSON Lines writing must not expose raw context or block unrelated evaluations without documentation.
+- File audit sink queueing is unbounded by default for compatibility; callers can set
+  `maxQueueSize` and choose reject or drop-newest overflow behavior for high-pressure
+  local writers.
 - Provider audit path: snapshot and override hashes are computed when provider state is
   created or updated, not by re-hashing the full snapshot on every evaluation.
 - Snapshot path: file parsing and validation occur at explicit load, reload, or watch

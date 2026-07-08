@@ -9,6 +9,7 @@ const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
 const REQUIRED_PACKAGE_FILES = ["bin", "dist", "LICENSE", "README.md"];
+const PINNED_ACTION_REF_PATTERN = /^[a-f0-9]{40}$/;
 
 const blockers = [];
 const warnings = [];
@@ -128,6 +129,7 @@ function checkPackageMetadata(localPackage) {
 }
 
 function checkReleaseWorkflow(workflow) {
+  checkPinnedGitHubActions(workflow, "release workflow");
   expectIncludes(
     workflow,
     "contents: write",
@@ -173,6 +175,7 @@ function checkReleaseWorkflow(workflow) {
 }
 
 function checkCiWorkflow(workflow) {
+  checkPinnedGitHubActions(workflow, "CI workflow");
   expectIncludes(workflow, "22.x", "CI Node 22 matrix");
   expectIncludes(workflow, "24.x", "CI Node 24 matrix");
   expectIncludes(workflow, "pnpm run format:check", "CI format gate");
@@ -187,6 +190,23 @@ function checkCiWorkflow(workflow) {
     "CI smoke example"
   );
   expectIncludes(workflow, "pnpm run packed-smoke", "CI packed smoke");
+}
+
+function checkPinnedGitHubActions(workflow, label) {
+  const actionRefs = Array.from(
+    workflow.matchAll(/^\s*uses:\s+actions\/([a-z0-9-]+)@([^\s#]+)/gim)
+  );
+
+  if (actionRefs.length === 0) {
+    blockers.push(`${label} must use pinned official GitHub Actions`);
+    return;
+  }
+
+  for (const [, actionName, ref] of actionRefs) {
+    if (!PINNED_ACTION_REF_PATTERN.test(ref)) {
+      blockers.push(`${label} action actions/${actionName} must be pinned to a full commit SHA`);
+    }
+  }
 }
 
 function checkPublishingDocs(npmDoc, releaseDocText) {

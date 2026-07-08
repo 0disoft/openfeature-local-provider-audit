@@ -197,6 +197,8 @@ const auditSink = createFileAuditSink({
   path: join(tmpdir(), "openfeature-audit.jsonl"),
   maxBytes: 10 * 1024 * 1024,
   maxFiles: 5,
+  maxQueueSize: 1000,
+  queueOverflowPolicy: "reject",
   lock: true
 });
 const provider = createLocalProvider({
@@ -214,6 +216,12 @@ logger without changing the evaluated flag value.
 Use `auditSink.flush?.()` before process exit when a short-lived script must wait for
 pending non-blocking audit writes. Use `auditWriteMode: "blocking"` when each
 evaluation promise must wait for its audit write.
+
+Set `maxQueueSize` when local I/O pressure should not grow pending audit writes without
+bound. The default is unbounded for compatibility. With a bounded queue, the default
+overflow policy is `reject`; set `queueOverflowPolicy: "dropNewest"` to resolve the
+overflowing write without appending that event. `auditSink.getStats?.()` returns pending
+and dropped write counters when supported.
 
 Set `maxBytes` to rotate the active audit file by size. `maxFiles` controls how many
 rotated files are retained as `.1`, `.2`, and so on.

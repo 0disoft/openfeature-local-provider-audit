@@ -13,6 +13,8 @@ on the supported Node.js runtime matrix.
 - Trigger: pushes and pull requests targeting `main`.
 - Runtime matrix: Node.js 22.x and 24.x.
 - Package manager: Corepack activates the repository `packageManager` pnpm version.
+- Official GitHub Actions are pinned to full commit SHAs, with the reviewed tag noted in
+  workflow comments.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
   `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
   CJS, and CLI bin behavior.

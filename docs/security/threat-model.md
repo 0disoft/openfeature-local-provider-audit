@@ -34,6 +34,9 @@ Owner: 0disoft
   resolved values.
 - Provide an explicit flush path for short-lived local processes that need to drain
   pending audit writes before exit.
+- Provide an optional bounded queue for local audit sinks so high-pressure writers can
+  reject or drop newest audit writes instead of growing memory without a caller-selected
+  limit.
 - Bound local file growth with optional size-based rotation and retained rotated file
   count.
 - Coordinate shared local audit files with optional advisory lock files when multiple
