@@ -28,6 +28,8 @@ unless an explicit reload mode is documented.
 - Snapshot path: file parsing and validation occur at explicit load, reload, or watch
   boundaries. Snapshot files are size-checked before parsing, and failed reloads preserve
   the last valid snapshot.
+- Watch path: Linux and macOS use native directory watch events; Windows uses bounded
+  file polling with a minimum 50 ms interval to avoid unstable native file-event behavior.
 - Override path: explicit JSON override strings are size-checked before parsing.
 - Package size: avoid dependencies that turn the provider into a platform or service runtime.
 

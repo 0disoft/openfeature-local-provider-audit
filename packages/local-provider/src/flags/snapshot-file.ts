@@ -1,4 +1,4 @@
-import { watch, type FSWatcher } from "node:fs";
+import { watch, watchFile, type FSWatcher, type Stats, unwatchFile } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -16,10 +16,33 @@ import { parseYamlFlagSnapshot } from "./parse-yaml-snapshot.js";
 
 const DEFAULT_DEBOUNCE_MS = 50;
 const DEFAULT_MAX_SNAPSHOT_FILE_BYTES = 10 * 1024 * 1024;
+const MIN_WINDOWS_POLL_INTERVAL_MS = 50;
 
 interface SnapshotFileTarget {
   readonly directory: string;
   readonly fileName: string;
+  readonly path: string;
+}
+
+type SnapshotWatchHandle =
+  | {
+      readonly type: "fs-watch";
+      readonly watcher: FSWatcher;
+    }
+  | {
+      readonly type: "fs-watch-file";
+      readonly path: string;
+      readonly listener: SnapshotWatchFileListener;
+    };
+
+type SnapshotWatchFileListener = (current: Stats, previous: Stats) => void;
+
+interface SnapshotWatchOptions {
+  readonly path: string | URL;
+  readonly target: SnapshotFileTarget;
+  readonly persistent: boolean;
+  readonly debounceMs: number;
+  readonly onChange: () => void;
 }
 
 export async function loadFlagSnapshotFile(
@@ -47,14 +70,14 @@ export async function watchFlagSnapshotFile(
 
   const watcherPath = options.path;
   const target = resolveSnapshotFileTarget(watcherPath);
-  const watcher = watch(
-    target.directory,
-    { persistent: options.persistent ?? false },
-    (_eventType, fileName) => {
+  const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+  const watcher = createSnapshotWatchHandle({
+    path: watcherPath,
+    target,
+    persistent: options.persistent ?? false,
+    debounceMs,
+    onChange() {
       if (closed) {
-        return;
-      }
-      if (fileName !== null && fileName !== undefined && fileName.toString() !== target.fileName) {
         return;
       }
       if (timer !== undefined) {
@@ -63,9 +86,9 @@ export async function watchFlagSnapshotFile(
       timer = setTimeout(() => {
         timer = undefined;
         void enqueueReload({ reportError: true }).catch(() => undefined);
-      }, options.debounceMs ?? DEFAULT_DEBOUNCE_MS);
+      }, debounceMs);
     }
-  );
+  });
 
   async function performReload(): Promise<FlagSnapshot> {
     const snapshot = await loadFlagSnapshotFile(options.path, options);
@@ -167,15 +190,70 @@ function resolveSnapshotFileTarget(path: string | URL): SnapshotFileTarget {
 
   return {
     directory: dirname(filePath),
-    fileName: basename(filePath)
+    fileName: basename(filePath),
+    path: filePath
   };
 }
 
-function closeWatcher(watcher: FSWatcher, timer: ReturnType<typeof setTimeout> | undefined): void {
+function createSnapshotWatchHandle(options: SnapshotWatchOptions): SnapshotWatchHandle {
+  if (process.platform === "win32") {
+    const listener: SnapshotWatchFileListener = (current, previous) => {
+      if (current.mtimeMs === previous.mtimeMs && current.size === previous.size) {
+        return;
+      }
+      options.onChange();
+    };
+
+    watchFile(
+      options.target.path,
+      {
+        bigint: false,
+        persistent: options.persistent,
+        interval: Math.max(options.debounceMs, MIN_WINDOWS_POLL_INTERVAL_MS)
+      },
+      listener
+    );
+
+    return {
+      type: "fs-watch-file",
+      path: options.target.path,
+      listener
+    };
+  }
+
+  const watcher = watch(
+    options.target.directory,
+    { persistent: options.persistent },
+    (_eventType, fileName) => {
+      if (
+        fileName !== null &&
+        fileName !== undefined &&
+        fileName.toString() !== options.target.fileName
+      ) {
+        return;
+      }
+      options.onChange();
+    }
+  );
+
+  return {
+    type: "fs-watch",
+    watcher
+  };
+}
+
+function closeWatcher(
+  watcher: SnapshotWatchHandle,
+  timer: ReturnType<typeof setTimeout> | undefined
+): void {
   if (timer !== undefined) {
     clearTimeout(timer);
   }
-  watcher.close();
+  if (watcher.type === "fs-watch") {
+    watcher.watcher.close();
+    return;
+  }
+  unwatchFile(watcher.path, watcher.listener);
 }
 
 function assertPositiveInteger(value: number, name: string): void {
