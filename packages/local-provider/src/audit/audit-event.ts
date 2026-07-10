@@ -1,6 +1,8 @@
 import { createHash, randomUUID } from "node:crypto";
 import type {
+  AuditContextKeyMode,
   AuditEvent,
+  AuditRedactionOptions,
   CreateAuditEventOptions,
   EnvOverrideState,
   EvaluationContext,
@@ -24,12 +26,15 @@ export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
     ...(options.result.errorCode !== undefined ? { errorCode: options.result.errorCode } : {}),
     snapshotHash: options.snapshotHash ?? createSnapshotHash(options.snapshot),
     ...resolveOverrideHash(options),
-    context: redactContext({
-      ...options.request.context,
-      ...(options.request.targetingKey !== undefined
-        ? { targetingKey: options.request.targetingKey }
-        : {})
-    })
+    context: redactContext(
+      {
+        ...options.request.context,
+        ...(options.request.targetingKey !== undefined
+          ? { targetingKey: options.request.targetingKey }
+          : {})
+      },
+      options.redaction
+    )
   };
 }
 
@@ -59,13 +64,33 @@ export function serializeAuditEvent(event: AuditEvent): string {
   return `${JSON.stringify(event)}\n`;
 }
 
-export function redactContext(context: EvaluationContext = {}): RedactedAuditContext {
+export function redactContext(
+  context: EvaluationContext = {},
+  options: AuditRedactionOptions = {}
+): RedactedAuditContext {
+  const keyMode = resolveAuditContextKeyMode(options);
+  const contextKeys = Object.keys(context).sort(compareCodeUnits);
+
   return {
     targetingKeyPresent:
       typeof context.targetingKey === "string" && context.targetingKey.length > 0,
-    keys: Object.keys(context).sort(compareCodeUnits),
+    keyMode,
+    keys: keyMode === "names" ? contextKeys : [],
+    ...(keyMode === "count" ? { keyCount: contextKeys.length } : {}),
     redacted: true
   };
+}
+
+export function resolveAuditContextKeyMode(
+  options: AuditRedactionOptions = {}
+): AuditContextKeyMode {
+  const keyMode = options.contextKeys ?? "names";
+
+  if (keyMode !== "names" && keyMode !== "count" && keyMode !== "none") {
+    throw new TypeError("auditRedaction.contextKeys must be names, count, or none");
+  }
+
+  return keyMode;
 }
 
 function sha256Hex(value: string): string {

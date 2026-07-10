@@ -41,7 +41,13 @@ raw user context by default.
 - Stable JSON orders object keys with locale-independent code unit comparison.
 - Provider-created audit events use hashes cached on provider state so evaluation does
   not re-hash the full snapshot for every audit write.
-- `context` records only `targetingKeyPresent`, sorted context key names, and `redacted: true`.
+- `context` always records `targetingKeyPresent`, the applied `keyMode`, an array-valued
+  `keys` field, and `redacted: true`.
+- Context key disclosure defaults to `names`, which preserves sorted key names. The
+  `count` mode empties `keys` and adds `keyCount`; the `none` mode empties `keys` and
+  omits the count.
+- `createAuditEvent({ redaction })`, `redactContext(context, options)`, and
+  `createLocalProvider({ auditRedaction })` accept the same context-key policy.
 - Raw context values and evaluated flag values are not serialized.
 - `serializeAuditEvent(event)` returns one JSON record followed by `\n`.
 - `createFileAuditSink(options)` appends JSON Lines records to a caller-provided path.
@@ -71,6 +77,7 @@ raw user context by default.
 
 - Audit events include raw context or evaluated object values by default.
 - Redaction mode changes without compatibility and security review.
+- A non-`names` redaction mode serializes a context key name.
 - Audit event fields are removed without semver notes.
 - Audit file rotation deletes or rewrites caller-provided paths outside the audit file
   family.

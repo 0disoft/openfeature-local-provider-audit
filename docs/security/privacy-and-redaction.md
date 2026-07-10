@@ -12,14 +12,17 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 
 - Raw evaluation context is not logged by default.
 - Targeting key presence may be recorded, but the raw value is not.
-- Context key names may be recorded when they do not contain values.
+- Context key names may be recorded under the default `names` policy, or replaced with a
+  count or omitted when the caller selects a stricter policy.
 - Evaluated flag values are not written to audit output by default.
 - Object flag values are treated as sensitive by default.
 - Correlation across events requires explicit opt-in and a keyed design.
 
 ## Implemented Controls
 
-- Audit context stores presence and key names only.
+- Audit context stores targeting-key presence and the applied key-disclosure mode.
+- `contextKeys: "names"` stores sorted names, `"count"` stores only their count, and
+  `"none"` stores neither names nor count. Raw values are never enabled by these modes.
 - Snapshot and override data are represented by SHA-256 hashes.
 - Evaluated values are excluded from audit events.
 - JSON Lines serialization is explicit.
@@ -31,3 +34,4 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 - Examples log raw context values.
 - Audit defaults expose targeting keys or evaluated object values.
 - Redaction opt-out is implicit or enabled by convenience defaults.
+- A strict key-disclosure mode leaks a context key name or raw value.

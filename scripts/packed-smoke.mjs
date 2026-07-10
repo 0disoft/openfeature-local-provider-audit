@@ -57,10 +57,14 @@ flags:
   );
   await writeFile(
     path.join(consumerDirectory, "esm-smoke.mjs"),
-    `import { parseYamlFlagSnapshot } from "@0disoft/openfeature-local-provider";
+    `import { parseYamlFlagSnapshot, redactContext } from "@0disoft/openfeature-local-provider";
 const snapshot = parseYamlFlagSnapshot(await import("node:fs/promises").then(({ readFile }) => readFile("flags.yaml", "utf8")));
 if (snapshot.flags["checkout.enabled"].variants.on !== true) {
   throw new Error("ESM import did not evaluate the packed package correctly.");
+}
+const redactedContext = redactContext({ email: "synthetic@example.test" }, { contextKeys: "none" });
+if (redactedContext.keyMode !== "none" || redactedContext.keys.length !== 0) {
+  throw new Error("ESM import did not expose strict audit context redaction.");
 }
 `,
     "utf8"

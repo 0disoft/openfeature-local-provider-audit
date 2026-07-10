@@ -5,13 +5,19 @@ import type {
   Provider,
   ResolutionDetails
 } from "@openfeature/server-sdk";
-import { createAuditEvent, createOverrideHash, createSnapshotHash } from "../audit/audit-event.js";
+import {
+  createAuditEvent,
+  createOverrideHash,
+  createSnapshotHash,
+  resolveAuditContextKeyMode
+} from "../audit/audit-event.js";
 import { createEnvOverrides } from "../env/env-overrides.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
 import { validateFlagSnapshot } from "../flags/validate-snapshot.js";
 import type {
   AuditSink,
+  AuditContextKeyMode,
   AuditWriteMode,
   CreateEnvOverridesOptions,
   EnvOverrideState,
@@ -59,7 +65,8 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     overrideOptions,
     options.name ?? DEFAULT_PROVIDER_NAME,
     options.auditSink,
-    options.auditWriteMode ?? "nonBlocking"
+    options.auditWriteMode ?? "nonBlocking",
+    resolveAuditContextKeyMode(options.auditRedaction)
   );
 }
 
@@ -81,7 +88,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     private readonly overrideOptions: OverrideOptions,
     name: string,
     private readonly auditSink: AuditSink | undefined,
-    private readonly auditWriteMode: AuditWriteMode
+    private readonly auditWriteMode: AuditWriteMode,
+    private readonly auditContextKeyMode: AuditContextKeyMode
   ) {
     this.state = this.createState(snapshot);
     this.metadata = { name };
@@ -214,7 +222,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
           snapshotHash: state.snapshotHash,
           ...(state.overrideHash !== undefined ? { overrideHash: state.overrideHash } : {}),
           request,
-          result
+          result,
+          redaction: { contextKeys: this.auditContextKeyMode }
         })
       );
     } catch {

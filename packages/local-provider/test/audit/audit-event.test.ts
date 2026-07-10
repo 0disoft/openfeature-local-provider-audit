@@ -52,6 +52,7 @@ describe("audit events", () => {
       variant: "on",
       context: {
         targetingKeyPresent: true,
+        keyMode: "names",
         keys: ["email", "targetingKey", "tenantId", "token"],
         redacted: true
       }
@@ -94,9 +95,68 @@ describe("audit events", () => {
   it("redacts empty or missing context", () => {
     expect(redactContext()).toEqual({
       targetingKeyPresent: false,
+      keyMode: "names",
       keys: [],
       redacted: true
     });
+  });
+
+  it("can replace context key names with a count", () => {
+    expect(
+      redactContext(
+        {
+          targetingKey: "user-alpha",
+          email: "synthetic@example.test",
+          tenantId: "tenant-test-1"
+        },
+        { contextKeys: "count" }
+      )
+    ).toEqual({
+      targetingKeyPresent: true,
+      keyMode: "count",
+      keys: [],
+      keyCount: 3,
+      redacted: true
+    });
+  });
+
+  it("can omit context key names and counts", () => {
+    const request = {
+      flagKey: "checkout.rollout",
+      defaultValue: false,
+      expectedType: "boolean" as const,
+      targetingKey: "user-alpha",
+      context: {
+        email: "synthetic@example.test",
+        tenantId: "tenant-test-1"
+      }
+    };
+    const event = createAuditEvent({
+      providerName: "openfeature-local-provider",
+      snapshot: staticSnapshot,
+      request,
+      result: evaluateFlag(staticSnapshot, request),
+      redaction: { contextKeys: "none" }
+    });
+    const jsonLine = serializeAuditEvent(event);
+
+    expect(event.context).toEqual({
+      targetingKeyPresent: true,
+      keyMode: "none",
+      keys: [],
+      redacted: true
+    });
+    expect(jsonLine).not.toContain("email");
+    expect(jsonLine).not.toContain("tenantId");
+    expect(jsonLine).not.toContain("synthetic@example.test");
+    expect(jsonLine).not.toContain("tenant-test-1");
+    expect(jsonLine).not.toContain("user-alpha");
+  });
+
+  it("rejects unsupported context key redaction modes", () => {
+    expect(() => redactContext({}, { contextKeys: "values" as never })).toThrow(
+      "auditRedaction.contextKeys must be names, count, or none"
+    );
   });
 
   it("hashes snapshots with locale-independent key ordering", () => {
@@ -166,6 +226,7 @@ describe("audit events", () => {
         eventId: "evt_file_sink_1",
         flagKey: "checkout.enabled",
         context: {
+          keyMode: "names",
           keys: ["email"],
           redacted: true
         }

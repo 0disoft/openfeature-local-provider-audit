@@ -202,6 +202,7 @@ describe("createLocalProvider", () => {
         variant: "on",
         context: {
           targetingKeyPresent: true,
+          keyMode: "names",
           keys: ["email", "targetingKey", "tenantId"],
           redacted: true
         }
@@ -213,6 +214,53 @@ describe("createLocalProvider", () => {
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
+  });
+
+  it("applies strict context key redaction to provider audit events", async () => {
+    let writtenEvent: unknown;
+    const provider = createLocalProvider({
+      snapshot: staticSnapshot,
+      auditSink: {
+        async write(event) {
+          writtenEvent = event;
+        }
+      },
+      auditWriteMode: "blocking",
+      auditRedaction: { contextKeys: "none" }
+    });
+
+    await provider.resolveBooleanEvaluation(
+      "checkout.rollout",
+      false,
+      {
+        targetingKey: "user-alpha",
+        email: "synthetic@example.test",
+        tenantId: "tenant-test-1"
+      },
+      logger
+    );
+
+    expect(writtenEvent).toMatchObject({
+      context: {
+        targetingKeyPresent: true,
+        keyMode: "none",
+        keys: [],
+        redacted: true
+      }
+    });
+    const serializedEvent = JSON.stringify(writtenEvent);
+    expect(serializedEvent).not.toContain("email");
+    expect(serializedEvent).not.toContain("tenantId");
+    expect(serializedEvent).not.toContain("user-alpha");
+  });
+
+  it("validates audit redaction options at provider creation", () => {
+    expect(() =>
+      createLocalProvider({
+        snapshot: staticSnapshot,
+        auditRedaction: { contextKeys: "values" as never }
+      })
+    ).toThrow("auditRedaction.contextKeys must be names, count, or none");
   });
 
   it("includes overrideHash on provider audit events without raw override values", async () => {

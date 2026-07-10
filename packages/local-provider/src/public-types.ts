@@ -64,6 +64,7 @@ export interface LocalProviderOptions {
   readonly env?: EnvSource;
   readonly auditSink?: AuditSink;
   readonly auditWriteMode?: AuditWriteMode;
+  readonly auditRedaction?: AuditRedactionOptions;
 }
 
 export interface ReloadableLocalProvider extends Provider {
@@ -95,6 +96,12 @@ export interface FlagSnapshotFileWatcher {
 }
 
 export type AuditWriteMode = "nonBlocking" | "blocking";
+
+export type AuditContextKeyMode = "names" | "count" | "none";
+
+export interface AuditRedactionOptions {
+  readonly contextKeys?: AuditContextKeyMode;
+}
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
 
@@ -165,7 +172,9 @@ export interface AuditEvent {
 
 export interface RedactedAuditContext {
   readonly targetingKeyPresent: boolean;
+  readonly keyMode?: AuditContextKeyMode;
   readonly keys: readonly string[];
+  readonly keyCount?: number;
   readonly redacted: true;
 }
 
@@ -179,6 +188,7 @@ export interface CreateAuditEventOptions {
   readonly overrideHash?: string;
   readonly eventId?: string;
   readonly timestamp?: string;
+  readonly redaction?: AuditRedactionOptions;
 }
 
 export interface AuditSink {

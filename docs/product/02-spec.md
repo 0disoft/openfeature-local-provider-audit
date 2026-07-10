@@ -31,7 +31,8 @@ API, and the underlying flag source can later be replaced by another provider.
 - Boolean, string, number, and object flag values.
 - Deterministic percentage bucketing from a stable targeting key and flag key.
 - Evaluation reason output for default, static match, override, percentage bucket, and error paths.
-- JSON Lines audit events with redacted targeting context and stable replay inputs.
+- JSON Lines audit events with redacted targeting context, configurable context-key
+  disclosure, and stable replay inputs.
 - Snapshot/replay fixture format for tests and CI.
 - Missing flag behavior that returns the caller's OpenFeature default value with reason metadata.
 

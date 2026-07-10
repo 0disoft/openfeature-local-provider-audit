@@ -26,6 +26,8 @@ a feature flag platform.
    with provenance and GitHub Release artifacts.
 8. Add JSON/YAML file loading, reloadable providers, and file watch helpers.
 9. Add local snapshot validation CLI helpers.
+10. Add context-key disclosure modes for stricter audit redaction without changing the
+    existing default behavior.
 
 ## Next Evaluation Areas
 

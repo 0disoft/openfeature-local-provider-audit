@@ -208,7 +208,10 @@ const auditSink = createFileAuditSink({
 });
 const provider = createLocalProvider({
   snapshot,
-  auditSink
+  auditSink,
+  auditRedaction: {
+    contextKeys: "none"
+  }
 });
 
 await auditSink.flush?.();
@@ -217,6 +220,11 @@ await auditSink.flush?.();
 Audit events are redacted before they reach the sink. Provider audit writes are
 non-blocking by default, and file write failures are reported through the OpenFeature
 logger without changing the evaluated flag value.
+
+Context key names are included by default for compatibility. Set
+`auditRedaction.contextKeys` to `"count"` to retain only the number of context keys, or
+to `"none"` to omit both names and count. These modes never enable raw context values;
+`targetingKeyPresent` remains a boolean presence signal.
 
 Use `auditSink.flush?.()` before process exit when a short-lived script must wait for
 pending non-blocking audit writes. Use `auditWriteMode: "blocking"` when each

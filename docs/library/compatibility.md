@@ -33,6 +33,18 @@ Detailed compatibility contracts live in:
 - Deprecation and migration policy: compatibility notes must include replay fixture expectations.
 - Dependency compatibility: `@openfeature/server-sdk` remains a peer dependency.
 
+## 0.13.0 Audit Context Migration
+
+- Audit context now includes `keyMode: "names"` under the unchanged default policy.
+- Consumers with a closed audit-event schema must allow `keyMode` and the optional
+  `keyCount` field before upgrading.
+- `RedactedAuditContext.keyMode` is optional in the public type so pre-0.13 events and
+  existing manually constructed audit objects remain representable.
+- Existing `keys` access remains valid. The field is an empty array under `count` and
+  `none` modes rather than being removed.
+- Consumers that do not configure `auditRedaction` continue to receive sorted context
+  key names and never receive raw context values.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

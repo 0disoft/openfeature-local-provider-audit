@@ -63,11 +63,12 @@ Implementation must not expose internal modules only because examples need conve
 - `replayEvaluationFixture(fixture)`.
 - `createAuditEvent(options)`.
 - `serializeAuditEvent(event)`.
-- `redactContext(context)`.
+- `redactContext(context, options)`.
 - `createFileAuditSink(options)`.
 - `LocalProviderOptions` with `snapshot`, optional `name`, optional `overridesJson`, and
   optional `maxOverridesJsonBytes`, optional injectable `env`, optional `auditSink`, and
-  optional `auditWriteMode`.
+  optional `auditWriteMode`, and optional `auditRedaction`.
+- `AuditRedactionOptions` with optional `contextKeys: "names" | "count" | "none"`.
 - `LoadFlagSnapshotFileOptions` with optional `format`, optional `encoding`, and optional
   `maxBytes`.
 - `CreateEnvOverridesOptions` with optional `overridesJson`, optional
@@ -78,6 +79,8 @@ Implementation must not expose internal modules only because examples need conve
 - `EvaluationRequest` with optional `targetingKey` for rollout evaluation.
 - `EvaluationResult` with optional `bucket` for deterministic pure-evaluator replay checks.
 - Snapshot, flag definition, rollout, evaluation, env override, replay fixture, audit event, audit sink, audit write mode, reason, source, and error code types.
+- Audit context output includes the applied `keyMode`; `count` adds `keyCount`, while
+  non-`names` modes keep `keys` empty.
 - `AuditSink` implementations may expose optional `flush()` to wait for pending writes and
   optional `getStats()` for implementation-specific sink counters.
 - Snapshot and override hash generation uses locale-independent key ordering.

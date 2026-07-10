@@ -19,6 +19,7 @@ which behavior becomes part of the public compatibility contract.
 - YAML snapshot loader ADR: docs/adr/0006-yaml-snapshot-loader.md
 - File reload/watch ADR: docs/adr/0007-file-reload-watch.md
 - CLI helpers ADR: docs/adr/0008-cli-helpers.md
+- Audit context key redaction ADR: docs/adr/0009-audit-context-key-redaction.md
 
 ## Required Decisions
 
