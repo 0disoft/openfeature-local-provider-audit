@@ -11,8 +11,11 @@ on the supported Node.js runtime matrix.
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`.
 - Trigger: pushes and pull requests targeting `main`.
-- Runtime matrix: Node.js 22.x and 24.x on Ubuntu, Windows, and macOS hosted
-  runners.
+- Runtime matrix: Node.js 22.x and 24.x on `ubuntu-latest`, `windows-latest`, and
+  `macos-15` hosted runners.
+- macOS is pinned to version 15 so GitHub's `macos-latest` migration does not silently
+  change the toolchain. Adopt a newer macOS image only after the full Node matrix passes
+  on that explicit runner label.
 - Package manager: Corepack activates the repository `packageManager` pnpm version.
 - Official GitHub Actions are pinned to full commit SHAs, with the reviewed tag noted in
   workflow comments.
