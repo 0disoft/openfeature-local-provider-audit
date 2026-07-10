@@ -88,6 +88,7 @@ function checkRootPackage(rootPackage) {
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
   expectScriptIncludes(rootPackage, "check", "pnpm run release-readiness");
+  expectScriptIncludes(rootPackage, "typecheck", "examples/node-basic/tsconfig.json");
 }
 
 function checkPackageMetadata(localPackage) {

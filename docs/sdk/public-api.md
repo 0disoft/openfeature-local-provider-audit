@@ -24,6 +24,9 @@ keeping application code on the standard OpenFeature evaluation API.
   when using non-blocking audit writes.
 - SDK audit file examples may configure `maxBytes` and `maxFiles` for local rotation.
 - SDK audit file examples may configure `lock` for shared local audit files.
+- SDK integration examples may combine strict context-key redaction, bounded audit
+  queues, atomic file replacement, and reloadable providers, but must fail visibly when
+  expected consumer behavior is missing.
 - SDK validation evidence: replay examples must prove deterministic bucketing when implementation exists.
 - SDK release or rollout policy: example packages must not imply support for untested runtimes.
 - SDK compatibility and migration policy: changed examples require matching public API and compatibility docs.

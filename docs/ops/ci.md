@@ -19,6 +19,8 @@ on the supported Node.js runtime matrix.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
   `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
   CJS, and CLI bin behavior.
+- `typecheck` covers both the published package source and the Node consumer example so
+  public API type drift fails before the runtime smoke step.
 
 ## Owners
 
