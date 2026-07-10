@@ -18,7 +18,7 @@
     "packed-smoke": "node scripts/packed-smoke.mjs",
     "release-readiness": "node scripts/release-readiness.mjs",
     "test": "pnpm --filter @0disoft/openfeature-local-provider test",
-    "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && tsc -p examples/node-basic/tsconfig.json --noEmit"
+    "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && pnpm --filter @0disoft/openfeature-local-provider build && tsc -p examples/node-basic/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.4",
