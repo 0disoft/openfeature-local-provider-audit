@@ -49,8 +49,9 @@ Detailed compatibility contracts live in:
 
 - No public API or snapshot evaluation behavior changes.
 - macOS file watching combines native file events for direct writes with directory events
-  for atomic replacement. Duplicate native events continue to pass through the existing
-  debounce boundary before reload.
+  for atomic replacement. Duplicate native events pass through the existing debounce boundary,
+  and event-driven reloads suppress callbacks when the parsed snapshot is unchanged. Explicit
+  `reload()` calls retain their existing callback behavior.
 - Linux continues to use one native directory watcher, and Windows continues to use bounded
   path polling.
 

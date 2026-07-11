@@ -26,6 +26,8 @@ contracts were covered by tests.
   after watcher initialization are not dependent on directory-event delivery alone. On Windows,
   use `fs.watchFile` polling for the watched path to avoid Node.js native file-event crashes and
   path-prefix assertion failures seen on Node.js 24 runners.
+- Debounce bursts of native events and suppress event-driven callbacks when the parsed snapshot
+  is unchanged. Explicit `reload()` calls still invoke `onSnapshot` after successful validation.
 - Watch reload failures must be reported through `onError` and must not replace the last
   valid snapshot.
 - Do not add hot remote configuration, HTTP APIs, hosted control planes, CLI, browser,

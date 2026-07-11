@@ -144,7 +144,9 @@ needs a different limit. Watcher reload failures are reported through `onError` 
 not replace the last valid snapshot. Evaluation never reads from disk on the flag
 resolution path. macOS combines native file and directory watchers so direct writes and
 atomic replacements use their strongest event source. Windows file watching uses path
-polling internally to avoid unstable native file-event behavior on Node.js 24.
+polling internally to avoid unstable native file-event behavior on Node.js 24. Event-driven
+reloads suppress callbacks for an unchanged parsed snapshot; explicit `reload()` calls still
+invoke `onSnapshot` after successful validation.
 
 Call `watcher.close()` during process shutdown when the file watcher is no longer
 needed.

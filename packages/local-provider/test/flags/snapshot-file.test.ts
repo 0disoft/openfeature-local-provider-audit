@@ -82,12 +82,14 @@ describe("snapshot file helpers", () => {
         }
       });
 
+      const unchanged = await watcher.reload();
       await writeFile(path, createJsonSnapshot(false), "utf8");
       const reloaded = await watcher.reload();
       watcher.close();
 
+      expect(getCheckoutDefaultEnabled(unchanged)).toBe(true);
       expect(getCheckoutDefaultEnabled(reloaded)).toBe(false);
-      expect(snapshots).toEqual([true, false]);
+      expect(snapshots).toEqual([true, true, false]);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

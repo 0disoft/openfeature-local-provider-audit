@@ -64,6 +64,7 @@ export async function watchFlagSnapshotFile(
   options: WatchFlagSnapshotFileOptions
 ): Promise<FlagSnapshotFileWatcher> {
   let currentSnapshot: FlagSnapshot | undefined;
+  let currentSerializedSnapshot: string | undefined;
   let closed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let reloadQueue = Promise.resolve();
@@ -85,13 +86,17 @@ export async function watchFlagSnapshotFile(
       }
       timer = setTimeout(() => {
         timer = undefined;
-        void enqueueReload({ reportError: true }).catch(() => undefined);
+        void enqueueReload({ reportError: true, skipUnchanged: true }).catch(() => undefined);
       }, debounceMs);
     }
   });
 
-  async function performReload(): Promise<FlagSnapshot> {
+  async function performReload(skipUnchanged: boolean): Promise<FlagSnapshot> {
     const snapshot = await loadFlagSnapshotFile(options.path, options);
+    const serializedSnapshot = JSON.stringify(snapshot);
+    if (skipUnchanged && serializedSnapshot === currentSerializedSnapshot) {
+      return snapshot;
+    }
     if (closed) {
       return snapshot;
     }
@@ -100,15 +105,18 @@ export async function watchFlagSnapshotFile(
       return snapshot;
     }
     currentSnapshot = snapshot;
+    currentSerializedSnapshot = serializedSnapshot;
     return snapshot;
   }
 
   function enqueueReload({
-    reportError
+    reportError,
+    skipUnchanged
   }: {
     readonly reportError: boolean;
+    readonly skipUnchanged: boolean;
   }): Promise<FlagSnapshot> {
-    const reload = reloadQueue.then(() => performReload());
+    const reload = reloadQueue.then(() => performReload(skipUnchanged));
     reloadQueue = reload.then(
       () => undefined,
       async (error: unknown) => {
@@ -129,7 +137,7 @@ export async function watchFlagSnapshotFile(
   }
 
   try {
-    await enqueueReload({ reportError: false });
+    await enqueueReload({ reportError: false, skipUnchanged: false });
   } catch (error) {
     closeWatcher(watcher, timer);
     throw error;
@@ -141,7 +149,7 @@ export async function watchFlagSnapshotFile(
       return currentSnapshot;
     },
     reload() {
-      return enqueueReload({ reportError: false });
+      return enqueueReload({ reportError: false, skipUnchanged: false });
     },
     close() {
       closed = true;
