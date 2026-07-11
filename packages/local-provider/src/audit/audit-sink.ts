@@ -1,4 +1,6 @@
-import { appendFile, mkdir, open, rename, rm, stat } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { appendFile, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
+import type { FileHandle } from "node:fs/promises";
 import { dirname } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -205,17 +207,37 @@ async function withFileLock(lock: LockOptions, operation: () => Promise<void>): 
   }
 }
 
-async function acquireFileLock(lock: LockOptions): Promise<() => Promise<void>> {
+type LockRecordWriter = (handle: FileHandle, contents: string) => Promise<void>;
+
+export async function acquireFileLock(
+  lock: LockOptions,
+  writeLockRecord: LockRecordWriter = defaultWriteLockRecord
+): Promise<() => Promise<void>> {
   const startedAt = Date.now();
 
   while (true) {
     try {
       const handle = await open(lock.path, "wx");
-      await handle.writeFile(`${process.pid}\n${new Date().toISOString()}\n`, "utf8");
+      const ownerToken = randomUUID();
+
+      try {
+        await writeLockRecord(
+          handle,
+          `${ownerToken}\n${process.pid}\n${new Date().toISOString()}\n`
+        );
+      } catch (error) {
+        try {
+          await handle.close();
+        } catch {
+          // Preserve the initialization error; ownership cleanup still gets a chance.
+        }
+        await removeLockIfOwned(lock.path, ownerToken, true);
+        throw error;
+      }
 
       return async () => {
         await handle.close();
-        await removeIfExists(lock.path);
+        await removeLockIfOwned(lock.path, ownerToken);
       };
     } catch (error) {
       if (!isAlreadyExistsError(error)) {
@@ -231,6 +253,28 @@ async function acquireFileLock(lock: LockOptions): Promise<() => Promise<void>> 
       }
 
       await delay(lock.retryMs);
+    }
+  }
+}
+
+async function defaultWriteLockRecord(handle: FileHandle, contents: string): Promise<void> {
+  await handle.writeFile(contents, "utf8");
+}
+
+async function removeLockIfOwned(
+  path: string,
+  ownerToken: string,
+  allowEmpty = false
+): Promise<void> {
+  try {
+    const contents = await readFile(path, "utf8");
+    const recordedOwner = contents.split("\n", 1)[0];
+    if (recordedOwner === ownerToken || (allowEmpty && recordedOwner === "")) {
+      await removeIfExists(path);
+    }
+  } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
     }
   }
 }

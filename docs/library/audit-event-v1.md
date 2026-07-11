@@ -60,6 +60,9 @@ raw user context by default.
   file count with `maxFiles`.
 - File audit sinks support optional advisory `.lock` files with `lock`, `lockTimeoutMs`,
   and `staleLockMs` for multi-process local writers.
+- Each acquired lock records an owner token. A releasing writer removes the lock only
+  when that token still matches, so a stale owner cannot delete a replacement owner's
+  lock after takeover.
 - File audit sinks may bound their in-memory write queue with `maxQueueSize`.
   `queueOverflowPolicy: "reject"` rejects the newest write when full, while
   `"dropNewest"` resolves without writing the newest event and increments the dropped
@@ -72,6 +75,9 @@ raw user context by default.
   process exit to drain pending non-blocking writes.
 - Rotation is local-file only. Cross-process coordination requires `lock: true` and
   cooperating writers that use the same advisory lock.
+- Advisory locking is best-effort coordination for cooperating processes on a local
+  filesystem. It is not a distributed lock or a fencing mechanism; an aggressive
+  `staleLockMs` can still classify a live writer as stale.
 
 ## Review Blockers
 

@@ -67,9 +67,10 @@ explicit choice after measuring their maximum evaluation burst and local write l
 
 ## Multiple Processes
 
-Use `lock: true` only for processes writing the same local audit path. The lock is advisory and
-does not establish correctness on network filesystems. Prefer one audit file per process when a
-log collector can merge records downstream.
+Use `lock: true` only for processes writing the same local audit path. The lock is advisory,
+records an owner token so a stale owner cannot remove a replacement owner's lock during release,
+and does not establish correctness on network filesystems. Prefer one audit file per process when
+a log collector can merge records downstream.
 
 Configure `lockTimeoutMs` and `staleLockMs` from the process supervisor's crash and restart model.
 An aggressive stale timeout can let two live processes write concurrently; an excessive timeout

@@ -43,6 +43,8 @@ Owner: 0disoft
   count.
 - Coordinate shared local audit files with optional advisory lock files when multiple
   cooperating processes use the same sink path.
+- Bind advisory lock release to the recorded owner token so a writer whose stale lock
+  was replaced cannot remove the replacement owner's lock.
 - Keep audit file paths out of tenant, request, and untrusted environment control unless
   a wrapper validates and confines them first.
 
@@ -56,3 +58,5 @@ Owner: 0disoft
   rotated siblings.
 - Multi-process audit writers assume locking without enabling or honoring the advisory
   lock contract.
+- Advisory file locking is presented as a distributed lock or as protection against
+  hostile writers that can modify the lock path.

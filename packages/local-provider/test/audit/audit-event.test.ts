@@ -3,7 +3,7 @@ import { mkdir, mkdtemp, open, readFile, rm, utimes, writeFile } from "node:fs/p
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { createFileAuditSink } from "../../src/audit/audit-sink.js";
+import { acquireFileLock, createFileAuditSink } from "../../src/audit/audit-sink.js";
 import {
   createAuditEvent,
   createSnapshotHash,
@@ -416,6 +416,53 @@ describe("audit events", () => {
       await auditSink.flush?.();
 
       expect(await readFile(auditPath, "utf8")).toContain("evt_stale_lock");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("does not remove an advisory lock replaced by a newer owner", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const lockPath = join(tempDirectory, "audit.jsonl.lock");
+
+    try {
+      const release = await acquireFileLock({
+        path: lockPath,
+        timeoutMs: 50,
+        staleMs: undefined,
+        retryMs: 1
+      });
+      const replacementContents = "replacement-owner\n999\n2026-07-11T00:00:00.000Z\n";
+      await writeFile(lockPath, replacementContents, "utf8");
+
+      await release();
+
+      expect(await readFile(lockPath, "utf8")).toBe(replacementContents);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("removes an empty lock file when lock record initialization fails", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const lockPath = join(tempDirectory, "audit.jsonl.lock");
+    const initializationError = new Error("synthetic lock record failure");
+
+    try {
+      await expect(
+        acquireFileLock(
+          {
+            path: lockPath,
+            timeoutMs: 50,
+            staleMs: undefined,
+            retryMs: 1
+          },
+          async () => {
+            throw initializationError;
+          }
+        )
+      ).rejects.toBe(initializationError);
+      await expect(readFile(lockPath, "utf8")).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

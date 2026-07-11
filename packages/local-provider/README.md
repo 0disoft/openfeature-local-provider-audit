@@ -248,7 +248,10 @@ unvalidated user input directly into `path`.
 
 Set `lock: true` when multiple local processes may write the same audit file. The lock is
 advisory and uses a sibling `.lock` file. `lockTimeoutMs` controls acquisition timeout,
-and `staleLockMs` can remove stale lock files left by crashed processes.
+and `staleLockMs` can remove stale lock files left by crashed processes. Lock ownership
+is checked before release so an old writer does not remove a replacement owner's lock.
+This is best-effort local-filesystem coordination, not a distributed lock; an aggressive
+stale timeout can still allow concurrent live writers.
 
 ## Supported Runtime
 
