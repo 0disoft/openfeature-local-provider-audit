@@ -28,6 +28,15 @@ decision, not filler.
 - Browser, Bun, Deno, or other runtime support must be proven before being documented as supported.
 - Dependencies must not introduce a hosted-service assumption.
 
+## Update Automation
+
+- Dependabot checks the root pnpm workspace monthly.
+- Development dependency minor and patch updates are grouped to reduce review noise.
+- Runtime, peer, and major updates remain separate pull requests because parser output,
+  OpenFeature compatibility, package exports, and toolchain migrations need independent evidence.
+- Automated pull requests must pass the same coverage, package, consumer, and runtime matrix gates
+  as maintainer-authored changes. Dependabot does not authorize automatic merging or publishing.
+
 ## Review Blockers
 
 - A change bypasses the source of truth.

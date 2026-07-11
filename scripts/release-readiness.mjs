@@ -6,6 +6,7 @@ const PACKAGE_JSON = path.join(ROOT, "packages", "local-provider", "package.json
 const ROOT_PACKAGE_JSON = path.join(ROOT, "package.json");
 const RELEASE_WORKFLOW = path.join(ROOT, ".github", "workflows", "release.yml");
 const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
+const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
 const REQUIRED_PACKAGE_FILES = ["bin", "dist", "LICENSE", "README.md"];
@@ -18,6 +19,7 @@ const rootPackageJson = await readJson(ROOT_PACKAGE_JSON);
 const packageJson = await readJson(PACKAGE_JSON);
 const releaseWorkflow = await readText(RELEASE_WORKFLOW);
 const ciWorkflow = await readText(CI_WORKFLOW);
+const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
 
@@ -26,6 +28,7 @@ checkRootPackage(rootPackageJson);
 checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
+checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 
 if (blockers.length > 0) {
@@ -87,6 +90,12 @@ function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
+  expectScript(
+    rootPackage,
+    "test:coverage",
+    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage"
+  );
+  expectScriptIncludes(rootPackage, "check", "pnpm run test:coverage");
   expectScriptIncludes(rootPackage, "check", "pnpm run release-readiness");
   expectScriptIncludes(
     rootPackage,
@@ -201,6 +210,15 @@ function checkCiWorkflow(workflow) {
     "CI smoke example"
   );
   expectIncludes(workflow, "pnpm run packed-smoke", "CI packed smoke");
+}
+
+function checkDependabotConfig(config) {
+  expectIncludes(config, "version: 2", "Dependabot config version");
+  expectIncludes(config, 'package-ecosystem: "npm"', "Dependabot npm ecosystem");
+  expectIncludes(config, 'directory: "/"', "Dependabot workspace root");
+  expectIncludes(config, 'interval: "monthly"', "Dependabot update schedule");
+  expectIncludes(config, 'dependency-type: "development"', "Dependabot development grouping");
+  expectIncludes(config, "update-types:", "Dependabot grouped update types");
 }
 
 function checkPinnedGitHubActions(workflow, label) {
