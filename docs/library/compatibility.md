@@ -45,6 +45,15 @@ Detailed compatibility contracts live in:
 - Consumers that do not configure `auditRedaction` continue to receive sorted context
   key names and never receive raw context values.
 
+## 0.13.1 macOS Watch Reliability
+
+- No public API or snapshot evaluation behavior changes.
+- macOS file watching combines native file events for direct writes with directory events
+  for atomic replacement. Duplicate native events continue to pass through the existing
+  debounce boundary before reload.
+- Linux continues to use one native directory watcher, and Windows continues to use bounded
+  path polling.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

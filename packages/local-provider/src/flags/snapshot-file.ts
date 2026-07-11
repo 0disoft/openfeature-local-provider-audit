@@ -27,7 +27,7 @@ interface SnapshotFileTarget {
 type SnapshotWatchHandle =
   | {
       readonly type: "fs-watch";
-      readonly watcher: FSWatcher;
+      readonly watchers: readonly FSWatcher[];
     }
   | {
       readonly type: "fs-watch-file";
@@ -221,7 +221,7 @@ function createSnapshotWatchHandle(options: SnapshotWatchOptions): SnapshotWatch
     };
   }
 
-  const watcher = watch(
+  const directoryWatcher = watch(
     options.target.directory,
     { persistent: options.persistent },
     (_eventType, fileName) => {
@@ -236,10 +236,26 @@ function createSnapshotWatchHandle(options: SnapshotWatchOptions): SnapshotWatch
     }
   );
 
-  return {
-    type: "fs-watch",
-    watcher
-  };
+  if (process.platform !== "darwin") {
+    return {
+      type: "fs-watch",
+      watchers: [directoryWatcher]
+    };
+  }
+
+  try {
+    const fileWatcher = watch(options.target.path, { persistent: options.persistent }, () => {
+      options.onChange();
+    });
+
+    return {
+      type: "fs-watch",
+      watchers: [directoryWatcher, fileWatcher]
+    };
+  } catch (error) {
+    directoryWatcher.close();
+    throw error;
+  }
 }
 
 function closeWatcher(
@@ -250,7 +266,9 @@ function closeWatcher(
     clearTimeout(timer);
   }
   if (watcher.type === "fs-watch") {
-    watcher.watcher.close();
+    for (const nativeWatcher of watcher.watchers) {
+      nativeWatcher.close();
+    }
     return;
   }
   unwatchFile(watcher.path, watcher.listener);

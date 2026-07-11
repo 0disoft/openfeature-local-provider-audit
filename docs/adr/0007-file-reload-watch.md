@@ -21,9 +21,11 @@ contracts were covered by tests.
 - Support JSON, YAML, and extension-based auto-detection for `.json`, `.yaml`, and `.yml`.
 - Check snapshot file size before reading and parsing. The default maximum is 10 MiB,
   configurable through `maxBytes`.
-- Use directory `fs.watch` on platforms where it is stable for atomic replacement events.
-  On Windows, use `fs.watchFile` polling for the watched path to avoid Node.js native
-  file-event crashes and path-prefix assertion failures seen on Node.js 24 runners.
+- Use directory `fs.watch` on Linux for atomic replacement events. On macOS, combine
+  directory watching for atomic replacement with direct file watching so writes immediately
+  after watcher initialization are not dependent on directory-event delivery alone. On Windows,
+  use `fs.watchFile` polling for the watched path to avoid Node.js native file-event crashes and
+  path-prefix assertion failures seen on Node.js 24 runners.
 - Watch reload failures must be reported through `onError` and must not replace the last
   valid snapshot.
 - Do not add hot remote configuration, HTTP APIs, hosted control planes, CLI, browser,
@@ -50,5 +52,6 @@ contracts were covered by tests.
 - A failed reload clears or corrupts the last valid snapshot.
 - Snapshot files are parsed before the configured size limit is checked.
 - Windows watcher behavior depends on unstable native `fs.watch` directory events.
+- macOS direct-write behavior depends only on directory events instead of a direct file watcher.
 - Watch behavior introduces a network, database, hosted service, or platform assumption.
 - Audit events hash a different snapshot from the one used for evaluation.

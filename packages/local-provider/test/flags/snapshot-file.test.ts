@@ -7,6 +7,8 @@ import { isLocalProviderError } from "../../src/errors/local-provider-error.js";
 import { loadFlagSnapshotFile, watchFlagSnapshotFile } from "../../src/flags/snapshot-file.js";
 import type { FlagSnapshot } from "../../src/public-types.js";
 
+const WATCH_STARTUP_STRESS_ITERATIONS = 8;
+
 describe("snapshot file helpers", () => {
   it("loads JSON snapshots by extension", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
@@ -94,23 +96,28 @@ describe("snapshot file helpers", () => {
   it("reloads watched snapshots after file change events", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {
-      const path = join(tempDirectory, "flags.json");
-      await writeFile(path, createJsonSnapshot(true), "utf8");
-      const snapshots: boolean[] = [];
+      for (let iteration = 0; iteration < WATCH_STARTUP_STRESS_ITERATIONS; iteration += 1) {
+        const path = join(tempDirectory, `flags-${iteration}.json`);
+        await writeFile(path, createJsonSnapshot(true), "utf8");
+        const snapshots: boolean[] = [];
+        const watcher = await watchFlagSnapshotFile({
+          path,
+          debounceMs: 10,
+          onSnapshot(snapshot) {
+            snapshots.push(getCheckoutDefaultEnabled(snapshot));
+          }
+        });
 
-      const watcher = await watchFlagSnapshotFile({
-        path,
-        debounceMs: 10,
-        onSnapshot(snapshot) {
-          snapshots.push(getCheckoutDefaultEnabled(snapshot));
+        try {
+          await writeFile(path, createJsonSnapshot(false), "utf8");
+          await waitFor(() => snapshots.at(-1) === false);
+
+          expect(snapshots[0]).toBe(true);
+          expect(snapshots.at(-1)).toBe(false);
+        } finally {
+          watcher.close();
         }
-      });
-
-      await writeFile(path, createJsonSnapshot(false), "utf8");
-      await waitFor(() => snapshots.length >= 2);
-      watcher.close();
-
-      expect(snapshots.at(-1)).toBe(false);
+      }
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
