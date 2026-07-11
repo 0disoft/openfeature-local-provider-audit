@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "pnpm --filter @0disoft/openfeature-local-provider build",
-    "check": "pnpm run typecheck && pnpm run test && pnpm run build && pnpm run pack:check && pnpm run release-readiness",
+    "check": "pnpm run typecheck && pnpm run test:coverage && pnpm run build && pnpm run pack:check && pnpm run release-readiness",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome lint .",
@@ -18,12 +18,14 @@
     "packed-smoke": "node scripts/packed-smoke.mjs",
     "release-readiness": "node scripts/release-readiness.mjs",
     "test": "pnpm --filter @0disoft/openfeature-local-provider test",
+    "test:coverage": "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage",
     "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && pnpm --filter @0disoft/openfeature-local-provider build && tsc -p examples/node-basic/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.4",
     "@biomejs/biome": "2.5.2",
     "@types/node": "26.1.0",
+    "@vitest/coverage-v8": "4.1.10",
     "publint": "0.3.21",
     "tsup": "8.5.1",
     "typescript": "6.0.3",

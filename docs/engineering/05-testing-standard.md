@@ -23,6 +23,14 @@ checking happy-path provider registration.
 - Audit redaction and JSON Lines event shape.
 - SDK examples that use only documented exports.
 
+## Coverage Gate
+
+- `pnpm run test:coverage` measures all package files under `src/**/*.ts` except the thin
+  `src/cli.ts` process bootstrap, whose installed behavior is covered by packed CLI smoke.
+- Global minimums are 85% statements, 80% branches, 95% functions, and 85% lines.
+- These thresholds are regression floors, not a reason to add assertion-free tests or exclude
+  difficult modules. Raise them only after behavior-focused tests improve the measured baseline.
+
 ## Review Blockers
 
 - A change bypasses the source of truth.

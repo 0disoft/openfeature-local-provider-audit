@@ -47,6 +47,8 @@ Contract tests prove provider behavior that consumers can rely on.
 - The Node basic example exercises OpenFeature registration, JSON snapshot loading,
   deterministic rollout, replay verification, and audit sink flushing.
 - CI runs contract coverage on Node.js 22.x and Node.js 24.x.
+- CI enforces the package coverage threshold on Ubuntu with Node.js 24.x while the remaining
+  matrix entries run the same contract tests without duplicate coverage instrumentation.
 
 ## Review Blockers
 

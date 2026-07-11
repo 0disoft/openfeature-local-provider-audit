@@ -13,6 +13,7 @@ Executable validation now runs through pnpm package scripts.
 - lint
 - typecheck
 - test
+- coverage
 - contract
 - migration-check
 - smoke
@@ -34,6 +35,7 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - lint: `pnpm run lint`
 - typecheck: `pnpm run typecheck`
 - test: `pnpm run test`
+- coverage: `pnpm run test:coverage`
 - smoke: `pnpm run build` and `pnpm run pack:check`
 - docs: `pnpm run release-readiness`
 - check: `pnpm run check`

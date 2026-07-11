@@ -55,7 +55,12 @@ jobs:
         run: pnpm run typecheck
 
       - name: Test
+        if: runner.os != 'Linux' || matrix.node-version != '24.x'
         run: pnpm run test
+
+      - name: Test with coverage
+        if: runner.os == 'Linux' && matrix.node-version == '24.x'
+        run: pnpm run test:coverage
 
       - name: Release readiness
         run: pnpm run release-readiness

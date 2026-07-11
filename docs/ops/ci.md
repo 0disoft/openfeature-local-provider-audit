@@ -22,6 +22,8 @@ on the supported Node.js runtime matrix.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
   `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
   CJS, and CLI bin behavior.
+- Ubuntu Node.js 24.x runs `test:coverage` instead of the plain test command and enforces the
+  package coverage thresholds. Other matrix entries avoid duplicate coverage instrumentation.
 - `typecheck` covers both the published package source and the Node consumer example so
   public API type drift fails before the runtime smoke step. It builds package declarations
   before checking the consumer so a clean checkout resolves the same public export surface.

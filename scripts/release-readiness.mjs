@@ -192,6 +192,7 @@ function checkCiWorkflow(workflow) {
   expectIncludes(workflow, "pnpm run lint", "CI lint gate");
   expectIncludes(workflow, "pnpm run typecheck", "CI typecheck gate");
   expectIncludes(workflow, "pnpm run test", "CI test gate");
+  expectIncludes(workflow, "pnpm run test:coverage", "CI coverage gate");
   expectIncludes(workflow, "pnpm run release-readiness", "CI release readiness gate");
   expectIncludes(workflow, "pnpm run pack:check", "CI package gate");
   expectIncludes(
