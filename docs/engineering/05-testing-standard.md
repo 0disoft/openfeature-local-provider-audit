@@ -27,7 +27,7 @@ checking happy-path provider registration.
 
 - `pnpm run test:coverage` measures all package files under `src/**/*.ts` except the thin
   `src/cli.ts` process bootstrap, whose installed behavior is covered by packed CLI smoke.
-- Global minimums are 85% statements, 80% branches, 95% functions, and 85% lines.
+- Global minimums are 87% statements, 83% branches, 96% functions, and 87% lines.
 - These thresholds are regression floors, not a reason to add assertion-free tests or exclude
   difficult modules. Raise them only after behavior-focused tests improve the measured baseline.
 

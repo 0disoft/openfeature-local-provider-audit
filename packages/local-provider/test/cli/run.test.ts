@@ -5,6 +5,47 @@ import { describe, expect, it } from "vitest";
 import { runCli, type CliIo } from "../../src/cli/run.js";
 
 describe("CLI runner", () => {
+  it.each([
+    { args: [] },
+    { args: ["help"] },
+    { args: ["--help"] },
+    { args: ["-h"] }
+  ])("prints top-level help for $args", async ({ args }) => {
+    const io = createIo(process.cwd());
+
+    const code = await runCli(args, io);
+
+    expect(code).toBe(0);
+    expect(io.output()).toContain("openfeature-local-provider validate <file>");
+    expect(io.error()).toBe("");
+  });
+
+  it.each([
+    { args: ["--version"] },
+    { args: ["-v"] }
+  ])("prints the package version for $args", async ({ args }) => {
+    const io = createIo(process.cwd());
+
+    const code = await runCli(args, io);
+
+    expect(code).toBe(0);
+    expect(io.output()).toBe("0.0.0-test\n");
+    expect(io.error()).toBe("");
+  });
+
+  it.each([
+    { args: ["validate", "--help"] },
+    { args: ["validate", "-h"] }
+  ])("prints validate help for $args", async ({ args }) => {
+    const io = createIo(process.cwd());
+
+    const code = await runCli(args, io);
+
+    expect(code).toBe(0);
+    expect(io.output()).toContain("--format auto|json|yaml");
+    expect(io.error()).toBe("");
+  });
+
   it("validates a JSON flag snapshot", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-cli-"));
     try {
@@ -53,7 +94,7 @@ describe("CLI runner", () => {
       await writeFile(path, createYamlSnapshot(), "utf8");
       const io = createIo(tempDirectory);
 
-      const code = await runCli(["validate", "flags.txt", "--format", "yaml"], io);
+      const code = await runCli(["validate", "flags.txt", "--format=yaml"], io);
 
       expect(code).toBe(0);
       expect(io.output()).toContain("flags=1");
@@ -80,13 +121,22 @@ describe("CLI runner", () => {
     }
   });
 
-  it("returns a usage error for invalid arguments", async () => {
+  it.each([
+    [["unknown"], "Unknown command: unknown"],
+    [["validate"], "validate requires a file path"],
+    [["validate", "--format"], "--format requires one of: auto, json, yaml"],
+    [["validate", "--format", "toml"], "Unsupported format: toml"],
+    [["validate", "--format=toml", "flags.json"], "Unsupported format: toml"],
+    [["validate", "--verbose", "flags.json"], "Unknown option: --verbose"],
+    [["validate", "one.json", "two.json"], "validate accepts exactly one file path"]
+  ] as const)("returns usage error for %j", async (args, message) => {
     const io = createIo(process.cwd());
 
-    const code = await runCli(["validate", "--format", "toml"], io);
+    const code = await runCli(args, io);
 
     expect(code).toBe(2);
-    expect(io.error()).toContain("Usage error: Unsupported format: toml");
+    expect(io.output()).toBe("");
+    expect(io.error()).toContain(`Usage error: ${message}`);
   });
 });
 

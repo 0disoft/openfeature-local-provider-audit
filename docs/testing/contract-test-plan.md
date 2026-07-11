@@ -37,6 +37,8 @@ Contract tests prove provider behavior that consumers can rely on.
 - Provider adapter converts internal runtime evaluation exceptions to caller defaults
   with `ERROR` reason and `PROVIDER_NOT_READY` error details.
 - Package exports match docs/library/public-api.md.
+- CLI tests cover help and version output, format selection, invalid snapshot exit `1`, and
+  argument or usage errors exiting `2` without reading unintended extra paths.
 
 ## Implemented Coverage
 
