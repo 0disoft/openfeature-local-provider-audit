@@ -6,6 +6,7 @@ const PACKAGE_JSON = path.join(ROOT, "packages", "local-provider", "package.json
 const ROOT_PACKAGE_JSON = path.join(ROOT, "package.json");
 const RELEASE_WORKFLOW = path.join(ROOT, ".github", "workflows", "release.yml");
 const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
+const COMPATIBILITY_WORKFLOW = path.join(ROOT, ".github", "workflows", "compatibility.yml");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
@@ -19,6 +20,7 @@ const rootPackageJson = await readJson(ROOT_PACKAGE_JSON);
 const packageJson = await readJson(PACKAGE_JSON);
 const releaseWorkflow = await readText(RELEASE_WORKFLOW);
 const ciWorkflow = await readText(CI_WORKFLOW);
+const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
@@ -28,6 +30,7 @@ checkRootPackage(rootPackageJson);
 checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
+checkCompatibilityWorkflow(compatibilityWorkflow);
 checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 
@@ -219,6 +222,19 @@ function checkDependabotConfig(config) {
   expectIncludes(config, 'interval: "monthly"', "Dependabot update schedule");
   expectIncludes(config, 'dependency-type: "development"', "Dependabot development grouping");
   expectIncludes(config, "update-types:", "Dependabot grouped update types");
+}
+
+function checkCompatibilityWorkflow(workflow) {
+  checkPinnedGitHubActions(workflow, "compatibility workflow");
+  expectIncludes(workflow, 'cron: "17 3 * * 1"', "compatibility workflow schedule");
+  expectIncludes(workflow, "workflow_dispatch:", "compatibility workflow manual trigger");
+  expectIncludes(workflow, "node-version: 24.x", "compatibility workflow Node version");
+  expectIncludes(
+    workflow,
+    "OPENFEATURE_SERVER_SDK_VERSION: peer",
+    "compatibility workflow peer-range selection"
+  );
+  expectIncludes(workflow, "pnpm run packed-smoke", "compatibility workflow packed smoke");
 }
 
 function checkPinnedGitHubActions(workflow, label) {

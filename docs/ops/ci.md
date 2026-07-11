@@ -21,6 +21,9 @@ on the supported Node.js runtime matrix.
   workflow comments.
 - `.github/dependabot.yml` checks the pnpm workspace monthly. Development minor and patch
   updates are grouped, while production, peer, and major updates remain independently reviewable.
+- `.github/workflows/compatibility.yml` runs weekly and on manual dispatch. It installs the
+  newest `@openfeature/server-sdk` version allowed by the package peer range into the packed
+  consumer smoke project without changing the lockfile.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
   `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
   CJS, and CLI bin behavior.

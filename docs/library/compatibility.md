@@ -55,6 +55,14 @@ Detailed compatibility contracts live in:
 - Linux continues to use one native directory watcher, and Windows continues to use bounded
   path polling.
 
+## Compatibility Canary
+
+- Deterministic CI and release checks use the repository-pinned OpenFeature server SDK.
+- A weekly compatibility workflow packs the package and installs the newest SDK version allowed
+  by `peerDependencies` into a temporary ESM, CJS, and CLI consumer.
+- Canary failure blocks widening the peer range or claiming compatibility, but it does not alter
+  an already published package or lockfile automatically.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

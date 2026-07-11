@@ -17,6 +17,11 @@ try {
   await mkdir(packDirectory, { recursive: true });
   await mkdir(consumerDirectory, { recursive: true });
 
+  const packageJson = JSON.parse(
+    await readFile(path.join(packageDirectory, "package.json"), "utf8")
+  );
+  const openFeatureServerSdkSpec = resolveOpenFeatureServerSdkSpec(packageJson);
+
   await run("pnpm", ["--filter", "@0disoft/openfeature-local-provider", "build"], ROOT);
   await run(
     "pnpm",
@@ -38,7 +43,11 @@ try {
   await run("npm", ["init", "-y"], consumerDirectory);
   await run(
     "npm",
-    ["install", path.join(packDirectory, tarball), "@openfeature/server-sdk@1.22.0"],
+    [
+      "install",
+      path.join(packDirectory, tarball),
+      `@openfeature/server-sdk@${openFeatureServerSdkSpec}`
+    ],
     consumerDirectory
   );
 
@@ -91,12 +100,25 @@ if (typeof provider.createLocalProvider !== "function") {
     throw new Error(`CLI packed smoke returned an unexpected result: ${stdout}`);
   }
 
-  const packageJson = JSON.parse(
-    await readFile(path.join(packageDirectory, "package.json"), "utf8")
-  );
   console.log(`Packed smoke passed for ${packageJson.name}@${packageJson.version}`);
 } finally {
   await rm(tempDirectory, { recursive: true, force: true });
+}
+
+function resolveOpenFeatureServerSdkSpec(packageJson) {
+  const configuredSpec = process.env.OPENFEATURE_SERVER_SDK_VERSION?.trim();
+  if (configuredSpec === undefined || configuredSpec.length === 0) {
+    return "1.22.0";
+  }
+  if (configuredSpec !== "peer") {
+    return configuredSpec;
+  }
+
+  const peerSpec = packageJson.peerDependencies?.["@openfeature/server-sdk"];
+  if (typeof peerSpec !== "string" || peerSpec.length === 0) {
+    throw new Error("Packed smoke could not resolve the OpenFeature server SDK peer range.");
+  }
+  return peerSpec;
 }
 
 async function run(command, args, cwd) {
