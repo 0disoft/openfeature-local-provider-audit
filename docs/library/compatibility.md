@@ -63,13 +63,17 @@ Detailed compatibility contracts live in:
 - Canary failure blocks widening the peer range or claiming compatibility, but it does not alter
   an already published package or lockfile automatically.
 
-## 0.13.2 macOS Watcher Lifecycle
+## 0.13.2 Local I/O Hardening
 
 - No public type or snapshot evaluation contract changes.
 - macOS rearms its native file watcher after atomic replacement so later direct writes continue
   to use file events instead of relying only on directory-event delivery.
 - Native watcher errors are reported through the existing optional `onError` callback. Throwing
   from `onError` remains isolated from watcher and reload state.
+- Snapshot loading reads from the same file handle used for its size check and stops at the
+  configured `maxBytes` boundary. Exact-boundary files remain accepted.
+- Advisory audit locks record an owner token and only the matching owner removes the lock during
+  release, preventing an old writer from deleting a replacement owner's lock after stale takeover.
 
 ## Review Blockers
 
