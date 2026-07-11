@@ -37,6 +37,28 @@ describe("createLocalProvider", () => {
     });
   });
 
+  it("resolves number and object values through their OpenFeature methods", async () => {
+    const provider = createLocalProvider({ snapshot: staticSnapshot });
+
+    await expect(
+      provider.resolveNumberEvaluation("checkout.limit", 0, {}, logger)
+    ).resolves.toMatchObject({
+      value: 5,
+      reason: EVALUATION_REASONS.STATIC,
+      variant: "standard"
+    });
+    await expect(
+      provider.resolveObjectEvaluation("checkout.config", {}, {}, logger)
+    ).resolves.toMatchObject({
+      value: {
+        retries: 2,
+        mode: "safe"
+      },
+      reason: EVALUATION_REASONS.STATIC,
+      variant: "default"
+    });
+  });
+
   it("updates future evaluations through a reloadable provider", async () => {
     const provider = createReloadableLocalProvider({ snapshot: staticSnapshot });
 
