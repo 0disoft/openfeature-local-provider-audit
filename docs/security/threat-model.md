@@ -23,7 +23,8 @@ Owner: 0disoft
 ## Required Controls
 
 - Validate flag snapshots before accepting them.
-- Reject oversized local snapshot files before parsing.
+- Read local snapshots from the same handle used for the initial size check and stop at
+  the configured byte limit so replacement or growth cannot bypass the parse boundary.
 - Make override parse failures visible.
 - Reject oversized explicit JSON overrides before parsing.
 - Return caller defaults with error reason metadata on runtime evaluation failure.

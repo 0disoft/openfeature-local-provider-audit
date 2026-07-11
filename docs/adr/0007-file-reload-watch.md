@@ -19,8 +19,10 @@ contracts were covered by tests.
 - Keep evaluation file-I/O free. Reload and watch happen at explicit load boundaries and
   replace the provider snapshot atomically for subsequent evaluations.
 - Support JSON, YAML, and extension-based auto-detection for `.json`, `.yaml`, and `.yml`.
-- Check snapshot file size before reading and parsing. The default maximum is 10 MiB,
-  configurable through `maxBytes`.
+- Open the snapshot once, check that handle's size, and read it through a bounded loop
+  before parsing. The default maximum is 10 MiB, configurable through `maxBytes`.
+  The bounded read also rejects a file that grows past the limit after the initial size
+  check.
 - Use directory `fs.watch` on Linux for atomic replacement events. On macOS, combine
   directory watching for atomic replacement with direct file watching so writes immediately
   after watcher initialization are not dependent on directory-event delivery alone, and rearm

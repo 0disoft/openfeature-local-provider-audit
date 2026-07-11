@@ -68,6 +68,23 @@ describe("snapshot file helpers", () => {
     }
   });
 
+  it("accepts a snapshot file exactly at the maxBytes boundary", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
+    try {
+      const path = join(tempDirectory, "flags.json");
+      const snapshotJson = createJsonSnapshot(true);
+      await writeFile(path, snapshotJson, "utf8");
+
+      const snapshot = await loadFlagSnapshotFile(path, {
+        maxBytes: Buffer.byteLength(snapshotJson, "utf8")
+      });
+
+      expect(getCheckoutDefaultEnabled(snapshot)).toBe(true);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("rejects non-positive maxBytes limits", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {

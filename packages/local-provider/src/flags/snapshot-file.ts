@@ -6,7 +6,7 @@ import {
   unwatchFile,
   type WatchListener
 } from "node:fs";
-import { readFile, stat } from "node:fs/promises";
+import { open } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
@@ -24,6 +24,7 @@ import { parseYamlFlagSnapshot } from "./parse-yaml-snapshot.js";
 const DEFAULT_DEBOUNCE_MS = 50;
 const DEFAULT_MAX_SNAPSHOT_FILE_BYTES = 10 * 1024 * 1024;
 const MIN_WINDOWS_POLL_INTERVAL_MS = 50;
+const SNAPSHOT_READ_CHUNK_BYTES = 64 * 1024;
 
 interface SnapshotFileTarget {
   readonly directory: string;
@@ -82,8 +83,11 @@ export async function loadFlagSnapshotFile(
   path: string | URL,
   options: LoadFlagSnapshotFileOptions = {}
 ): Promise<FlagSnapshot> {
-  await assertFileSizeWithinLimit(path, options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES);
-  const text = await readFile(path, options.encoding ?? "utf8");
+  const text = await readFileWithinLimit(
+    path,
+    options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES,
+    options.encoding ?? "utf8"
+  );
   const format = resolveSnapshotFileFormat(path, options.format ?? "auto");
 
   if (format === "json") {
@@ -198,11 +202,40 @@ export async function watchFlagSnapshotFile(
   };
 }
 
-async function assertFileSizeWithinLimit(path: string | URL, maxBytes: number): Promise<void> {
+async function readFileWithinLimit(
+  path: string | URL,
+  maxBytes: number,
+  encoding: BufferEncoding
+): Promise<string> {
   assertPositiveInteger(maxBytes, "maxBytes");
+  const handle = await open(path, "r");
 
-  const fileStats = await stat(path);
-  if (fileStats.size > maxBytes) {
+  try {
+    const fileStats = await handle.stat();
+    assertSnapshotSizeWithinLimit(fileStats.size, maxBytes);
+
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+
+    while (true) {
+      const remainingBytes = maxBytes - totalBytes + 1;
+      const buffer = Buffer.allocUnsafe(Math.min(SNAPSHOT_READ_CHUNK_BYTES, remainingBytes));
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+      if (bytesRead === 0) {
+        return Buffer.concat(chunks, totalBytes).toString(encoding);
+      }
+
+      totalBytes += bytesRead;
+      assertSnapshotSizeWithinLimit(totalBytes, maxBytes);
+      chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
+    }
+  } finally {
+    await handle.close();
+  }
+}
+
+function assertSnapshotSizeWithinLimit(actualBytes: number, maxBytes: number): void {
+  if (actualBytes > maxBytes) {
     throw new LocalProviderError(
       LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR,
       `Flag snapshot file exceeds maxBytes (${maxBytes}).`

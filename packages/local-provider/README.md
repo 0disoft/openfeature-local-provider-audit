@@ -140,7 +140,8 @@ const watcher = await watchFlagSnapshotFile({
 
 `loadFlagSnapshotFile` supports `.json`, `.yaml`, and `.yml` files by extension.
 Snapshot files are limited to 10 MiB by default; pass `maxBytes` when a local process
-needs a different limit. Watcher reload failures are reported through `onError` and do
+needs a different limit. The loader uses a bounded read from one open file handle, so a
+replacement or file growth cannot bypass that limit. Watcher reload failures are reported through `onError` and do
 not replace the last valid snapshot. Evaluation never reads from disk on the flag
 resolution path. macOS combines native file and directory watchers so direct writes and
 atomic replacements use their strongest event source, and rearms direct file watching after
