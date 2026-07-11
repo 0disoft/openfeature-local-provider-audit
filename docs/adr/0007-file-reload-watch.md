@@ -23,13 +23,14 @@ contracts were covered by tests.
   configurable through `maxBytes`.
 - Use directory `fs.watch` on Linux for atomic replacement events. On macOS, combine
   directory watching for atomic replacement with direct file watching so writes immediately
-  after watcher initialization are not dependent on directory-event delivery alone. On Windows,
-  use `fs.watchFile` polling for the watched path to avoid Node.js native file-event crashes and
-  path-prefix assertion failures seen on Node.js 24 runners.
+  after watcher initialization are not dependent on directory-event delivery alone, and rearm
+  direct file watching after a rename replaces the watched inode. On Windows, use `fs.watchFile`
+  polling for the watched path to avoid Node.js native file-event crashes and path-prefix
+  assertion failures seen on Node.js 24 runners.
 - Debounce bursts of native events and suppress event-driven callbacks when the parsed snapshot
   is unchanged. Explicit `reload()` calls still invoke `onSnapshot` after successful validation.
-- Watch reload failures must be reported through `onError` and must not replace the last
-  valid snapshot.
+- Native watcher and reload failures must be reported through `onError` and must not replace the
+  last valid snapshot or escape as an unhandled watcher error.
 - Do not add hot remote configuration, HTTP APIs, hosted control planes, CLI, browser,
   Bun, Deno, or multi-language SDK support as part of this decision.
 
@@ -55,5 +56,7 @@ contracts were covered by tests.
 - Snapshot files are parsed before the configured size limit is checked.
 - Windows watcher behavior depends on unstable native `fs.watch` directory events.
 - macOS direct-write behavior depends only on directory events instead of a direct file watcher.
+- A macOS atomic replacement leaves direct file watching attached to the replaced inode.
+- A native watcher error can escape instead of being reported through `onError`.
 - Watch behavior introduces a network, database, hosted service, or platform assumption.
 - Audit events hash a different snapshot from the one used for evaluation.

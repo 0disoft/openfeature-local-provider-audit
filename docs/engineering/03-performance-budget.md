@@ -30,8 +30,8 @@ unless an explicit reload mode is documented.
   the last valid snapshot.
 - Watch path: Linux uses one native directory watcher. macOS uses native directory and file
   watchers whose duplicate events are debounced and semantically unchanged snapshots are
-  suppressed, while Windows uses bounded file polling with a minimum 50 ms interval to avoid
-  unstable native file-event behavior.
+  suppressed; the file watcher is replaced only after a target rename. Windows uses bounded file
+  polling with a minimum 50 ms interval to avoid unstable native file-event behavior.
 - Override path: explicit JSON override strings are size-checked before parsing.
 - Package size: avoid dependencies that turn the provider into a platform or service runtime.
 

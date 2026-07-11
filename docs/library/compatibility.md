@@ -63,6 +63,14 @@ Detailed compatibility contracts live in:
 - Canary failure blocks widening the peer range or claiming compatibility, but it does not alter
   an already published package or lockfile automatically.
 
+## 0.13.2 macOS Watcher Lifecycle
+
+- No public type or snapshot evaluation contract changes.
+- macOS rearms its native file watcher after atomic replacement so later direct writes continue
+  to use file events instead of relying only on directory-event delivery.
+- Native watcher errors are reported through the existing optional `onError` callback. Throwing
+  from `onError` remains isolated from watcher and reload state.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

@@ -1,4 +1,11 @@
-import { watch, watchFile, type FSWatcher, type Stats, unwatchFile } from "node:fs";
+import {
+  watch,
+  watchFile,
+  type FSWatcher,
+  type Stats,
+  unwatchFile,
+  type WatchListener
+} from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,18 +31,30 @@ interface SnapshotFileTarget {
   readonly path: string;
 }
 
-type SnapshotWatchHandle =
-  | {
-      readonly type: "fs-watch";
-      readonly watchers: readonly FSWatcher[];
-    }
-  | {
-      readonly type: "fs-watch-file";
-      readonly path: string;
-      readonly listener: SnapshotWatchFileListener;
-    };
+interface SnapshotWatchHandle {
+  close(): void;
+}
 
 type SnapshotWatchFileListener = (current: Stats, previous: Stats) => void;
+
+interface SnapshotWatchRuntime {
+  readonly platform: NodeJS.Platform;
+  watch(
+    path: string,
+    options: { readonly persistent: boolean },
+    listener: WatchListener<string>
+  ): FSWatcher;
+  watchFile(
+    path: string,
+    options: {
+      readonly bigint: false;
+      readonly persistent: boolean;
+      readonly interval: number;
+    },
+    listener: SnapshotWatchFileListener
+  ): void;
+  unwatchFile(path: string, listener: SnapshotWatchFileListener): void;
+}
 
 interface SnapshotWatchOptions {
   readonly path: string | URL;
@@ -43,7 +62,21 @@ interface SnapshotWatchOptions {
   readonly persistent: boolean;
   readonly debounceMs: number;
   readonly onChange: () => void;
+  readonly onError: (error: unknown) => void;
 }
+
+const DEFAULT_SNAPSHOT_WATCH_RUNTIME: SnapshotWatchRuntime = {
+  platform: process.platform,
+  watch(path, options, listener) {
+    return watch(path, options, listener);
+  },
+  watchFile(path, options, listener) {
+    watchFile(path, options, listener);
+  },
+  unwatchFile(path, listener) {
+    unwatchFile(path, listener);
+  }
+};
 
 export async function loadFlagSnapshotFile(
   path: string | URL,
@@ -88,6 +121,12 @@ export async function watchFlagSnapshotFile(
         timer = undefined;
         void enqueueReload({ reportError: true, skipUnchanged: true }).catch(() => undefined);
       }, debounceMs);
+    },
+    onError(error) {
+      if (closed) {
+        return;
+      }
+      void reportReloadError(error);
     }
   });
 
@@ -203,8 +242,11 @@ function resolveSnapshotFileTarget(path: string | URL): SnapshotFileTarget {
   };
 }
 
-function createSnapshotWatchHandle(options: SnapshotWatchOptions): SnapshotWatchHandle {
-  if (process.platform === "win32") {
+export function createSnapshotWatchHandle(
+  options: SnapshotWatchOptions,
+  runtime: SnapshotWatchRuntime = DEFAULT_SNAPSHOT_WATCH_RUNTIME
+): SnapshotWatchHandle {
+  if (runtime.platform === "win32") {
     const listener: SnapshotWatchFileListener = (current, previous) => {
       if (current.mtimeMs === previous.mtimeMs && current.size === previous.size) {
         return;
@@ -212,7 +254,7 @@ function createSnapshotWatchHandle(options: SnapshotWatchOptions): SnapshotWatch
       options.onChange();
     };
 
-    watchFile(
+    runtime.watchFile(
       options.target.path,
       {
         bigint: false,
@@ -223,16 +265,23 @@ function createSnapshotWatchHandle(options: SnapshotWatchOptions): SnapshotWatch
     );
 
     return {
-      type: "fs-watch-file",
-      path: options.target.path,
-      listener
+      close() {
+        runtime.unwatchFile(options.target.path, listener);
+      }
     };
   }
 
-  const directoryWatcher = watch(
+  let handleClosed = false;
+  let fileWatcher: FSWatcher | undefined;
+
+  const directoryWatcher = createNativeWatcher(
     options.target.directory,
-    { persistent: options.persistent },
-    (_eventType, fileName) => {
+    options,
+    runtime,
+    (eventType, fileName) => {
+      if (handleClosed) {
+        return;
+      }
       if (
         fileName !== null &&
         fileName !== undefined &&
@@ -240,30 +289,70 @@ function createSnapshotWatchHandle(options: SnapshotWatchOptions): SnapshotWatch
       ) {
         return;
       }
+      if (runtime.platform === "darwin" && eventType === "rename") {
+        rearmMacOsFileWatcher();
+      }
       options.onChange();
     }
   );
 
-  if (process.platform !== "darwin") {
+  if (runtime.platform !== "darwin") {
     return {
-      type: "fs-watch",
-      watchers: [directoryWatcher]
+      close() {
+        if (handleClosed) {
+          return;
+        }
+        handleClosed = true;
+        directoryWatcher.close();
+      }
     };
   }
 
   try {
-    const fileWatcher = watch(options.target.path, { persistent: options.persistent }, () => {
+    fileWatcher = createNativeWatcher(options.target.path, options, runtime, () => {
       options.onChange();
     });
 
     return {
-      type: "fs-watch",
-      watchers: [directoryWatcher, fileWatcher]
+      close() {
+        if (handleClosed) {
+          return;
+        }
+        handleClosed = true;
+        directoryWatcher.close();
+        fileWatcher?.close();
+        fileWatcher = undefined;
+      }
     };
   } catch (error) {
+    handleClosed = true;
     directoryWatcher.close();
     throw error;
   }
+
+  function rearmMacOsFileWatcher(): void {
+    try {
+      const nextFileWatcher = createNativeWatcher(options.target.path, options, runtime, () => {
+        options.onChange();
+      });
+      const previousFileWatcher = fileWatcher;
+      fileWatcher = nextFileWatcher;
+      previousFileWatcher?.close();
+    } catch (error) {
+      options.onError(error);
+    }
+  }
+}
+
+function createNativeWatcher(
+  path: string,
+  options: SnapshotWatchOptions,
+  runtime: SnapshotWatchRuntime,
+  listener: WatchListener<string>
+): FSWatcher {
+  const watcher = runtime.watch(path, { persistent: options.persistent }, listener);
+  watcher.on("error", options.onError);
+  return watcher;
 }
 
 function closeWatcher(
@@ -273,13 +362,7 @@ function closeWatcher(
   if (timer !== undefined) {
     clearTimeout(timer);
   }
-  if (watcher.type === "fs-watch") {
-    for (const nativeWatcher of watcher.watchers) {
-      nativeWatcher.close();
-    }
-    return;
-  }
-  unwatchFile(watcher.path, watcher.listener);
+  watcher.close();
 }
 
 function assertPositiveInteger(value: number, name: string): void {

@@ -68,6 +68,20 @@ describe("snapshot file helpers", () => {
     }
   });
 
+  it("rejects non-positive maxBytes limits", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
+    try {
+      const path = join(tempDirectory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true), "utf8");
+
+      await expect(loadFlagSnapshotFile(path, { maxBytes: 0 })).rejects.toThrow(
+        "maxBytes must be a positive integer"
+      );
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("manually reloads watched snapshots", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {
@@ -144,12 +158,15 @@ describe("snapshot file helpers", () => {
       await rename(join(tempDirectory, "flags-next.json"), path);
       await waitFor(() => snapshots.at(-1) === false);
 
-      await writeFile(join(tempDirectory, "flags-next.json"), createJsonSnapshot(true), "utf8");
-      await rename(join(tempDirectory, "flags-next.json"), path);
+      await writeFile(path, createJsonSnapshot(true), "utf8");
       await waitFor(() => snapshots.length >= 3 && snapshots.at(-1) === true);
+
+      await writeFile(join(tempDirectory, "flags-next.json"), createJsonSnapshot(false), "utf8");
+      await rename(join(tempDirectory, "flags-next.json"), path);
+      await waitFor(() => snapshots.length >= 4 && snapshots.at(-1) === false);
       watcher.close();
 
-      expect(snapshots).toEqual([true, false, true]);
+      expect(snapshots).toEqual([true, false, true, false]);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

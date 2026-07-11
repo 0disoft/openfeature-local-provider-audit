@@ -143,10 +143,11 @@ Snapshot files are limited to 10 MiB by default; pass `maxBytes` when a local pr
 needs a different limit. Watcher reload failures are reported through `onError` and do
 not replace the last valid snapshot. Evaluation never reads from disk on the flag
 resolution path. macOS combines native file and directory watchers so direct writes and
-atomic replacements use their strongest event source. Windows file watching uses path
-polling internally to avoid unstable native file-event behavior on Node.js 24. Event-driven
-reloads suppress callbacks for an unchanged parsed snapshot; explicit `reload()` calls still
-invoke `onSnapshot` after successful validation.
+atomic replacements use their strongest event source, and rearms direct file watching after
+replacement. Windows file watching uses path polling internally to avoid unstable native
+file-event behavior on Node.js 24. Native watcher and reload errors are reported through
+`onError`. Event-driven reloads suppress callbacks for an unchanged parsed snapshot; explicit
+`reload()` calls still invoke `onSnapshot` after successful validation.
 
 Call `watcher.close()` during process shutdown when the file watcher is no longer
 needed.
