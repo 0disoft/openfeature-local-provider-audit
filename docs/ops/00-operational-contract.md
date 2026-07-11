@@ -17,4 +17,6 @@ guidance. There is no hosted runtime, SLO, RTO, RPO, or on-call service in the M
 
 - Required validation names: VALIDATION.md
 - Release blocker status: failing docs/check/test evidence for public provider behavior.
-- Remaining operational risk: deterministic bucketing, redaction, and compatibility cannot be proven until implementation exists.
+- Remaining operational risk: native file-event delivery varies across mounted and network
+  filesystems. Consumers must use a concrete local file or an explicit reload signal when their
+  deployment volume does not emit events for the watched path.

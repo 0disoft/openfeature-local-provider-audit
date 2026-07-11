@@ -69,4 +69,6 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
   semver, and compatibility contracts.
 - [docs/security](docs/security): privacy, redaction, and threat model.
 - [docs/ops](docs/ops): CI, release, rollback, and npm publishing policy.
+- [docs/ops/runtime-recipes.md](docs/ops/runtime-recipes.md): snapshot replacement, shutdown,
+  audit backpressure, and multi-process runtime guidance.
 - [VALIDATION.md](VALIDATION.md): stable validation commands.

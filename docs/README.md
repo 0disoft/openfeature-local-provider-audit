@@ -29,4 +29,5 @@ Status: Draft
 - Security source: docs/security/privacy-and-redaction.md and docs/security/threat-model.md
 - Testing source: docs/testing/contract-test-plan.md and docs/testing/replay-test-plan.md
 - Release source: docs/ops/release.md, docs/ops/release-checklist.md, and docs/ops/npm-publishing.md
+- Consumer runtime guidance: docs/ops/runtime-recipes.md
 - SDK source: docs/sdk/README.md
