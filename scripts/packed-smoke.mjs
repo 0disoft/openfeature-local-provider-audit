@@ -1,5 +1,5 @@
 import { exec, execFile } from "node:child_process";
-import { mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -20,33 +20,23 @@ try {
   const packageJson = JSON.parse(
     await readFile(path.join(packageDirectory, "package.json"), "utf8")
   );
+  const rootPackageJson = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
   const openFeatureServerSdkSpec = resolveOpenFeatureServerSdkSpec(packageJson);
-
-  await run("pnpm", ["--filter", "@0disoft/openfeature-local-provider", "build"], ROOT);
-  await run(
-    "pnpm",
-    [
-      "--filter",
-      "@0disoft/openfeature-local-provider",
-      "pack",
-      "--pack-destination",
-      packDirectory
-    ],
-    ROOT
-  );
-
-  const tarball = (await readdir(packDirectory)).find((name) => name.endsWith(".tgz"));
-  if (tarball === undefined) {
-    throw new Error("Packed smoke could not find a generated package tarball.");
+  const nodeTypesSpec = rootPackageJson.devDependencies?.["@types/node"];
+  if (typeof nodeTypesSpec !== "string" || nodeTypesSpec.length === 0) {
+    throw new Error("Packed smoke could not resolve the pinned @types/node version.");
   }
+
+  const tarballPath = await resolveTarballPath(packDirectory);
 
   await run("npm", ["init", "-y"], consumerDirectory);
   await run(
     "npm",
     [
       "install",
-      path.join(packDirectory, tarball),
-      `@openfeature/server-sdk@${openFeatureServerSdkSpec}`
+      tarballPath,
+      `@openfeature/server-sdk@${openFeatureServerSdkSpec}`,
+      `@types/node@${nodeTypesSpec}`
     ],
     consumerDirectory
   );
@@ -87,7 +77,49 @@ if (typeof provider.createLocalProvider !== "function") {
 `,
     "utf8"
   );
+  await writeFile(
+    path.join(consumerDirectory, "typed-smoke.mts"),
+    `import { createLocalProvider, type FlagSnapshot } from "@0disoft/openfeature-local-provider";
 
+const snapshot: FlagSnapshot = {
+  schemaVersion: 1,
+  flags: {
+    "checkout.enabled": {
+      type: "boolean",
+      defaultVariant: "on",
+      variants: { on: true, off: false }
+    }
+  }
+};
+
+const provider = createLocalProvider({ snapshot });
+const providerName: string = provider.metadata.name;
+void providerName;
+`,
+    "utf8"
+  );
+  await writeFile(
+    path.join(consumerDirectory, "tsconfig.json"),
+    JSON.stringify(
+      {
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          noEmit: true,
+          skipLibCheck: true,
+          strict: true,
+          target: "ES2022",
+          types: ["node"]
+        },
+        files: ["typed-smoke.mts"]
+      },
+      null,
+      2
+    ),
+    "utf8"
+  );
+
+  await run("pnpm", ["exec", "tsc", "-p", path.join(consumerDirectory, "tsconfig.json")], ROOT);
   await run("node", ["esm-smoke.mjs"], consumerDirectory);
   await run("node", ["cjs-smoke.cjs"], consumerDirectory);
   const { stdout } = await run(
@@ -119,6 +151,34 @@ function resolveOpenFeatureServerSdkSpec(packageJson) {
     throw new Error("Packed smoke could not resolve the OpenFeature server SDK peer range.");
   }
   return peerSpec;
+}
+
+async function resolveTarballPath(packDirectory) {
+  const configuredTarball = process.env.PACKED_SMOKE_TARBALL?.trim();
+  if (configuredTarball !== undefined && configuredTarball.length > 0) {
+    const tarballPath = path.resolve(ROOT, configuredTarball);
+    await access(tarballPath);
+    return tarballPath;
+  }
+
+  await run("pnpm", ["--filter", "@0disoft/openfeature-local-provider", "build"], ROOT);
+  await run(
+    "pnpm",
+    [
+      "--filter",
+      "@0disoft/openfeature-local-provider",
+      "pack",
+      "--pack-destination",
+      packDirectory
+    ],
+    ROOT
+  );
+
+  const tarball = (await readdir(packDirectory)).find((name) => name.endsWith(".tgz"));
+  if (tarball === undefined) {
+    throw new Error("Packed smoke could not find a generated package tarball.");
+  }
+  return path.join(packDirectory, tarball);
 }
 
 async function run(command, args, cwd) {

@@ -7,6 +7,7 @@ const ROOT_PACKAGE_JSON = path.join(ROOT, "package.json");
 const RELEASE_WORKFLOW = path.join(ROOT, ".github", "workflows", "release.yml");
 const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
 const COMPATIBILITY_WORKFLOW = path.join(ROOT, ".github", "workflows", "compatibility.yml");
+const PACKED_SMOKE_SCRIPT = path.join(ROOT, "scripts", "packed-smoke.mjs");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
@@ -21,6 +22,7 @@ const packageJson = await readJson(PACKAGE_JSON);
 const releaseWorkflow = await readText(RELEASE_WORKFLOW);
 const ciWorkflow = await readText(CI_WORKFLOW);
 const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
+const packedSmokeScript = await readText(PACKED_SMOKE_SCRIPT);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
@@ -30,7 +32,7 @@ checkRootPackage(rootPackageJson);
 checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
-checkCompatibilityWorkflow(compatibilityWorkflow);
+checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
 checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 
@@ -166,6 +168,17 @@ function checkReleaseWorkflow(workflow) {
     "release workflow setup-node cache policy"
   );
   expectIncludes(workflow, "pnpm install --frozen-lockfile", "release workflow install gate");
+  expectIncludes(workflow, "fetch-depth: 0", "release workflow complete history checkout");
+  expectIncludes(
+    workflow,
+    "git fetch origin main:refs/remotes/origin/main --no-tags",
+    "release workflow explicit main fetch"
+  );
+  expectIncludes(
+    workflow,
+    'git merge-base --is-ancestor "$' + '{GITHUB_SHA}" "origin/main"',
+    "release workflow main ancestry gate"
+  );
   expectIncludes(workflow, "pnpm run release-readiness", "release workflow readiness gate");
   expectIncludes(workflow, "pnpm run check", "release workflow check gate");
   expectIncludes(
@@ -176,7 +189,7 @@ function checkReleaseWorkflow(workflow) {
   expectIncludes(workflow, "pnpm run packed-smoke", "release workflow packed smoke");
   expectIncludes(
     workflow,
-    "npm publish --provenance --access public",
+    'npm publish "${' + '{ steps.pack.outputs.tarball }}" --provenance --access public',
     "release workflow npm publish command"
   );
   expectIncludes(workflow, "gh release create", "release workflow GitHub Release creation");
@@ -224,7 +237,7 @@ function checkDependabotConfig(config) {
   expectIncludes(config, "update-types:", "Dependabot grouped update types");
 }
 
-function checkCompatibilityWorkflow(workflow) {
+function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
   checkPinnedGitHubActions(workflow, "compatibility workflow");
   expectIncludes(workflow, 'cron: "17 3 * * 1"', "compatibility workflow schedule");
   expectIncludes(workflow, "workflow_dispatch:", "compatibility workflow manual trigger");
@@ -235,6 +248,12 @@ function checkCompatibilityWorkflow(workflow) {
     "compatibility workflow peer-range selection"
   );
   expectIncludes(workflow, "pnpm run packed-smoke", "compatibility workflow packed smoke");
+  expectIncludes(
+    packedSmokeScript,
+    'pnpm", ["exec", "tsc"',
+    "packed smoke TypeScript consumer compile"
+  );
+  expectIncludes(packedSmokeScript, "PACKED_SMOKE_TARBALL", "packed smoke prebuilt tarball input");
 }
 
 function checkPinnedGitHubActions(workflow, label) {
@@ -260,7 +279,7 @@ function checkPublishingDocs(npmDoc, releaseDocText) {
   expectIncludes(npmDoc, "release.yml", "npm publishing doc workflow filename");
   expectIncludes(
     npmDoc,
-    "npm publish --provenance --access public",
+    'npm publish "${' + '{ steps.pack.outputs.tarball }}" --provenance --access public',
     "npm publishing doc publish command"
   );
   expectIncludes(

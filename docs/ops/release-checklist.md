@@ -30,6 +30,8 @@ Owner: 0disoft
   release workflow.
 - GitHub Releases are created by the release workflow and include the packed `.tgz`
   artifact.
+- The tagged commit is contained in `main`, and npm receives the exact tarball that passed
+  packed smoke and was uploaded to the GitHub Release.
 
 ## Review Blockers
 

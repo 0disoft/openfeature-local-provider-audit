@@ -24,10 +24,12 @@ smoke evidence before public release.
 
 - `.github/workflows/release.yml` builds release candidates on `v*` tag pushes.
 - The workflow rejects tags that do not match the package version.
+- The workflow rejects tagged commits that are not contained in `origin/main`.
 - The workflow runs package validation and uploads the packed `.tgz` artifact.
 - The workflow checks whether the package version is already published.
-- If the version is not already published, the workflow publishes with
-  `npm publish --provenance --access public`.
+- If the version is not already published, the workflow publishes the already packed and
+  tested tarball with
+  `npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public`.
 - The workflow creates a GitHub Release for the tag and attaches the packed `.tgz`.
 - It does not use a long-lived npm token.
 

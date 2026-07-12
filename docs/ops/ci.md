@@ -23,7 +23,8 @@ on the supported Node.js runtime matrix.
   updates are grouped, while production, peer, and major updates remain independently reviewable.
 - `.github/workflows/compatibility.yml` runs weekly and on manual dispatch. It installs the
   newest `@openfeature/server-sdk` version allowed by the package peer range into the packed
-  consumer smoke project without changing the lockfile.
+  consumer smoke project without changing the lockfile, compiles a strict TypeScript
+  consumer, and then runs ESM, CJS, and CLI checks.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
   `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
   CJS, and CLI bin behavior.

@@ -21,6 +21,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -44,6 +46,14 @@ jobs:
             exit 1
           fi
 
+      - name: Verify release commit is on main
+        run: |
+          git fetch origin main:refs/remotes/origin/main --no-tags
+          if ! git merge-base --is-ancestor "${GITHUB_SHA}" "origin/main"; then
+            echo "Release commit ${GITHUB_SHA} is not contained in origin/main."
+            exit 1
+          fi
+
       - name: Check
         run: pnpm run check
 
@@ -53,13 +63,22 @@ jobs:
       - name: Smoke example
         run: pnpm --filter openfeature-local-provider-node-basic-example start
 
-      - name: Packed package smoke
-        run: pnpm run packed-smoke
-
       - name: Pack release artifact
+        id: pack
         run: |
           mkdir -p "${GITHUB_WORKSPACE}/.tmp/release"
           pnpm --filter @0disoft/openfeature-local-provider pack --pack-destination "${GITHUB_WORKSPACE}/.tmp/release"
+          tarball="$(find "${GITHUB_WORKSPACE}/.tmp/release" -maxdepth 1 -name '*.tgz' -print -quit)"
+          if [ -z "${tarball}" ]; then
+            echo "Release tarball was not created."
+            exit 1
+          fi
+          echo "tarball=${tarball}" >> "${GITHUB_OUTPUT}"
+
+      - name: Packed package smoke
+        env:
+          PACKED_SMOKE_TARBALL: ${{ steps.pack.outputs.tarball }}
+        run: pnpm run packed-smoke
 
       - name: Upload release artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -80,8 +99,7 @@ jobs:
 
       - name: Publish package
         if: steps.published.outputs.exists != 'true'
-        working-directory: packages/local-provider
-        run: npm publish --provenance --access public
+        run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public
 
       - name: Create GitHub Release
         env:
