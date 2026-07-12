@@ -194,7 +194,6 @@ limit.
 ## File Audit Sink
 
 ```ts
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   createFileAuditSink,
@@ -204,7 +203,7 @@ import {
 
 const snapshot = parseJsonFlagSnapshot(snapshotJson);
 const auditSink = createFileAuditSink({
-  path: join(tmpdir(), "openfeature-audit.jsonl"),
+  path: join(process.cwd(), "var", "audit", "openfeature.jsonl"),
   maxBytes: 10 * 1024 * 1024,
   maxFiles: 5,
   maxQueueSize: 1000,
@@ -226,6 +225,11 @@ Audit events are redacted before they reach the sink. Provider audit writes are
 non-blocking by default, and file write failures are reported through the OpenFeature
 logger without changing the evaluated flag value.
 
+New audit directories and files use private `0700` and `0600` modes on POSIX systems.
+The final audit path must be a regular, current-user-owned file with one hard link and
+must not be a symbolic link. Keep the whole path inside an application-owned directory;
+on Windows, enforce this with directory ACLs because no-follow open is not available.
+
 Context key names are included by default for compatibility. Set
 `auditRedaction.contextKeys` to `"count"` to retain only the number of context keys, or
 to `"none"` to omit both names and count. These modes never enable raw context values;
@@ -233,7 +237,9 @@ to `"none"` to omit both names and count. These modes never enable raw context v
 
 Use `auditSink.flush?.()` before process exit when a short-lived script must wait for
 pending non-blocking audit writes. Use `auditWriteMode: "blocking"` when each
-evaluation promise must wait for its audit write.
+evaluation promise must wait for its audit write. `OpenFeature.close()` invokes the
+provider close hook, which flushes the configured sink without taking ownership of or
+closing a sink that another provider may share.
 
 Set `maxQueueSize` when local I/O pressure should not grow pending audit writes without
 bound. The default is unbounded for compatibility. With a bounded queue, the default
@@ -253,6 +259,10 @@ and `staleLockMs` can remove stale lock files left by crashed processes. Lock ow
 is checked before release so an old writer does not remove a replacement owner's lock.
 This is best-effort local-filesystem coordination, not a distributed lock; an aggressive
 stale timeout can still allow concurrent live writers.
+
+Multiple sinks loaded from the same package instance are serialized by audit path within
+one process. Separate processes or duplicate installed package instances still require
+`lock: true` when they share a rotating audit path.
 
 ## Supported Runtime
 

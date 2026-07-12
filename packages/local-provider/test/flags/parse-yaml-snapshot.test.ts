@@ -101,6 +101,22 @@ flags: {}
     throw new Error("Expected parseYamlFlagSnapshot to throw.");
   });
 
+  it("normalizes YAML alias exhaustion to PARSE_ERROR", () => {
+    const aliases = Array.from({ length: 101 }, () => "  - *base").join("\n");
+
+    try {
+      parseYamlFlagSnapshot(`base: &base { value: true }\nrefs:\n${aliases}\n`);
+    } catch (error) {
+      expect(isLocalProviderError(error)).toBe(true);
+      if (isLocalProviderError(error)) {
+        expect(error.code).toBe(LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR);
+      }
+      return;
+    }
+
+    throw new Error("Expected parseYamlFlagSnapshot to throw.");
+  });
+
   it("throws SCHEMA_ERROR for invalid snapshot schema", () => {
     try {
       parseYamlFlagSnapshot(`

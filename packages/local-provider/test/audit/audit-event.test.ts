@@ -1,7 +1,19 @@
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, open, readFile, rm, utimes, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  link,
+  mkdtemp,
+  open,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  symlink,
+  utimes,
+  writeFile
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { acquireFileLock, createFileAuditSink } from "../../src/audit/audit-sink.js";
 import {
@@ -317,6 +329,53 @@ describe("audit events", () => {
     }
   });
 
+  it("reports a settled write failure once through a later flush", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+
+    try {
+      const auditSink = createFileAuditSink({
+        path: tempDirectory,
+        createDirectory: false
+      });
+
+      await expect(auditSink.write(createTestAuditEvent("evt_settled_failure"))).rejects.toThrow();
+      await expect(auditSink.flush?.()).rejects.toThrow();
+      await expect(auditSink.flush?.()).resolves.toBeUndefined();
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("bounds retained causes while preserving the settled failure count", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+
+    try {
+      const auditSink = createFileAuditSink({
+        path: tempDirectory,
+        createDirectory: false
+      });
+      const results = await Promise.allSettled(
+        Array.from({ length: 20 }, (_, index) =>
+          auditSink.write(createTestAuditEvent(`evt_bounded_failure_${index}`))
+        )
+      );
+
+      expect(results.every((result) => result.status === "rejected")).toBe(true);
+      let flushError: unknown;
+      try {
+        await auditSink.flush?.();
+      } catch (error) {
+        flushError = error;
+      }
+      expect(flushError).toBeInstanceOf(AggregateError);
+      expect((flushError as AggregateError).errors).toHaveLength(16);
+      expect((flushError as AggregateError).message).toContain("20 audit writes failed");
+      await expect(auditSink.flush?.()).resolves.toBeUndefined();
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
   it("rotates file audit logs by size and retained file count", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
     const auditPath = join(tempDirectory, "rotate", "audit.jsonl");
@@ -341,6 +400,116 @@ describe("audit events", () => {
       await expect(readFile(`${auditPath}.3`, "utf8")).rejects.toMatchObject({
         code: "ENOENT"
       });
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("serializes rotation across file sinks in the same process", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "shared", "audit.jsonl");
+    const eventIds = Array.from({ length: 32 }, (_, index) => `evt_shared_${index}`);
+    const sampleBytes = Buffer.byteLength(
+      serializeAuditEvent(createTestAuditEvent(eventIds[0] ?? "evt_shared_sample")),
+      "utf8"
+    );
+    const sinks = Array.from({ length: 4 }, () =>
+      createFileAuditSink({
+        path: auditPath,
+        maxBytes: sampleBytes + 1,
+        maxFiles: eventIds.length + 2
+      })
+    );
+
+    try {
+      await Promise.all(
+        eventIds.map((eventId, index) => {
+          const sink = sinks[index % sinks.length];
+          if (sink === undefined) {
+            throw new Error("Expected a shared audit sink.");
+          }
+          return sink.write(createTestAuditEvent(eventId));
+        })
+      );
+      await Promise.all(sinks.map((sink) => sink.flush?.()));
+
+      const files = (await readdir(join(tempDirectory, "shared"))).filter((name) =>
+        /^audit\.jsonl(?:\.\d+)?$/.test(name)
+      );
+      const recordedIds = new Set<string>();
+      for (const file of files) {
+        const contents = await readFile(join(tempDirectory, "shared", file), "utf8");
+        for (const line of contents.trim().split("\n")) {
+          if (line) {
+            recordedIds.add((JSON.parse(line) as { eventId: string }).eventId);
+          }
+        }
+      }
+
+      expect(recordedIds).toEqual(new Set(eventIds));
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it.skipIf(process.platform === "win32")("rejects symbolic-link audit paths", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const targetPath = join(tempDirectory, "target.txt");
+    const auditPath = join(tempDirectory, "audit.jsonl");
+
+    try {
+      await writeFile(targetPath, "unchanged\n", "utf8");
+      await symlink(targetPath, auditPath);
+      const auditSink = createFileAuditSink({ path: auditPath, createDirectory: false });
+
+      await expect(auditSink.write(createTestAuditEvent("evt_symlink"))).rejects.toThrow(
+        "must not be a symbolic link"
+      );
+      const rotatingSink = createFileAuditSink({
+        path: auditPath,
+        createDirectory: false,
+        maxBytes: 1
+      });
+      await expect(
+        rotatingSink.write(createTestAuditEvent("evt_rotating_symlink"))
+      ).rejects.toThrow("must not be a symbolic link");
+      expect(await readFile(targetPath, "utf8")).toBe("unchanged\n");
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it.skipIf(process.platform === "win32")(
+    "creates private audit directories and files",
+    async () => {
+      const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+      const auditPath = join(tempDirectory, "private", "audit.jsonl");
+
+      try {
+        const auditSink = createFileAuditSink({ path: auditPath });
+        await auditSink.write(createTestAuditEvent("evt_private_mode"));
+
+        expect((await stat(dirname(auditPath))).mode & 0o777).toBe(0o700);
+        expect((await stat(auditPath)).mode & 0o777).toBe(0o600);
+      } finally {
+        await rm(tempDirectory, { recursive: true, force: true });
+      }
+    }
+  );
+
+  it("rejects audit files with multiple hard links", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
+    const auditPath = join(tempDirectory, "audit.jsonl");
+
+    try {
+      await writeFile(auditPath, "existing\n", { encoding: "utf8", mode: 0o600 });
+      await link(auditPath, join(tempDirectory, "alias.jsonl"));
+      const auditSink = createFileAuditSink({ path: auditPath, createDirectory: false });
+
+      await expect(auditSink.write(createTestAuditEvent("evt_hard_link"))).rejects.toThrow(
+        "must not have multiple hard links"
+      );
+      expect(await readFile(auditPath, "utf8")).toBe("existing\n");
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }

@@ -54,10 +54,18 @@ raw user context by default.
 - File audit sink paths are trusted local configuration. Do not pass tenant, end-user,
   request, or unvalidated environment input directly into `path`.
 - File audit sinks expose optional `flush()` to wait for pending non-blocking writes.
-  `flush()` drains all pending writes before returning or reporting write failures.
+  `flush()` drains all pending writes and reports previously settled failures that have
+  not yet been reported by an earlier flush. Each settled failure is consumed by one
+  serialized flush call. Failure count is exact; retained error objects are capped at 16
+  per flush interval so an undrained failure ledger cannot grow without bound.
 - File audit sinks expose optional `getStats()` with pending and dropped write counters.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
+- New POSIX audit directories and files use `0700` and `0600`. The final path rejects
+  symbolic links, non-regular files, foreign ownership on POSIX, and multiple hard links.
+- Sinks from one loaded package instance serialize writes by audit path, including
+  rotation. Cross-process and duplicate-package-instance writers remain caller-owned
+  coordination and require `lock: true` when sharing a rotating path.
 - File audit sinks support optional advisory `.lock` files with `lock`, `lockTimeoutMs`,
   and `staleLockMs` for multi-process local writers.
 - Each acquired lock records an owner token. A releasing writer removes the lock only
@@ -73,6 +81,8 @@ raw user context by default.
   `createLocalProvider({ auditWriteMode: "blocking" })` when a test or short-lived script
   must wait for each sink write before resolution, or call `auditSink.flush?.()` before
   process exit to drain pending non-blocking writes.
+- The provider `onClose` hook flushes its configured sink. It does not close or claim
+  exclusive ownership of a sink that may be shared by multiple providers.
 - Rotation is local-file only. Cross-process coordination requires `lock: true` and
   cooperating writers that use the same advisory lock.
 - Advisory locking is best-effort coordination for cooperating processes on a local

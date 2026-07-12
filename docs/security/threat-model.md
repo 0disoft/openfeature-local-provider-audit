@@ -48,6 +48,11 @@ Owner: 0disoft
   was replaced cannot remove the replacement owner's lock.
 - Keep audit file paths out of tenant, request, and untrusted environment control unless
   a wrapper validates and confines them first.
+- Create audit paths with private POSIX modes and reject unsafe final file types, link
+  counts, ownership, and symbolic links before appending.
+- Treat the complete audit directory chain as trusted configuration. POSIX no-follow open
+  protects the final component; Windows deployments must use directory ACLs to prevent a
+  local attacker from replacing the path between validation and open.
 
 ## Review Blockers
 
@@ -61,3 +66,5 @@ Owner: 0disoft
   lock contract.
 - Advisory file locking is presented as a distributed lock or as protection against
   hostile writers that can modify the lock path.
+- A writable parent directory or Windows path is described as safe merely because the
+  final component was checked before open.

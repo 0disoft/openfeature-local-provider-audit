@@ -1,11 +1,19 @@
 import { randomUUID } from "node:crypto";
-import { appendFile, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
+import { constants } from "node:fs";
+import { lstat, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
-import { dirname } from "node:path";
+import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import type { AuditEvent, AuditSink, FileAuditSinkOptions } from "../public-types.js";
 import { serializeAuditEvent } from "./audit-event.js";
+
+const AUDIT_FILE_MODE = 0o600;
+const AUDIT_DIRECTORY_MODE = 0o700;
+const MAX_RETAINED_FAILURE_CAUSES = 16;
+const AUDIT_OPEN_FLAGS =
+  constants.O_APPEND | constants.O_CREAT | constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0);
+const processWriteQueues = new Map<string, Promise<void>>();
 
 export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   const auditPath = options.path;
@@ -14,9 +22,12 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   const lock = createLockOptions(options, auditPath);
   const queue = createQueueOptions(options);
   const pendingWrites = new Set<Promise<void>>();
+  const failureCauses: unknown[] = [];
+  let unreportedFailureCount = 0;
   let queuedWrites = 0;
   let droppedWrites = 0;
   let writeQueue = Promise.resolve();
+  let flushQueue = Promise.resolve();
 
   return {
     async write(event: AuditEvent): Promise<void> {
@@ -34,10 +45,18 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
         writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
       );
       writeQueue = writeOperation.catch(() => undefined);
-      const trackedWrite = writeOperation.finally(() => {
-        queuedWrites -= 1;
-        pendingWrites.delete(trackedWrite);
-      });
+      const trackedWrite = writeOperation
+        .catch((error: unknown) => {
+          unreportedFailureCount += 1;
+          if (failureCauses.length < MAX_RETAINED_FAILURE_CAUSES) {
+            failureCauses.push(error);
+          }
+          throw error;
+        })
+        .finally(() => {
+          queuedWrites -= 1;
+          pendingWrites.delete(trackedWrite);
+        });
 
       pendingWrites.add(trackedWrite);
 
@@ -45,23 +64,26 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
     },
 
     async flush(): Promise<void> {
-      const failures: unknown[] = [];
-
-      while (pendingWrites.size > 0) {
-        const results = await Promise.allSettled(Array.from(pendingWrites));
-        for (const result of results) {
-          if (result.status === "rejected") {
-            failures.push(result.reason);
-          }
+      const flushOperation = flushQueue.then(async () => {
+        while (pendingWrites.size > 0) {
+          await Promise.allSettled(Array.from(pendingWrites));
         }
-      }
 
-      if (failures.length === 1) {
-        throw failures[0];
-      }
-      if (failures.length > 1) {
-        throw new AggregateError(failures, "One or more audit writes failed during flush.");
-      }
+        const failureCount = unreportedFailureCount;
+        const retainedCauses = failureCauses.splice(0);
+        unreportedFailureCount = 0;
+        if (failureCount === 1) {
+          throw retainedCauses[0];
+        }
+        if (failureCount > 1) {
+          throw new AggregateError(
+            retainedCauses,
+            `${failureCount} audit writes failed before flush; retained up to ${MAX_RETAINED_FAILURE_CAUSES} causes.`
+          );
+        }
+      });
+      flushQueue = flushOperation.catch(() => undefined);
+      await flushOperation;
     },
 
     getStats() {
@@ -81,19 +103,25 @@ async function writeAuditEvent(
   event: AuditEvent
 ): Promise<void> {
   const auditLine = serializeAuditEvent(event);
+  const auditPathString = resolve(toPathString(auditPath));
 
-  if (shouldCreateDirectory) {
-    await mkdir(dirname(toPathString(auditPath)), { recursive: true });
-  }
+  await serializeProcessWrite(auditPathString, async () => {
+    if (shouldCreateDirectory) {
+      await mkdir(dirname(auditPathString), {
+        recursive: true,
+        mode: AUDIT_DIRECTORY_MODE
+      });
+    }
 
-  if (lock !== undefined) {
-    await withFileLock(lock, async () => {
-      await rotateAndAppend(auditPath, rotation, auditLine);
-    });
-    return;
-  }
+    if (lock !== undefined) {
+      await withFileLock(lock, async () => {
+        await rotateAndAppend(auditPathString, rotation, auditLine);
+      });
+      return;
+    }
 
-  await rotateAndAppend(auditPath, rotation, auditLine);
+    await rotateAndAppend(auditPathString, rotation, auditLine);
+  });
 }
 
 async function rotateAndAppend(
@@ -101,14 +129,63 @@ async function rotateAndAppend(
   rotation: RotationOptions | undefined,
   auditLine: string
 ): Promise<void> {
+  await assertPathIsNotSymbolicLink(toPathString(auditPath));
   if (rotation !== undefined) {
     await rotateIfNeeded(auditPath, rotation, Buffer.byteLength(auditLine, "utf8"));
   }
 
-  await appendFile(auditPath, auditLine, {
-    encoding: "utf8",
-    flag: "a"
-  });
+  await appendAuditLine(toPathString(auditPath), auditLine);
+}
+
+async function appendAuditLine(path: string, auditLine: string): Promise<void> {
+  await assertPathIsNotSymbolicLink(path);
+  const handle = await open(path, AUDIT_OPEN_FLAGS, AUDIT_FILE_MODE);
+
+  try {
+    const fileStats = await handle.stat();
+    if (!fileStats.isFile()) {
+      throw new Error(`Audit path must be a regular file: ${path}`);
+    }
+    if (fileStats.nlink !== 1) {
+      throw new Error(`Audit path must not have multiple hard links: ${path}`);
+    }
+    if (typeof process.geteuid === "function" && fileStats.uid !== process.geteuid()) {
+      throw new Error(`Audit file must be owned by the current user: ${path}`);
+    }
+    await handle.appendFile(auditLine, "utf8");
+  } finally {
+    await handle.close();
+  }
+}
+
+async function assertPathIsNotSymbolicLink(path: string): Promise<void> {
+  try {
+    if ((await lstat(path)).isSymbolicLink()) {
+      throw new Error(`Audit path must not be a symbolic link: ${path}`);
+    }
+  } catch (error) {
+    if (!isNotFoundError(error)) {
+      throw error;
+    }
+  }
+}
+
+async function serializeProcessWrite(path: string, operation: () => Promise<void>): Promise<void> {
+  const previous = processWriteQueues.get(path) ?? Promise.resolve();
+  const current = previous.then(operation, operation);
+  const tail = current.then(
+    () => undefined,
+    () => undefined
+  );
+  processWriteQueues.set(path, tail);
+
+  try {
+    await current;
+  } finally {
+    if (processWriteQueues.get(path) === tail) {
+      processWriteQueues.delete(path);
+    }
+  }
 }
 
 interface RotationOptions {

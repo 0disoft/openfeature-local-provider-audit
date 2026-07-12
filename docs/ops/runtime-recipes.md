@@ -72,6 +72,10 @@ records an owner token so a stale owner cannot remove a replacement owner's lock
 and does not establish correctness on network filesystems. Prefer one audit file per process when
 a log collector can merge records downstream.
 
+Use a service-owned directory with POSIX mode `0700` and keep the audit file at `0600`.
+Do not place a fixed audit filename directly in a shared temporary directory. On Windows,
+use an ACL that prevents other local users from replacing any path component.
+
 Configure `lockTimeoutMs` and `staleLockMs` from the process supervisor's crash and restart model.
 An aggressive stale timeout can let two live processes write concurrently; an excessive timeout
 can delay recovery after a crash.
@@ -84,6 +88,8 @@ At minimum, retain these local signals without snapshot contents or context valu
 - age of the last successful snapshot update;
 - pending and dropped audit write counts when the sink exposes stats;
 - audit file write, rotation, and lock acquisition failures;
+- non-zero dropped writes or a provider-close flush failure;
+- repeated audit failures even when the sink's retained error-cause sample is capped;
 - package version and snapshot hash associated with an incident.
 
 Flag evaluation values are not authorization decisions. A healthy local provider does not prove

@@ -47,7 +47,7 @@ export function createReloadableLocalProvider(
 
 function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeatureProvider {
   const overrideBaseOptions = {
-    env: options.env ?? process.env,
+    env: captureEnv(options.env ?? process.env),
     ...(options.maxOverridesJsonBytes !== undefined
       ? { maxOverridesJsonBytes: options.maxOverridesJsonBytes }
       : {})
@@ -68,6 +68,19 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     options.auditWriteMode ?? "nonBlocking",
     resolveAuditContextKeyMode(options.auditRedaction)
   );
+}
+
+function captureEnv(env: EnvSource): EnvSource {
+  const captured: Record<string, string | undefined> = Object.create(null);
+  for (const [key, value] of Object.entries(env)) {
+    Object.defineProperty(captured, key, {
+      configurable: false,
+      enumerable: true,
+      value,
+      writable: false
+    });
+  }
+  return Object.freeze(captured);
 }
 
 type OverrideOptions = CreateEnvOverridesOptions & { readonly env: EnvSource };
@@ -101,6 +114,10 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
 
   updateSnapshot(snapshot: FlagSnapshot): void {
     this.state = this.createState(snapshot);
+  }
+
+  async onClose(): Promise<void> {
+    await this.auditSink?.flush?.();
   }
 
   async resolveBooleanEvaluation(
@@ -172,8 +189,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   ): EvaluationResult<T> {
     try {
       return evaluateFlag(state.snapshot, request);
-    } catch {
-      this.warn(logger, "openfeature-local-provider evaluation failed");
+    } catch (error) {
+      this.warn(logger, "openfeature-local-provider evaluation failed", error);
 
       return {
         flagKey: request.flagKey,
@@ -226,14 +243,14 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
           redaction: { contextKeys: this.auditContextKeyMode }
         })
       );
-    } catch {
-      this.warn(logger, "openfeature-local-provider audit sink write failed");
+    } catch (error) {
+      this.warn(logger, "openfeature-local-provider audit sink write failed", error);
     }
   }
 
-  private warn(logger: Logger, message: string): void {
+  private warn(logger: Logger, message: string, cause: unknown): void {
     try {
-      logger.warn(message);
+      logger.warn(message, cause);
     } catch {
       // Logging failures must not alter flag resolution.
     }

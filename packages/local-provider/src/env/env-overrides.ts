@@ -24,8 +24,8 @@ export function createEnvOverrides(
   snapshot: FlagSnapshot,
   options: CreateEnvOverridesOptions = {}
 ): EnvOverrideState {
-  const values: Record<string, FlagValue> = {};
-  const errors: Record<string, string> = {};
+  const values = createSafeRecord<FlagValue>();
+  const errors = createSafeRecord<string>();
 
   applyPerFlagEnvOverrides(snapshot, options.env ?? {}, values, errors);
 
@@ -97,7 +97,7 @@ function parseJsonOverrideMap(json: string, maxBytes: number): Record<string, Fl
     return "Override JSON must be an object keyed by flag key.";
   }
 
-  const values: Record<string, FlagValue> = {};
+  const values = createSafeRecord<FlagValue>();
   for (const [flagKey, value] of Object.entries(parsed)) {
     if (!isFlagValue(value)) {
       return `Override JSON value for "${flagKey}" is not a supported flag value.`;
@@ -172,4 +172,8 @@ function defineRecordEntry<T>(record: Record<string, T>, key: string, value: T):
     value,
     writable: true
   });
+}
+
+function createSafeRecord<T>(): Record<string, T> {
+  return Object.create(null) as Record<string, T>;
 }

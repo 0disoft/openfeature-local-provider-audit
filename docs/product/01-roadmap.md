@@ -33,6 +33,15 @@ a feature flag platform.
 
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
+- A `0.14` compatibility review for a discriminated `EvaluationRequest` type that binds
+  `expectedType` to `defaultValue`, strict rejection of unknown snapshot fields, and a
+  safer context-key disclosure default. Completion requires migration notes, negative
+  compile fixtures, parser typo fixtures, and explicit redaction compatibility tests.
+- An optional projected-volume consistency strategy and OpenFeature configuration-change
+  events. Completion requires Linux symlink-swap fixtures, duplicate-event suppression,
+  changed-key semantics, and shutdown integration tests.
+- A bounded-by-default audit queue policy. Completion requires a compatibility decision,
+  overload benchmarks, migration guidance, and explicit drop/reject observability.
 
 ## Deferred
 

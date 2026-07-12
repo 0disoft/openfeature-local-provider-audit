@@ -16,8 +16,9 @@ The contract must avoid ambiguous automatic environment variable mapping.
   - A JSON map override source.
   - A per-flag `envVar` name declared in the flag file.
 - Override parse failures must be visible as error reason metadata.
-- Provider options read overrides at provider creation time. Runtime environment changes
-  after provider construction do not alter evaluation until a new provider is created.
+- Provider options read overrides at provider creation time. Runtime changes to
+  `process.env` or a caller-provided env object do not alter evaluation, including when
+  `updateSnapshot()` installs a new snapshot. Create a new provider to refresh overrides.
 - Override values never create new flags. Unknown flag keys still return the caller's
   OpenFeature default value with default reason metadata.
 

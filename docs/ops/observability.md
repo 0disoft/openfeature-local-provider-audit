@@ -7,6 +7,11 @@ Status: Draft
 Observability means local audit and replay evidence. The package should not require a
 metrics backend, tracing collector, dashboard, or remote logging service.
 
+Provider warnings pass the original evaluation or audit-sink error as a structured logger
+argument. Logger configuration owns formatting and destination policy; do not route these
+warnings to an untrusted tenant-visible sink because filesystem errors may contain trusted
+local paths.
+
 ## Owners
 
 - Primary owner: 0disoft

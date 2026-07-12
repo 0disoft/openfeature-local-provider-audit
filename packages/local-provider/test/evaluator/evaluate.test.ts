@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { createEnvOverrides } from "../../src/env/env-overrides.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../../src/errors/error-codes.js";
 import { evaluateFlag } from "../../src/evaluator/evaluate.js";
+import { parseJsonFlagSnapshot } from "../../src/flags/parse-json-snapshot.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
 
@@ -79,6 +81,44 @@ describe("evaluateFlag", () => {
       reason: EVALUATION_REASONS.ERROR,
       source: EVALUATION_SOURCES.ERROR,
       errorCode: LOCAL_PROVIDER_ERROR_CODES.TYPE_MISMATCH
+    });
+  });
+
+  it("evaluates prototype-like flag keys without inherited override entries", () => {
+    const snapshot = parseJsonFlagSnapshot(
+      JSON.stringify({
+        schemaVersion: 1,
+        flags: {
+          toString: {
+            type: "boolean",
+            defaultVariant: "on",
+            variants: { on: true, off: false }
+          }
+        }
+      })
+    );
+
+    expect(
+      evaluateFlag(snapshot, {
+        flagKey: "toString",
+        defaultValue: false,
+        expectedType: "boolean",
+        overrides: createEnvOverrides(snapshot, { env: {} })
+      })
+    ).toMatchObject({
+      value: true,
+      reason: EVALUATION_REASONS.STATIC,
+      variant: "on"
+    });
+    expect(
+      evaluateFlag(snapshot, {
+        flagKey: "constructor",
+        defaultValue: false,
+        expectedType: "boolean"
+      })
+    ).toMatchObject({
+      value: false,
+      errorCode: LOCAL_PROVIDER_ERROR_CODES.FLAG_NOT_FOUND
     });
   });
 });

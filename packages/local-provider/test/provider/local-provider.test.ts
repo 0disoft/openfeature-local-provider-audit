@@ -153,12 +153,23 @@ describe("createLocalProvider", () => {
   });
 
   it("uses env override options captured at provider creation", async () => {
-    const provider = createLocalProvider({
+    const env = {
+      OPENFEATURE_LOCAL_FLAG_CHECKOUT_ENABLED: "false"
+    };
+    const provider = createReloadableLocalProvider({
       snapshot: staticSnapshot,
-      env: {
-        OPENFEATURE_LOCAL_FLAG_CHECKOUT_ENABLED: "false"
-      }
+      env
     });
+
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", true, {}, logger)
+    ).resolves.toMatchObject({
+      value: false,
+      reason: EVALUATION_REASONS.ENV_OVERRIDE
+    });
+
+    env.OPENFEATURE_LOCAL_FLAG_CHECKOUT_ENABLED = "true";
+    provider.updateSnapshot(staticSnapshot);
 
     await expect(
       provider.resolveBooleanEvaluation("checkout.enabled", true, {}, logger)
@@ -336,13 +347,31 @@ describe("createLocalProvider", () => {
     await deferred.promise;
   });
 
-  it("does not change evaluation results when audit sink writes fail", async () => {
-    const warn = vi.fn();
+  it("flushes the audit sink during provider close", async () => {
+    const flush = vi.fn(async () => undefined);
     const provider = createLocalProvider({
       snapshot: staticSnapshot,
       auditSink: {
         async write() {
-          throw new Error("audit path is unavailable");
+          return undefined;
+        },
+        flush
+      }
+    });
+
+    await provider.onClose?.();
+
+    expect(flush).toHaveBeenCalledOnce();
+  });
+
+  it("does not change evaluation results when audit sink writes fail", async () => {
+    const warn = vi.fn();
+    const auditError = new Error("audit path is unavailable");
+    const provider = createLocalProvider({
+      snapshot: staticSnapshot,
+      auditSink: {
+        async write() {
+          throw auditError;
         }
       },
       auditWriteMode: "blocking"
@@ -355,7 +384,10 @@ describe("createLocalProvider", () => {
       reason: EVALUATION_REASONS.STATIC,
       variant: "on"
     });
-    expect(warn).toHaveBeenCalledWith("openfeature-local-provider audit sink write failed");
+    expect(warn).toHaveBeenCalledWith(
+      "openfeature-local-provider audit sink write failed",
+      auditError
+    );
   });
 
   it("does not change evaluation results when audit failure logging throws", async () => {

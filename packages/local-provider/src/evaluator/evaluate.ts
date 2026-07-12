@@ -13,7 +13,7 @@ export function evaluateFlag<T extends FlagValue>(
   snapshot: FlagSnapshot,
   request: EvaluationRequest<T>
 ): EvaluationResult<T> {
-  const flag = snapshot.flags[request.flagKey];
+  const flag = getOwn(snapshot.flags, request.flagKey);
 
   if (flag === undefined) {
     return {
@@ -52,7 +52,7 @@ export function evaluateFlag<T extends FlagValue>(
     };
   }
 
-  const overrideValue = request.overrides?.values[request.flagKey];
+  const overrideValue = getOwn(request.overrides?.values, request.flagKey);
   if (overrideValue !== undefined) {
     if (!flagValueMatchesType(overrideValue, request.expectedType)) {
       return {
@@ -90,7 +90,7 @@ export function evaluateFlag<T extends FlagValue>(
 
     const selection = selectRolloutVariant(request.flagKey, request.targetingKey, flag.rollout);
     if (selection.variant !== undefined) {
-      const rolloutValue = flag.variants[selection.variant];
+      const rolloutValue = getOwn(flag.variants, selection.variant);
       if (rolloutValue === undefined || !flagValueMatchesType(rolloutValue, request.expectedType)) {
         return {
           flagKey: request.flagKey,
@@ -116,7 +116,7 @@ export function evaluateFlag<T extends FlagValue>(
     }
   }
 
-  const value = flag.variants[flag.defaultVariant];
+  const value = getOwn(flag.variants, flag.defaultVariant);
 
   if (value === undefined || !flagValueMatchesType(value, request.expectedType)) {
     return {
@@ -145,5 +145,9 @@ function getOverrideError(request: EvaluationRequest<FlagValue>): string | undef
     return request.overrides.globalError;
   }
 
-  return request.overrides?.errors[request.flagKey];
+  return getOwn(request.overrides?.errors, request.flagKey);
+}
+
+function getOwn<T>(record: Readonly<Record<string, T>> | undefined, key: string): T | undefined {
+  return record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined;
 }

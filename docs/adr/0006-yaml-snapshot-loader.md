@@ -18,6 +18,8 @@ configuration in YAML, especially for hand-edited development and test fixtures.
   boundary used by JSON.
 - Use `yaml@2.9.0` as the parser dependency.
 - Reject YAML parser errors as `PARSE_ERROR`.
+- Normalize parser-library failures raised while materializing aliases through the same
+  `PARSE_ERROR` boundary.
 - Reject YAML documents that parse successfully but do not satisfy the snapshot schema as
   `SCHEMA_ERROR`.
 - Do not add file watching, hot reload, CLI, browser, Bun, Deno, or hosted service

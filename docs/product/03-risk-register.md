@@ -15,6 +15,11 @@ surprising, or too large to maintain.
 | Bucketing algorithm drift | Users move between rollout groups after upgrade. | Treat bucketing output as compatibility-sensitive and cover it with replay fixtures. |
 | Env override ambiguity | Operators cannot explain why a flag resolved to a value. | Document source priority and include source/reason in evaluation metadata. |
 | Audit log privacy leak | Targeting keys or context values expose user data. | Redact context by default and log reason summaries instead of raw context. |
+| Dynamic context key disclosure | Applications encode emails or tokens in property names and the `names` mode records them. | Recommend `count` or `none` for untrusted schemas and evaluate a safer default in a compatibility release. |
+| Unbounded audit backlog | Sustained slow or failed storage grows the default non-blocking queue until the process runs out of memory. | Configure `maxQueueSize`, monitor pending/dropped counters, and evaluate a bounded default with migration guidance. |
+| Projected-volume reload gap | Kubernetes-style internal symlink swaps do not emit the visible filename and leave a stale snapshot. | Use explicit reload or consumer-owned atomic copies today; evaluate a bounded consistency poll with Linux fixtures. |
+| Unsound evaluator request typing | `expectedType` can disagree with a generically inferred default type and produce a runtime value outside the inferred type. | Redesign the request as a discriminated type in a compatibility release and add negative compile fixtures. |
+| Silent snapshot typos | Unknown schema fields are discarded, so misspelled rollout or metadata fields appear valid. | Evaluate strict unknown-field rejection with migration notes and CLI typo fixtures. |
 | Provider grows into a platform | Project competes with hosted flag products and loses its small-team value. | Keep dashboard, remote rollout, approval workflow, analytics, and segment storage out of MVP. |
 | File reload/watch complexity | Runtime behavior becomes nondeterministic. | Keep evaluation file-I/O free, preserve the last valid snapshot on reload failure, and cover watch mode with event tests. |
 | CLI scope creep | A helper command turns into flag management tooling. | Keep CLI helpers local, read-only, file-based, and covered by ADR review before adding commands. |

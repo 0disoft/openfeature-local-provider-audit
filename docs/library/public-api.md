@@ -83,6 +83,8 @@ Implementation must not expose internal modules only because examples need conve
   non-`names` modes keep `keys` empty.
 - `AuditSink` implementations may expose optional `flush()` to wait for pending writes and
   optional `getStats()` for implementation-specific sink counters.
+- Providers flush an optional audit sink through the OpenFeature `onClose` lifecycle hook;
+  they do not close or take exclusive ownership of shared sinks.
 - Snapshot and override hash generation uses locale-independent key ordering.
 - `openfeature-local-provider validate <file>` validates a local JSON/YAML snapshot and
   returns exit code `0` on success, `1` on snapshot validation failure, and `2` on usage

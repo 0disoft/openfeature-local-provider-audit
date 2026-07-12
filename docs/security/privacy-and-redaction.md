@@ -22,12 +22,17 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 
 - Audit context stores targeting-key presence and the applied key-disclosure mode.
 - `contextKeys: "names"` stores sorted names, `"count"` stores only their count, and
-  `"none"` stores neither names nor count. Raw values are never enabled by these modes.
+  `"none"` stores neither names nor count. These modes never read property values, but
+  `names` is safe only for fixed schema-like keys: applications that encode emails,
+  tokens, or other data in property names must use `count` or `none`.
 - Snapshot and override data are represented by SHA-256 hashes.
 - Evaluated values are excluded from audit events.
 - JSON Lines serialization is explicit.
 - File audit sinks append only serialized redacted events.
 - Provider audit sink failures are logged without changing the evaluated result.
+- Provider warnings include the original error object for operator diagnosis. Logger
+  destinations must remain operator-controlled because filesystem errors may include
+  trusted local paths.
 
 ## Review Blockers
 
@@ -35,3 +40,4 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 - Audit defaults expose targeting keys or evaluated object values.
 - Redaction opt-out is implicit or enabled by convenience defaults.
 - A strict key-disclosure mode leaks a context key name or raw value.
+- Documentation presents dynamic context key names as non-sensitive data.

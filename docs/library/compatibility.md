@@ -75,6 +75,19 @@ Detailed compatibility contracts live in:
 - Advisory audit locks record an owner token and only the matching owner removes the lock during
   release, preventing an old writer from deleting a replacement owner's lock after stale takeover.
 
+## 0.13.3 Audit And Input Integrity
+
+- No public exports, option names, or evaluation priority rules change.
+- File-audit flush retains settled failures until one serialized flush reports them.
+- Provider environment input is copied at construction and is not re-read by snapshot updates.
+- Prototype-like flag keys use own-property lookup across snapshot and override records.
+- YAML alias materialization failures are normalized to `PARSE_ERROR`.
+- Same-process sinks serialize writes to one audit path, while cross-process rotation still requires
+  `lock: true`.
+- New POSIX audit paths use private modes and final file validation rejects symbolic links,
+  non-regular files, foreign ownership, and multiple hard links.
+- Provider close flushes the configured audit sink without closing a potentially shared sink.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.
