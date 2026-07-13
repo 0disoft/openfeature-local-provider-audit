@@ -84,7 +84,7 @@ export function redactContext(
 export function resolveAuditContextKeyMode(
   options: AuditRedactionOptions = {}
 ): AuditContextKeyMode {
-  const keyMode = options.contextKeys ?? "names";
+  const keyMode = options.contextKeys ?? "count";
 
   if (keyMode !== "names" && keyMode !== "count" && keyMode !== "none") {
     throw new TypeError("auditRedaction.contextKeys must be names, count, or none");

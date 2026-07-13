@@ -33,14 +33,32 @@ export interface FlagSnapshot {
   readonly metadata?: Readonly<Record<string, string | number | boolean>>;
 }
 
-export interface EvaluationRequest<T extends FlagValue = FlagValue> {
+interface EvaluationRequestBase {
   readonly flagKey: string;
-  readonly defaultValue: T;
-  readonly expectedType: FlagType;
   readonly targetingKey?: string;
   readonly context?: EvaluationContext;
   readonly overrides?: EnvOverrideState;
 }
+
+type EvaluationRequestByType<T extends FlagValue> =
+  | (EvaluationRequestBase & {
+      readonly defaultValue: Extract<T, boolean>;
+      readonly expectedType: "boolean";
+    })
+  | (EvaluationRequestBase & {
+      readonly defaultValue: Extract<T, string>;
+      readonly expectedType: "string";
+    })
+  | (EvaluationRequestBase & {
+      readonly defaultValue: Extract<T, number>;
+      readonly expectedType: "number";
+    })
+  | (EvaluationRequestBase & {
+      readonly defaultValue: Extract<T, object | null>;
+      readonly expectedType: "object";
+    });
+
+export type EvaluationRequest<T extends FlagValue = FlagValue> = EvaluationRequestByType<T>;
 
 export type EvaluationContext = Readonly<Record<string, unknown>>;
 

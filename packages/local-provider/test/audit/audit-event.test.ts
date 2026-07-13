@@ -64,8 +64,9 @@ describe("audit events", () => {
       variant: "on",
       context: {
         targetingKeyPresent: true,
-        keyMode: "names",
-        keys: ["email", "targetingKey", "tenantId", "token"],
+        keyMode: "count",
+        keys: [],
+        keyCount: 4,
         redacted: true
       }
     });
@@ -107,8 +108,9 @@ describe("audit events", () => {
   it("redacts empty or missing context", () => {
     expect(redactContext()).toEqual({
       targetingKeyPresent: false,
-      keyMode: "names",
+      keyMode: "count",
       keys: [],
+      keyCount: 0,
       redacted: true
     });
   });
@@ -128,6 +130,23 @@ describe("audit events", () => {
       keyMode: "count",
       keys: [],
       keyCount: 3,
+      redacted: true
+    });
+  });
+
+  it("includes context key names only when explicitly requested", () => {
+    expect(
+      redactContext(
+        {
+          targetingKey: "user-alpha",
+          email: "synthetic@example.test"
+        },
+        { contextKeys: "names" }
+      )
+    ).toEqual({
+      targetingKeyPresent: true,
+      keyMode: "names",
+      keys: ["email", "targetingKey"],
       redacted: true
     });
   });
@@ -200,7 +219,7 @@ describe("audit events", () => {
     const stableJson =
       '{"flags":{"z.flag":{"defaultVariant":"off","type":"boolean","variants":{"off":false,"on":true}},"ä.flag":{"defaultVariant":"on","type":"boolean","variants":{"off":false,"on":true}}},"metadata":{"z":2,"ä":1},"schemaVersion":1}';
 
-    expect(redactContext({ ä: 1, z: 2 }).keys).toEqual(["z", "ä"]);
+    expect(redactContext({ ä: 1, z: 2 }, { contextKeys: "names" }).keys).toEqual(["z", "ä"]);
     expect(createSnapshotHash(snapshot)).toBe(sha256Hex(stableJson));
   });
 
@@ -238,8 +257,9 @@ describe("audit events", () => {
         eventId: "evt_file_sink_1",
         flagKey: "checkout.enabled",
         context: {
-          keyMode: "names",
-          keys: ["email"],
+          keyMode: "count",
+          keys: [],
+          keyCount: 1,
           redacted: true
         }
       });

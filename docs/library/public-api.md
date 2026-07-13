@@ -69,6 +69,7 @@ Implementation must not expose internal modules only because examples need conve
   optional `maxOverridesJsonBytes`, optional injectable `env`, optional `auditSink`, and
   optional `auditWriteMode`, and optional `auditRedaction`.
 - `AuditRedactionOptions` with optional `contextKeys: "names" | "count" | "none"`.
+  Omitting `contextKeys` selects `count`; `names` is an explicit metadata-disclosure opt-in.
 - `LoadFlagSnapshotFileOptions` with optional `format`, optional `encoding`, and optional
   `maxBytes`.
 - `CreateEnvOverridesOptions` with optional `overridesJson`, optional
@@ -76,7 +77,8 @@ Implementation must not expose internal modules only because examples need conve
 - `FileAuditSinkOptions` with `path`, optional `createDirectory`, optional `maxBytes`,
   optional `maxFiles`, optional `lock`, optional `lockTimeoutMs`, and optional
   `staleLockMs`, optional `maxQueueSize`, and optional `queueOverflowPolicy`.
-- `EvaluationRequest` with optional `targetingKey` for rollout evaluation.
+- `EvaluationRequest` with optional `targetingKey` for rollout evaluation and a
+  discriminated `expectedType`/`defaultValue` pair that rejects mismatched caller types.
 - `EvaluationResult` with optional `bucket` for deterministic pure-evaluator replay checks.
 - Snapshot, flag definition, rollout, evaluation, env override, replay fixture, audit event, audit sink, audit write mode, reason, source, and error code types.
 - Audit context output includes the applied `keyMode`; `count` adds `keyCount`, while

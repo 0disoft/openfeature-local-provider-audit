@@ -218,7 +218,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       overrides: state.overrides,
       context,
       ...(typeof context.targetingKey === "string" ? { targetingKey: context.targetingKey } : {})
-    };
+    } as EvaluationRequest<T>;
   }
 
   private async writeAuditEvent<T extends FlagValue>(

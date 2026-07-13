@@ -12,8 +12,8 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 
 - Raw evaluation context is not logged by default.
 - Targeting key presence may be recorded, but the raw value is not.
-- Context key names may be recorded under the default `names` policy, or replaced with a
-  count or omitted when the caller selects a stricter policy.
+- Context key names are replaced with a count by default. A caller may explicitly opt
+  into names for fixed schema-like keys or omit both names and count.
 - Evaluated flag values are not written to audit output by default.
 - Object flag values are treated as sensitive by default.
 - Correlation across events requires explicit opt-in and a keyed design.
@@ -25,6 +25,8 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
   `"none"` stores neither names nor count. These modes never read property values, but
   `names` is safe only for fixed schema-like keys: applications that encode emails,
   tokens, or other data in property names must use `count` or `none`.
+- Omitting `contextKeys` selects `count`; key-name disclosure always requires an explicit
+  `names` choice.
 - Snapshot and override data are represented by SHA-256 hashes.
 - Evaluated values are excluded from audit events.
 - JSON Lines serialization is explicit.

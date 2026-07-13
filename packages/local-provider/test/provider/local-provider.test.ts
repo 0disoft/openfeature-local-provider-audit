@@ -235,8 +235,9 @@ describe("createLocalProvider", () => {
         variant: "on",
         context: {
           targetingKeyPresent: true,
-          keyMode: "names",
-          keys: ["email", "targetingKey", "tenantId"],
+          keyMode: "count",
+          keys: [],
+          keyCount: 3,
           redacted: true
         }
       });

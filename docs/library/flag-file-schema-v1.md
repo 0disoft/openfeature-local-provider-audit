@@ -18,6 +18,9 @@ because malformed or changed configuration can alter evaluated flag values.
 - File loading and watch reload are accepted through docs/adr/0007-file-reload-watch.md
   and must feed the same snapshot schema validation boundary.
 - The top-level document has `schemaVersion: 1` and a `flags` object.
+- The top-level document, each flag definition, and each rollout rule reject unknown
+  fields so misspelled configuration cannot be silently ignored. Flag names, variant
+  names, and metadata keys remain caller-defined dynamic keys.
 - Every flag has a declared type: `boolean`, `string`, `number`, or `object`.
 - Every flag defines variants and a default variant.
 - A flag may define `rollout` as a non-empty ordered array of percentage rules.
@@ -33,6 +36,8 @@ because malformed or changed configuration can alter evaluated flag values.
 
 - Invalid JSON or YAML produces a parse error.
 - Invalid schema produces a schema error.
+- Unknown fields at the snapshot, flag-definition, or rollout-rule level produce a
+  schema error that names the rejected field.
 - Unknown flag keys return the caller's OpenFeature default value with default reason metadata.
 - Type mismatches return the caller's default value with error reason metadata.
 

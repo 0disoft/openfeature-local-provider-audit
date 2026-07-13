@@ -5,9 +5,8 @@ Owner: 0disoft
 
 ## Purpose
 
-Allow consumers to reduce metadata disclosure from audit context key names without
-weakening the existing raw-value redaction guarantee or changing the default key-name
-policy.
+Allow consumers to control metadata disclosure from audit context key names without
+weakening the raw-value redaction guarantee.
 
 ## Source of Truth
 
@@ -18,7 +17,9 @@ policy.
 
 ## Decision
 
-- Keep `contextKeys: "names"` as the default for compatibility.
+- Use `contextKeys: "count"` as the default from `0.14.0` so dynamic property names do
+  not leak personal or secret data by default.
+- Keep `"names"` as an explicit opt-in for fixed schema-like context keys.
 - Add `"count"` to emit only the number of context keys.
 - Add `"none"` to emit neither key names nor their count.
 - Always emit `keyMode` and keep `keys` array-valued. Non-`names` modes use an empty
@@ -28,9 +29,11 @@ policy.
 
 ## Compatibility
 
-This is an additive public API and audit event change. Existing callers retain key-name
-output by default. Consumers that validate audit events with a closed schema must allow
-the new `keyMode` field and optional `keyCount` field before upgrading.
+The modes and event fields were additive in `0.13.0`; changing the default to `count` in
+`0.14.0` is compatibility-sensitive. Consumers that need prior key-name output must set
+`auditRedaction.contextKeys: "names"` before upgrading. Consumers that validate audit
+events with a closed schema must accept `keyMode: "count"`, an empty `keys` array, and
+`keyCount`.
 `RedactedAuditContext.keyMode` remains optional in the TypeScript type so callers can
 still represent pre-0.13 events and existing manually constructed audit objects.
 

@@ -88,6 +88,19 @@ Detailed compatibility contracts live in:
   non-regular files, foreign ownership, and multiple hard links.
 - Provider close flushes the configured audit sink without closing a potentially shared sink.
 
+## 0.14.0 Strict Input And Redaction Defaults
+
+- `EvaluationRequest<T>` now correlates `expectedType` with `defaultValue`; code that
+  previously declared contradictory pairs must correct one side before it compiles.
+- Snapshot root objects, flag definitions, and rollout rules reject unknown fields.
+  Remove misspelled or unsupported fields before upgrading. Dynamic flag, variant, and
+  metadata keys remain accepted.
+- Audit context key disclosure now defaults to `count`. Consumers that intentionally
+  depend on sorted key names must set `auditRedaction.contextKeys: "names"`; closed
+  event schemas must accept `keyMode: "count"`, `keys: []`, and `keyCount`.
+- Raw context values, targeting keys, and evaluated values remain excluded under every
+  redaction mode.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

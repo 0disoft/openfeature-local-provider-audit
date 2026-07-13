@@ -28,15 +28,13 @@ a feature flag platform.
 9. Add local snapshot validation CLI helpers.
 10. Add context-key disclosure modes for stricter audit redaction without changing the
     existing default behavior.
+11. Complete the `0.14` compatibility hardening: bind `EvaluationRequest` types, reject
+    unknown snapshot fields, and default audit context disclosure to key counts.
 
 ## Next Evaluation Areas
 
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
-- A `0.14` compatibility review for a discriminated `EvaluationRequest` type that binds
-  `expectedType` to `defaultValue`, strict rejection of unknown snapshot fields, and a
-  safer context-key disclosure default. Completion requires migration notes, negative
-  compile fixtures, parser typo fixtures, and explicit redaction compatibility tests.
 - An optional projected-volume consistency strategy and OpenFeature configuration-change
   events. Completion requires Linux symlink-swap fixtures, duplicate-event suppression,
   changed-key semantics, and shutdown integration tests.

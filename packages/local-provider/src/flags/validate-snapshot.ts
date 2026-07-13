@@ -11,11 +11,22 @@ import type {
 import { flagValueMatchesType, isFlagValue, isJsonObject } from "../evaluator/type-guards.js";
 
 const FLAG_TYPES = new Set<FlagType>(["boolean", "string", "number", "object"]);
+const SNAPSHOT_KEYS = new Set(["schemaVersion", "flags", "metadata"]);
+const FLAG_DEFINITION_KEYS = new Set([
+  "type",
+  "variants",
+  "defaultVariant",
+  "rollout",
+  "envVar",
+  "metadata"
+]);
+const ROLLOUT_RULE_KEYS = new Set(["variant", "percentage", "seed"]);
 
 export function validateFlagSnapshot(value: unknown): FlagSnapshot {
   if (!isJsonObject(value)) {
     throw schemaError("Flag snapshot must be a JSON object.");
   }
+  rejectUnknownKeys(value, SNAPSHOT_KEYS, "Flag snapshot");
 
   if (value.schemaVersion !== 1) {
     throw schemaError("Flag snapshot schemaVersion must be 1.");
@@ -51,6 +62,7 @@ function validateFlagDefinition(flagKey: string, value: unknown): FlagDefinition
   if (!isJsonObject(value)) {
     throw schemaError(`Flag "${flagKey}" must be an object.`);
   }
+  rejectUnknownKeys(value, FLAG_DEFINITION_KEYS, `Flag "${flagKey}"`);
 
   const type = value.type;
   if (typeof type !== "string" || !FLAG_TYPES.has(type as FlagType)) {
@@ -109,6 +121,7 @@ function validateRollout(
     if (!isJsonObject(rawRule)) {
       throw schemaError(`Flag "${flagKey}" rollout rule ${index} must be an object.`);
     }
+    rejectUnknownKeys(rawRule, ROLLOUT_RULE_KEYS, `Flag "${flagKey}" rollout rule ${index}`);
 
     const variant = validateRolloutVariant(flagKey, index, rawRule.variant, variants);
     const percentage = validateRolloutPercentage(flagKey, index, rawRule.percentage);
@@ -236,6 +249,17 @@ function validateOptionalString(value: unknown, label: string): string | undefin
     throw schemaError(`${label} must be a non-empty string when provided.`);
   }
   return value;
+}
+
+function rejectUnknownKeys(
+  value: Readonly<Record<string, unknown>>,
+  allowedKeys: ReadonlySet<string>,
+  label: string
+): void {
+  const unknownKeys = Object.keys(value).filter((key) => !allowedKeys.has(key));
+  if (unknownKeys.length > 0) {
+    throw schemaError(`${label} contains unknown field(s): ${unknownKeys.join(", ")}.`);
+  }
 }
 
 function schemaError(message: string): LocalProviderError {

@@ -43,9 +43,9 @@ raw user context by default.
   not re-hash the full snapshot for every audit write.
 - `context` always records `targetingKeyPresent`, the applied `keyMode`, an array-valued
   `keys` field, and `redacted: true`.
-- Context key disclosure defaults to `names`, which preserves sorted key names. The
-  `count` mode empties `keys` and adds `keyCount`; the `none` mode empties `keys` and
-  omits the count.
+- Context key disclosure defaults to `count`, which empties `keys` and adds `keyCount`.
+  The `names` mode explicitly opts into sorted key names; the `none` mode empties
+  `keys` and omits the count.
 - `createAuditEvent({ redaction })`, `redactContext(context, options)`, and
   `createLocalProvider({ auditRedaction })` accept the same context-key policy.
 - Raw context values and evaluated flag values are not serialized.

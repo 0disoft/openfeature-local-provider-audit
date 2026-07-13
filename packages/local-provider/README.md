@@ -98,6 +98,8 @@ await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
 ```
 
 YAML input must parse into the same schema v1 snapshot contract used by JSON input.
+Snapshot objects, flag definitions, and rollout rules reject unknown fields; flag names,
+variant names, and metadata keys remain caller-defined.
 
 ## CLI Validation
 
@@ -230,10 +232,10 @@ The final audit path must be a regular, current-user-owned file with one hard li
 must not be a symbolic link. Keep the whole path inside an application-owned directory;
 on Windows, enforce this with directory ACLs because no-follow open is not available.
 
-Context key names are included by default for compatibility. Set
-`auditRedaction.contextKeys` to `"count"` to retain only the number of context keys, or
-to `"none"` to omit both names and count. These modes never enable raw context values;
-`targetingKeyPresent` remains a boolean presence signal.
+Context keys are counted by default without including their names. Set
+`auditRedaction.contextKeys` to `"names"` only for fixed schema-like keys when names are
+required, or to `"none"` to omit both names and count. These modes never enable raw
+context values; `targetingKeyPresent` remains a boolean presence signal.
 
 Use `auditSink.flush?.()` before process exit when a short-lived script must wait for
 pending non-blocking audit writes. Use `auditWriteMode: "blocking"` when each

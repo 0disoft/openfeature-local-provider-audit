@@ -142,6 +142,66 @@ describe("parseJsonFlagSnapshot", () => {
     throw new Error("Expected parseJsonFlagSnapshot to throw.");
   });
 
+  it.each([
+    ["snapshot", { schemaVersion: 1, flags: {}, typo: true }, "Flag snapshot"],
+    [
+      "flag definition",
+      {
+        schemaVersion: 1,
+        flags: {
+          "checkout.enabled": {
+            type: "boolean",
+            defaultVariant: "on",
+            variants: { on: true },
+            rolluot: []
+          }
+        }
+      },
+      'Flag "checkout.enabled"'
+    ],
+    [
+      "rollout rule",
+      {
+        schemaVersion: 1,
+        flags: {
+          "checkout.enabled": {
+            type: "boolean",
+            defaultVariant: "off",
+            variants: { on: true, off: false },
+            rollout: [{ variant: "on", percentage: 50, typo: true }]
+          }
+        }
+      },
+      'Flag "checkout.enabled" rollout rule 0'
+    ]
+  ] as const)("rejects unknown fields in %s", (_label, input, errorPrefix) => {
+    expect(() => parseJsonFlagSnapshot(JSON.stringify(input))).toThrow(
+      `${errorPrefix} contains unknown field(s):`
+    );
+  });
+
+  it("keeps dynamic variant and metadata keys open", () => {
+    const snapshot = parseJsonFlagSnapshot(
+      JSON.stringify({
+        schemaVersion: 1,
+        flags: {
+          "checkout.enabled": {
+            type: "boolean",
+            defaultVariant: "custom-variant",
+            variants: { "custom-variant": true },
+            metadata: { "custom.flag.attribute": "kept" }
+          }
+        },
+        metadata: { "custom.snapshot.attribute": "kept" }
+      })
+    );
+
+    expect(snapshot.flags["checkout.enabled"]?.metadata).toEqual({
+      "custom.flag.attribute": "kept"
+    });
+    expect(snapshot.metadata).toEqual({ "custom.snapshot.attribute": "kept" });
+  });
+
   it("does not treat inherited variant names as valid defaults", () => {
     try {
       parseJsonFlagSnapshot(
