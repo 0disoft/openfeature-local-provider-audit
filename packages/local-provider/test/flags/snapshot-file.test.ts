@@ -114,13 +114,18 @@ describe("snapshot file helpers", () => {
       });
 
       const unchanged = await watcher.reload();
-      await writeFile(path, createJsonSnapshot(false), "utf8");
-      const reloaded = await watcher.reload();
-      watcher.close();
+      vi.useFakeTimers();
+      try {
+        await writeFile(path, createJsonSnapshot(false), "utf8");
+        const reloaded = await watcher.reload();
 
-      expect(getCheckoutDefaultEnabled(unchanged)).toBe(true);
-      expect(getCheckoutDefaultEnabled(reloaded)).toBe(false);
-      expect(snapshots).toEqual([true, true, false]);
+        expect(getCheckoutDefaultEnabled(unchanged)).toBe(true);
+        expect(getCheckoutDefaultEnabled(reloaded)).toBe(false);
+        expect(snapshots).toEqual([true, true, false]);
+      } finally {
+        watcher.close();
+        vi.useRealTimers();
+      }
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
