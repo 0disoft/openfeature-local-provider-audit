@@ -35,6 +35,23 @@ unless an explicit reload mode is documented.
 - Override path: explicit JSON override strings are size-checked before parsing.
 - Package size: avoid dependencies that turn the provider into a platform or service runtime.
 
+## Audit Queue Benchmark
+
+Run `pnpm run benchmark:audit-queue` to compare a fast file sink with unbounded,
+bounded-reject, and bounded-drop-newest queues under a deliberate advisory-lock stall.
+The harness reports enqueue and drain time, peak pending writes, sampled heap growth,
+written records, rejections, and drops. The stalled scenarios retain advisory locking
+while draining, so their drain time includes per-write lock overhead and must not be read
+as raw filesystem throughput. Optional `--writes`, `--queue-size`, `--stall-ms`, and
+`--json` arguments change the sampled workload; for example,
+`pnpm run benchmark:audit-queue -- --writes 10000 --queue-size 1000 --json`.
+
+The benchmark is intentionally not a CI gate. Filesystem speed, scheduler behavior, and
+heap measurements vary by host. Use repeated measurements on deployment-like hardware
+before choosing a default queue size, and treat every run as sampled evidence rather than
+a portable throughput guarantee. A bounded default remains UNDECIDED until measurements
+cover normal local disks and a sustained sink stall without unaccounted writes.
+
 ## Review Blockers
 
 - A change bypasses the source of truth.

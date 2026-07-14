@@ -9,6 +9,7 @@
     "node": ">=22 <25"
   },
   "scripts": {
+    "benchmark:audit-queue": "pnpm run build && node --expose-gc scripts/audit-queue-benchmark.mjs",
     "build": "pnpm --filter @0disoft/openfeature-local-provider build",
     "check": "pnpm run typecheck && pnpm run test:coverage && pnpm run build && pnpm run pack:check && pnpm run release-readiness",
     "format": "biome format --write .",

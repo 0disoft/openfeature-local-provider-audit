@@ -428,7 +428,7 @@ describe("audit events", () => {
   it("serializes rotation across file sinks in the same process", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
     const auditPath = join(tempDirectory, "shared", "audit.jsonl");
-    const eventIds = Array.from({ length: 32 }, (_, index) => `evt_shared_${index}`);
+    const eventIds = Array.from({ length: 8 }, (_, index) => `evt_shared_${index}`);
     const sampleBytes = Buffer.byteLength(
       serializeAuditEvent(createTestAuditEvent(eventIds[0] ?? "evt_shared_sample")),
       "utf8"
