@@ -43,11 +43,15 @@ The harness reports enqueue and drain time, peak pending writes, sampled heap gr
 written records, rejections, and drops. The stalled scenarios retain advisory locking
 while draining, so their drain time includes per-write lock overhead and must not be read
 as raw filesystem throughput. Optional `--writes`, `--queue-size`, `--stall-ms`, and
-`--json` arguments change the sampled workload; for example,
+`--json` arguments change the sampled workload. `--output <path>` also writes the full
+JSON report to a file without changing the console format; for example,
 `pnpm run benchmark:audit-queue -- --writes 10000 --queue-size 1000 --json`.
 
 The benchmark is intentionally not a CI gate. Filesystem speed, scheduler behavior, and
-heap measurements vary by host. Use repeated measurements on deployment-like hardware
+heap measurements vary by host. The manual `audit queue benchmark` GitHub Actions
+workflow runs the same inputs on Ubuntu, Windows, and macOS and uploads one JSON result
+per runner. It is sampling infrastructure, not a merge or release gate. Use repeated
+measurements on deployment-like hardware
 before choosing a default queue size, and treat every run as sampled evidence rather than
 a portable throughput guarantee. A bounded default remains UNDECIDED until measurements
 cover normal local disks and a sustained sink stall without unaccounted writes.

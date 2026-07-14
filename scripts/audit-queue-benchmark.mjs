@@ -1,6 +1,6 @@
 import { mkdtemp, mkdir, readFile, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import {
   EVALUATION_REASONS,
@@ -47,6 +47,12 @@ try {
     },
     scenarios
   };
+
+  if (options.output !== undefined) {
+    const outputPath = resolve(options.output);
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, `${JSON.stringify(report, null, 2)}\n`, "utf8");
+  }
 
   if (options.json) {
     process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
@@ -192,7 +198,8 @@ function parseOptions(args) {
     writes: DEFAULT_WRITES,
     queueSize: DEFAULT_QUEUE_SIZE,
     stallMs: DEFAULT_STALL_MS,
-    json: false
+    json: false,
+    output: undefined
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -216,6 +223,11 @@ function parseOptions(args) {
       parsed.queueSize = parsePositiveInteger(value, argument);
     } else if (argument === "--stall-ms") {
       parsed.stallMs = parsePositiveInteger(value, argument);
+    } else if (argument === "--output") {
+      if (value.trim() === "") {
+        throw new Error(`${argument} must not be empty.`);
+      }
+      parsed.output = value;
     } else {
       throw new Error(`Unknown argument: ${argument}`);
     }

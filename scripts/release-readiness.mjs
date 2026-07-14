@@ -7,6 +7,12 @@ const ROOT_PACKAGE_JSON = path.join(ROOT, "package.json");
 const RELEASE_WORKFLOW = path.join(ROOT, ".github", "workflows", "release.yml");
 const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
 const COMPATIBILITY_WORKFLOW = path.join(ROOT, ".github", "workflows", "compatibility.yml");
+const AUDIT_QUEUE_BENCHMARK_WORKFLOW = path.join(
+  ROOT,
+  ".github",
+  "workflows",
+  "audit-queue-benchmark.yml"
+);
 const PACKED_SMOKE_SCRIPT = path.join(ROOT, "scripts", "packed-smoke.mjs");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
@@ -22,6 +28,7 @@ const packageJson = await readJson(PACKAGE_JSON);
 const releaseWorkflow = await readText(RELEASE_WORKFLOW);
 const ciWorkflow = await readText(CI_WORKFLOW);
 const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
+const auditQueueBenchmarkWorkflow = await readText(AUDIT_QUEUE_BENCHMARK_WORKFLOW);
 const packedSmokeScript = await readText(PACKED_SMOKE_SCRIPT);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
@@ -33,6 +40,7 @@ checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
+checkAuditQueueBenchmarkWorkflow(auditQueueBenchmarkWorkflow);
 checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 
@@ -95,6 +103,11 @@ function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
+  expectScript(
+    rootPackage,
+    "benchmark:audit-queue",
+    "pnpm run build && node --expose-gc scripts/audit-queue-benchmark.mjs"
+  );
   expectScript(
     rootPackage,
     "test:coverage",
@@ -254,6 +267,29 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
     "packed smoke TypeScript consumer compile"
   );
   expectIncludes(packedSmokeScript, "PACKED_SMOKE_TARBALL", "packed smoke prebuilt tarball input");
+}
+
+function checkAuditQueueBenchmarkWorkflow(workflow) {
+  checkPinnedGitHubActions(workflow, "audit queue benchmark workflow");
+  expectIncludes(workflow, "workflow_dispatch:", "audit queue benchmark manual trigger");
+  expectNotMatches(
+    workflow,
+    /^\s{2}(?:push|pull_request|schedule):/gm,
+    "audit queue benchmark automatic trigger"
+  );
+  expectIncludes(workflow, "contents: read", "audit queue benchmark permissions");
+  expectIncludes(workflow, "cancel-in-progress: false", "audit queue benchmark concurrency");
+  expectIncludes(workflow, "timeout-minutes: 15", "audit queue benchmark timeout");
+  expectIncludes(workflow, "ubuntu-latest", "audit queue benchmark Ubuntu runner");
+  expectIncludes(workflow, "windows-latest", "audit queue benchmark Windows runner");
+  expectIncludes(workflow, "macos-15", "audit queue benchmark macOS runner");
+  expectIncludes(workflow, "node-version: 24.x", "audit queue benchmark Node runtime");
+  expectIncludes(workflow, "pnpm install --frozen-lockfile", "audit queue benchmark install gate");
+  expectIncludes(workflow, "pnpm run build", "audit queue benchmark build gate");
+  expectIncludes(workflow, "scripts/audit-queue-benchmark.mjs", "audit queue benchmark command");
+  expectIncludes(workflow, "--output", "audit queue benchmark JSON output");
+  expectIncludes(workflow, "actions/upload-artifact@", "audit queue benchmark artifact upload");
+  expectIncludes(workflow, "if-no-files-found: error", "audit queue benchmark artifact gate");
 }
 
 function checkPinnedGitHubActions(workflow, label) {
