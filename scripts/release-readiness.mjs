@@ -110,9 +110,20 @@ function checkRootPackage(rootPackage) {
   );
   expectScript(
     rootPackage,
-    "test:coverage",
-    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage"
+    "benchmark:audit-queue:summarize",
+    "node scripts/audit-queue-benchmark-summary.mjs"
   );
+  expectScript(
+    rootPackage,
+    "test:benchmark-tools",
+    "node --test scripts/audit-queue-benchmark-summary.test.mjs"
+  );
+  expectScript(
+    rootPackage,
+    "test:coverage",
+    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:benchmark-tools"
+  );
+  expectScriptIncludes(rootPackage, "test", "pnpm run test:benchmark-tools");
   expectScriptIncludes(rootPackage, "check", "pnpm run test:coverage");
   expectScriptIncludes(rootPackage, "check", "pnpm run release-readiness");
   expectScriptIncludes(
@@ -289,6 +300,16 @@ function checkAuditQueueBenchmarkWorkflow(workflow) {
   expectIncludes(workflow, "scripts/audit-queue-benchmark.mjs", "audit queue benchmark command");
   expectIncludes(workflow, "--output", "audit queue benchmark JSON output");
   expectIncludes(workflow, "actions/upload-artifact@", "audit queue benchmark artifact upload");
+  expectIncludes(workflow, "needs: benchmark", "audit queue benchmark summary dependency");
+  expectIncludes(workflow, "actions/download-artifact@", "audit queue benchmark artifact download");
+  expectIncludes(workflow, "pattern: audit-queue-*", "audit queue benchmark artifact pattern");
+  expectIncludes(
+    workflow,
+    "scripts/audit-queue-benchmark-summary.mjs",
+    "audit queue benchmark summary command"
+  );
+  expectIncludes(workflow, "--github-summary", "audit queue benchmark GitHub summary");
+  expectIncludes(workflow, "name: audit-queue-summary", "audit queue benchmark summary artifact");
   expectIncludes(workflow, "if-no-files-found: error", "audit queue benchmark artifact gate");
 }
 

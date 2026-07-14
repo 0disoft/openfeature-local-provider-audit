@@ -27,8 +27,9 @@ on the supported Node.js runtime matrix.
   consumer, and then runs ESM, CJS, and CLI checks.
 - `.github/workflows/audit-queue-benchmark.yml` runs only on manual dispatch. It measures
   identical audit queue workloads on Node.js 24.x across Ubuntu, Windows, and macOS, then
-  uploads one JSON report per runner. These sampled measurements are not merge or release
-  gates.
+  uploads one JSON report per runner. A dependent job validates the shared input and queue
+  accounting contracts, rejects failed writes, and publishes combined JSON and Markdown
+  summaries. Sampled timing and heap values are visible but are not merge or release gates.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
   `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
   CJS, and CLI bin behavior.

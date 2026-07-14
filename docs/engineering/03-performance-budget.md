@@ -50,7 +50,10 @@ JSON report to a file without changing the console format; for example,
 The benchmark is intentionally not a CI gate. Filesystem speed, scheduler behavior, and
 heap measurements vary by host. The manual `audit queue benchmark` GitHub Actions
 workflow runs the same inputs on Ubuntu, Windows, and macOS and uploads one JSON result
-per runner. It is sampling infrastructure, not a merge or release gate. Use repeated
+per runner. A final job rejects missing platforms, mismatched inputs, unaccounted writes,
+invalid overflow behavior, or failed writes, then publishes a combined JSON artifact and
+Markdown job summary. Timing and heap values remain informational and never fail the run.
+It is sampling infrastructure, not a merge or release gate. Use repeated
 measurements on deployment-like hardware
 before choosing a default queue size, and treat every run as sampled evidence rather than
 a portable throughput guarantee. A bounded default remains UNDECIDED until measurements
