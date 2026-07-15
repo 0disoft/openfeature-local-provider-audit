@@ -39,8 +39,9 @@ a feature flag platform.
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
 - An optional projected-volume consistency strategy and OpenFeature configuration-change
-  events. Completion requires Linux symlink-swap fixtures, duplicate-event suppression,
-  changed-key semantics, and shutdown integration tests.
+  events. ADR 0011 now records the proposed bounded polling boundary and Linux fixtures
+  reproduce the internal symlink swap. Completion still requires interval measurements,
+  implementation, duplicate-event suppression, changed-key semantics, and shutdown tests.
 
 ## Deferred
 

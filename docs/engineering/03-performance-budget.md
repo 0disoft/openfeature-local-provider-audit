@@ -32,6 +32,9 @@ unless an explicit reload mode is documented.
   watchers whose duplicate events are debounced and semantically unchanged snapshots are
   suppressed; the file watcher is replaced only after a target rename. Windows uses bounded file
   polling with a minimum 50 ms interval to avoid unstable native file-event behavior.
+- Projected-volume consistency polling remains proposed in ADR 0011. Any implementation must
+  perform metadata-only idle ticks, reuse the serialized reload queue after fingerprint changes,
+  and publish an interval budget backed by measurements before the option is accepted.
 - Override path: explicit JSON override strings are size-checked before parsing.
 - Package size: avoid dependencies that turn the provider into a platform or service runtime.
 

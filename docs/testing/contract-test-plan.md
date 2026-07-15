@@ -36,6 +36,9 @@ Contract tests prove provider behavior that consumers can rely on.
 - Invalid JSON and invalid schema fail at load boundaries.
 - Snapshot files at the exact byte limit pass, oversized snapshot files fail during the
   bounded read before parsing, and oversized explicit JSON overrides fail before parsing.
+- Linux fixture coverage models a projected volume with a visible file linked through
+  `..data`, proves an atomic internal symlink swap changes the resolved snapshot, and
+  documents that the current visible-filename event filter ignores the `..data` event.
 - Provider adapter converts internal runtime evaluation exceptions to caller defaults
   with `ERROR` reason and `PROVIDER_NOT_READY` error details.
 - Package exports match docs/library/public-api.md.

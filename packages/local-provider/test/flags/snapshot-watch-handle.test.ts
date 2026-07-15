@@ -75,6 +75,19 @@ describe("snapshot watch handle", () => {
     expect(fake.records[0]?.watcher.closed).toBe(true);
   });
 
+  it("documents the Linux projected-volume event gap", () => {
+    const fake = createFakeWatchRuntime("linux");
+    const onChange = vi.fn();
+    const handle = createSnapshotWatchHandle(createWatchOptions(onChange, vi.fn()), fake.runtime);
+
+    fake.records[0]?.listener("rename", "..data");
+    expect(onChange).not.toHaveBeenCalled();
+
+    fake.records[0]?.listener("rename", "flags.json");
+    expect(onChange).toHaveBeenCalledOnce();
+    handle.close();
+  });
+
   it("uses and releases path polling on Windows", () => {
     const fake = createFakeWatchRuntime("win32");
     const onChange = vi.fn();

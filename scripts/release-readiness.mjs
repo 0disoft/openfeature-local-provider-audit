@@ -33,6 +33,16 @@ const PACKAGE_README = path.join(ROOT, "packages", "local-provider", "README.md"
 const AUDIT_CONTRACT_DOC = path.join(ROOT, "docs", "library", "audit-event-v1.md");
 const COMPATIBILITY_DOC = path.join(ROOT, "docs", "library", "compatibility.md");
 const AUDIT_QUEUE_ADR = path.join(ROOT, "docs", "adr", "0010-bounded-audit-queue-default.md");
+const PROJECTED_VOLUME_ADR = path.join(ROOT, "docs", "adr", "0011-projected-volume-consistency.md");
+const SNAPSHOT_WATCH_HANDLE_TEST = path.join(
+  ROOT,
+  "packages",
+  "local-provider",
+  "test",
+  "flags",
+  "snapshot-watch-handle.test.ts"
+);
+const ROADMAP_DOC = path.join(ROOT, "docs", "product", "01-roadmap.md");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
@@ -57,6 +67,9 @@ const packageReadme = await readText(PACKAGE_README);
 const auditContractDoc = await readText(AUDIT_CONTRACT_DOC);
 const compatibilityDoc = await readText(COMPATIBILITY_DOC);
 const auditQueueAdr = await readText(AUDIT_QUEUE_ADR);
+const projectedVolumeAdr = await readText(PROJECTED_VOLUME_ADR);
+const snapshotWatchHandleTest = await readText(SNAPSHOT_WATCH_HANDLE_TEST);
+const roadmapDoc = await readText(ROADMAP_DOC);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
@@ -78,6 +91,7 @@ checkAuditQueueContract({
   compatibilityDoc,
   auditQueueAdr
 });
+checkProjectedVolumeProposal(projectedVolumeAdr, snapshotWatchHandleTest, roadmapDoc);
 checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 
@@ -414,6 +428,22 @@ function checkAuditQueueContract({
   );
   expectIncludes(auditQueueAdr, "Status: Accepted", "audit queue ADR status");
   expectIncludes(auditQueueAdr, "maxQueueSize: null", "audit queue ADR migration opt-out");
+}
+
+function checkProjectedVolumeProposal(adr, watchHandleTest, roadmap) {
+  expectIncludes(adr, "Status: Proposed", "projected-volume ADR status");
+  expectIncludes(
+    adr,
+    "No public option or runtime behavior is added by this ADR alone.",
+    "projected-volume proposal boundary"
+  );
+  expectIncludes(adr, "remain `UNDECIDED`", "projected-volume interval decision boundary");
+  expectIncludes(watchHandleTest, 'listener("rename", "..data")', "projected-volume event fixture");
+  expectIncludes(
+    roadmap,
+    "ADR 0011 now records the proposed bounded polling boundary",
+    "projected-volume roadmap status"
+  );
 }
 
 function checkPinnedGitHubActions(workflow, label) {

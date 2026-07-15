@@ -1,4 +1,4 @@
-import { mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -194,6 +194,25 @@ describe("snapshot file helpers", () => {
     }
   });
 
+  it.runIf(process.platform === "linux")(
+    "follows a projected-volume target after its internal data symlink is swapped",
+    async () => {
+      const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-projected-volume-"));
+      try {
+        const fixture = await createProjectedVolumeFixture(tempDirectory, true);
+
+        const initialSnapshot = await loadFlagSnapshotFile(fixture.visiblePath);
+        await fixture.swap(false);
+        const swappedSnapshot = await loadFlagSnapshotFile(fixture.visiblePath);
+
+        expect(getCheckoutDefaultEnabled(initialSnapshot)).toBe(true);
+        expect(getCheckoutDefaultEnabled(swappedSnapshot)).toBe(false);
+      } finally {
+        await rm(tempDirectory, { recursive: true, force: true });
+      }
+    }
+  );
+
   it("reports reload errors without replacing the last valid snapshot", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {
@@ -304,6 +323,35 @@ async function waitFor(predicate: () => boolean): Promise<void> {
     }
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
+}
+
+async function createProjectedVolumeFixture(root: string, enabled: boolean) {
+  let revision = 0;
+  const visiblePath = join(root, "flags.json");
+  const dataLinkPath = join(root, "..data");
+
+  async function writeRevision(nextEnabled: boolean): Promise<string> {
+    revision += 1;
+    const revisionName = `..snapshot-${revision}`;
+    const revisionPath = join(root, revisionName);
+    await mkdir(revisionPath);
+    await writeFile(join(revisionPath, "flags.json"), createJsonSnapshot(nextEnabled), "utf8");
+    return revisionName;
+  }
+
+  const initialRevision = await writeRevision(enabled);
+  await symlink(initialRevision, dataLinkPath, "dir");
+  await symlink(join("..data", "flags.json"), visiblePath, "file");
+
+  return {
+    visiblePath,
+    async swap(nextEnabled: boolean): Promise<void> {
+      const nextRevision = await writeRevision(nextEnabled);
+      const temporaryLinkPath = join(root, "..data-next");
+      await symlink(nextRevision, temporaryLinkPath, "dir");
+      await rename(temporaryLinkPath, dataLinkPath);
+    }
+  };
 }
 
 async function expectLocalProviderError(promise: Promise<unknown>, code: string): Promise<void> {
