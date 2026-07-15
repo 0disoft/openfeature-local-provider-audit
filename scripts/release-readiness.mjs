@@ -13,6 +13,11 @@ const AUDIT_QUEUE_BENCHMARK_WORKFLOW = path.join(
   "workflows",
   "audit-queue-benchmark.yml"
 );
+const AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT = path.join(
+  ROOT,
+  "scripts",
+  "audit-queue-benchmark-plan.mjs"
+);
 const PACKED_SMOKE_SCRIPT = path.join(ROOT, "scripts", "packed-smoke.mjs");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
@@ -29,6 +34,7 @@ const releaseWorkflow = await readText(RELEASE_WORKFLOW);
 const ciWorkflow = await readText(CI_WORKFLOW);
 const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
 const auditQueueBenchmarkWorkflow = await readText(AUDIT_QUEUE_BENCHMARK_WORKFLOW);
+const auditQueueBenchmarkPlanScript = await readText(AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT);
 const packedSmokeScript = await readText(PACKED_SMOKE_SCRIPT);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
@@ -40,7 +46,7 @@ checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
-checkAuditQueueBenchmarkWorkflow(auditQueueBenchmarkWorkflow);
+checkAuditQueueBenchmarkWorkflow(auditQueueBenchmarkWorkflow, auditQueueBenchmarkPlanScript);
 checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 
@@ -107,6 +113,11 @@ function checkRootPackage(rootPackage) {
     rootPackage,
     "benchmark:audit-queue",
     "pnpm run build && node --expose-gc scripts/audit-queue-benchmark.mjs"
+  );
+  expectScript(
+    rootPackage,
+    "benchmark:audit-queue:plan",
+    "node scripts/audit-queue-benchmark-plan.mjs"
   );
   expectScript(
     rootPackage,
@@ -280,7 +291,7 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
   expectIncludes(packedSmokeScript, "PACKED_SMOKE_TARBALL", "packed smoke prebuilt tarball input");
 }
 
-function checkAuditQueueBenchmarkWorkflow(workflow) {
+function checkAuditQueueBenchmarkWorkflow(workflow, planScript) {
   checkPinnedGitHubActions(workflow, "audit queue benchmark workflow");
   expectIncludes(workflow, "workflow_dispatch:", "audit queue benchmark manual trigger");
   expectNotMatches(
@@ -289,18 +300,41 @@ function checkAuditQueueBenchmarkWorkflow(workflow) {
     "audit queue benchmark automatic trigger"
   );
   expectIncludes(workflow, "contents: read", "audit queue benchmark permissions");
+  expectIncludes(workflow, "type: choice", "audit queue benchmark profile choice");
+  expectIncludes(workflow, "- decision", "audit queue benchmark decision profile");
   expectIncludes(workflow, "cancel-in-progress: false", "audit queue benchmark concurrency");
   expectIncludes(workflow, "timeout-minutes: 15", "audit queue benchmark timeout");
-  expectIncludes(workflow, "ubuntu-latest", "audit queue benchmark Ubuntu runner");
-  expectIncludes(workflow, "windows-latest", "audit queue benchmark Windows runner");
-  expectIncludes(workflow, "macos-15", "audit queue benchmark macOS runner");
+  expectIncludes(planScript, 'os: "ubuntu-latest"', "audit queue benchmark Ubuntu runner");
+  expectIncludes(planScript, 'os: "windows-latest"', "audit queue benchmark Windows runner");
+  expectIncludes(planScript, 'os: "macos-15"', "audit queue benchmark macOS runner");
+  expectIncludes(planScript, "stallMs: 1_000", "audit queue benchmark short stall profile");
+  expectIncludes(planScript, "stallMs: 5_000", "audit queue benchmark medium stall profile");
+  expectIncludes(planScript, "stallMs: 30_000", "audit queue benchmark sustained stall profile");
+  expectIncludes(planScript, "repetitions: 3", "audit queue benchmark decision repetitions");
   expectIncludes(workflow, "node-version: 24.x", "audit queue benchmark Node runtime");
   expectIncludes(workflow, "pnpm install --frozen-lockfile", "audit queue benchmark install gate");
   expectIncludes(workflow, "pnpm run build", "audit queue benchmark build gate");
+  expectIncludes(
+    workflow,
+    "scripts/audit-queue-benchmark-plan.mjs",
+    "audit queue benchmark plan command"
+  );
+  expectIncludes(workflow, "--github-output", "audit queue benchmark plan output");
+  expectIncludes(workflow, "max-parallel: 9", "audit queue benchmark parallel job limit");
+  expectIncludes(
+    workflow,
+    "matrix: $" + "{{ fromJSON(needs.plan.outputs.matrix) }}",
+    "audit queue benchmark dynamic matrix"
+  );
   expectIncludes(workflow, "scripts/audit-queue-benchmark.mjs", "audit queue benchmark command");
+  expectIncludes(workflow, "--repetition", "audit queue benchmark repetition metadata");
   expectIncludes(workflow, "--output", "audit queue benchmark JSON output");
   expectIncludes(workflow, "actions/upload-artifact@", "audit queue benchmark artifact upload");
-  expectIncludes(workflow, "needs: benchmark", "audit queue benchmark summary dependency");
+  expectIncludes(
+    workflow,
+    "needs:\n      - plan\n      - benchmark",
+    "audit queue benchmark summary dependencies"
+  );
   expectIncludes(workflow, "actions/download-artifact@", "audit queue benchmark artifact download");
   expectIncludes(workflow, "pattern: audit-queue-*", "audit queue benchmark artifact pattern");
   expectIncludes(

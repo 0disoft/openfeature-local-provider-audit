@@ -10,6 +10,7 @@
   },
   "scripts": {
     "benchmark:audit-queue": "pnpm run build && node --expose-gc scripts/audit-queue-benchmark.mjs",
+    "benchmark:audit-queue:plan": "node scripts/audit-queue-benchmark-plan.mjs",
     "benchmark:audit-queue:summarize": "node scripts/audit-queue-benchmark-summary.mjs",
     "build": "pnpm --filter @0disoft/openfeature-local-provider build",
     "check": "pnpm run typecheck && pnpm run test:coverage && pnpm run build && pnpm run pack:check && pnpm run release-readiness",

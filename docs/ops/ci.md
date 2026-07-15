@@ -25,11 +25,15 @@ on the supported Node.js runtime matrix.
   newest `@openfeature/server-sdk` version allowed by the package peer range into the packed
   consumer smoke project without changing the lockfile, compiles a strict TypeScript
   consumer, and then runs ESM, CJS, and CLI checks.
-- `.github/workflows/audit-queue-benchmark.yml` runs only on manual dispatch. It measures
-  identical audit queue workloads on Node.js 24.x across Ubuntu, Windows, and macOS, then
-  uploads one JSON report per runner. A dependent job validates the shared input and queue
-  accounting contracts, rejects failed writes, and publishes combined JSON and Markdown
-  summaries. Sampled timing and heap values are visible but are not merge or release gates.
+- `.github/workflows/audit-queue-benchmark.yml` runs only on manual dispatch. Its `quick`
+  profile runs one small sample on Node.js 24.x across Ubuntu, Windows, and macOS. Its
+  `decision` profile runs three repeated 1-second, 5-second, and 30-second stall samples
+  on every platform; `custom` preserves one-off workload input. A planning job creates the
+  dynamic matrix, and at most nine benchmark jobs run concurrently. A dependent job
+  validates every platform repetition and queue
+  accounting contract, rejects failed writes, and publishes raw runs, aggregate JSON, and
+  Markdown summaries with median and worst observed measurements. Sampled timing and heap
+  values are visible but are not merge or release gates.
 - Validation sequence: `format:check`, `lint`, `typecheck`, `test`, release readiness,
   `pack:check`, the Node basic example smoke command, and packed package smoke for ESM,
   CJS, and CLI bin behavior.

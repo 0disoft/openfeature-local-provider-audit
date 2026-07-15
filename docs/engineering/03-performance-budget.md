@@ -46,15 +46,20 @@ as raw filesystem throughput. Optional `--writes`, `--queue-size`, `--stall-ms`,
 `--json` arguments change the sampled workload. `--output <path>` also writes the full
 JSON report to a file without changing the console format; for example,
 `pnpm run benchmark:audit-queue -- --writes 10000 --queue-size 1000 --json`.
+New reports use schema version 2 and identify their profile, sample, and repetition. The
+summary tool continues to accept schema version 1 reports from earlier runs.
 
 The benchmark is intentionally not a CI gate. Filesystem speed, scheduler behavior, and
 heap measurements vary by host. The manual `audit queue benchmark` GitHub Actions
-workflow runs the same inputs on Ubuntu, Windows, and macOS and uploads one JSON result
-per runner. A final job rejects missing platforms, mismatched inputs, unaccounted writes,
-invalid overflow behavior, or failed writes, then publishes a combined JSON artifact and
-Markdown job summary. Timing and heap values remain informational and never fail the run.
-It is sampling infrastructure, not a merge or release gate. Use repeated
-measurements on deployment-like hardware
+workflow offers fixed `quick` and `decision` profiles plus a single-run `custom` profile.
+`quick` runs 5,000 writes with a queue of 1,000 and a 100 ms stall once per platform.
+`decision` runs three repetitions per platform at 1 second with 5,000 writes, 5 seconds
+with 10,000 writes, and 30 seconds with 25,000 writes; its dynamic matrix contains 27
+benchmark jobs. A final job rejects missing platform repetitions, mismatched inputs,
+unaccounted writes, invalid overflow behavior, or failed writes, then publishes raw runs,
+median/minimum/maximum statistics, combined JSON, and a Markdown job summary. Timing and
+heap values remain informational and never fail the run. It is sampling infrastructure,
+not a merge or release gate. Use repeated measurements on deployment-like hardware
 before choosing a default queue size, and treat every run as sampled evidence rather than
 a portable throughput guarantee. A bounded default remains UNDECIDED until measurements
 cover normal local disks and a sustained sink stall without unaccounted writes.

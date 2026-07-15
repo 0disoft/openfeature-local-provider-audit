@@ -34,7 +34,12 @@ try {
   ];
 
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    sample: {
+      profile: options.profile,
+      id: options.sample,
+      repetition: options.repetition
+    },
     environment: {
       platform: process.platform,
       architecture: process.arch,
@@ -59,7 +64,7 @@ try {
   } else {
     console.log("Audit queue benchmark");
     console.log(
-      `Node ${process.version} on ${process.platform}/${process.arch}; writes=${options.writes}; queue=${options.queueSize}; stall=${options.stallMs}ms`
+      `Profile ${options.profile}/${options.sample} repetition ${options.repetition}; Node ${process.version} on ${process.platform}/${process.arch}; writes=${options.writes}; queue=${options.queueSize}; stall=${options.stallMs}ms`
     );
     console.table(
       scenarios.map((scenario) => ({
@@ -198,6 +203,9 @@ function parseOptions(args) {
     writes: DEFAULT_WRITES,
     queueSize: DEFAULT_QUEUE_SIZE,
     stallMs: DEFAULT_STALL_MS,
+    profile: "custom",
+    sample: "custom",
+    repetition: 1,
     json: false,
     output: undefined
   };
@@ -223,6 +231,12 @@ function parseOptions(args) {
       parsed.queueSize = parsePositiveInteger(value, argument);
     } else if (argument === "--stall-ms") {
       parsed.stallMs = parsePositiveInteger(value, argument);
+    } else if (argument === "--profile") {
+      parsed.profile = parseIdentifier(value, argument);
+    } else if (argument === "--sample") {
+      parsed.sample = parseIdentifier(value, argument);
+    } else if (argument === "--repetition") {
+      parsed.repetition = parsePositiveInteger(value, argument);
     } else if (argument === "--output") {
       if (value.trim() === "") {
         throw new Error(`${argument} must not be empty.`);
@@ -243,6 +257,13 @@ function parsePositiveInteger(value, label) {
     throw new Error(`${label} must be a positive integer.`);
   }
   return parsed;
+}
+
+function parseIdentifier(value, label) {
+  if (!/^[a-z0-9][a-z0-9-]{0,63}$/.test(value)) {
+    throw new Error(`${label} must be a lowercase identifier up to 64 characters.`);
+  }
+  return value;
 }
 
 function roundMilliseconds(value) {
