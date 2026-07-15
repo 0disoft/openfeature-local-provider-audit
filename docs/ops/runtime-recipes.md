@@ -56,14 +56,17 @@ audit queue and local filesystem.
 
 Choose overflow behavior from the value of the audit trail rather than from throughput alone.
 
-- Compliance-sensitive local processes: set a finite `maxQueueSize`, use `reject`, consider
-  `auditWriteMode: "blocking"`, and treat write failures as an operational alert.
+- Compliance-sensitive local processes: keep or tune the finite default, use `reject`,
+  consider `auditWriteMode: "blocking"`, and treat rejected or failed writes as an
+  operational alert.
 - Best-effort diagnostics: set a finite `maxQueueSize`, use `dropNewest`, keep non-blocking writes,
   and monitor `auditSink.getStats?.().droppedWrites`.
 - Short-lived commands: always await `auditSink.flush?.()` before successful exit.
 
-The compatibility default remains an unbounded queue. Production consumers should make an
-explicit choice after measuring their maximum evaluation burst and local write latency.
+The default queue holds 5,000 pending writes. Set a different positive limit after
+measuring the maximum evaluation burst and local write latency. `maxQueueSize: null`
+restores the pre-0.15 unbounded queue and should be treated as an explicit process-memory
+risk acceptance, not a tuning shortcut.
 
 ## Multiple Processes
 
@@ -86,9 +89,10 @@ At minimum, retain these local signals without snapshot contents or context valu
 
 - watcher reload error count and last error time;
 - age of the last successful snapshot update;
-- pending and dropped audit write counts when the sink exposes stats;
+- pending, dropped, and rejected audit write counts plus the effective queue limit when
+  the sink exposes stats;
 - audit file write, rotation, and lock acquisition failures;
-- non-zero dropped writes or a provider-close flush failure;
+- non-zero dropped or rejected writes, or a provider-close flush failure;
 - repeated audit failures even when the sink's retained error-cause sample is capped;
 - package version and snapshot hash associated with an incident.
 

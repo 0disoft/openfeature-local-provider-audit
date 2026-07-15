@@ -76,7 +76,9 @@ Implementation must not expose internal modules only because examples need conve
   `maxOverridesJsonBytes`, and optional injectable `env`.
 - `FileAuditSinkOptions` with `path`, optional `createDirectory`, optional `maxBytes`,
   optional `maxFiles`, optional `lock`, optional `lockTimeoutMs`, and optional
-  `staleLockMs`, optional `maxQueueSize`, and optional `queueOverflowPolicy`.
+  `staleLockMs`, optional `maxQueueSize: number | null`, and optional
+  `queueOverflowPolicy`. Omitting `maxQueueSize` selects 5,000; `null` explicitly selects
+  an unbounded queue.
 - `EvaluationRequest` with optional `targetingKey` for rollout evaluation and a
   discriminated `expectedType`/`defaultValue` pair that rejects mismatched caller types.
 - `EvaluationResult` with optional `bucket` for deterministic pure-evaluator replay checks.
@@ -84,7 +86,8 @@ Implementation must not expose internal modules only because examples need conve
 - Audit context output includes the applied `keyMode`; `count` adds `keyCount`, while
   non-`names` modes keep `keys` empty.
 - `AuditSink` implementations may expose optional `flush()` to wait for pending writes and
-  optional `getStats()` for implementation-specific sink counters.
+  optional `getStats()` for implementation-specific sink counters. File sinks report
+  pending, dropped, and rejected writes plus their effective queue limit.
 - Providers flush an optional audit sink through the OpenFeature `onClose` lifecycle hook;
   they do not close or take exclusive ownership of shared sinks.
 - Snapshot and override hash generation uses locale-independent key ordering.

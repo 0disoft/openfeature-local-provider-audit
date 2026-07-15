@@ -20,9 +20,9 @@ unless an explicit reload mode is documented.
 - Evaluation path: constant work relative to the selected flag rule where practical and
   no per-evaluation file I/O.
 - Audit path: redaction and JSON Lines writing must not expose raw context or block unrelated evaluations without documentation.
-- File audit sink queueing is unbounded by default for compatibility; callers can set
-  `maxQueueSize` and choose reject or drop-newest overflow behavior for high-pressure
-  local writers.
+- File audit sink queueing defaults to 5,000 pending writes with reject overflow
+  behavior. Callers can select another positive limit, explicitly opt out with
+  `maxQueueSize: null`, or choose drop-newest behavior for best-effort local writers.
 - Provider audit path: snapshot and override hashes are computed when provider state is
   created or updated, not by re-hashing the full snapshot on every evaluation.
 - Snapshot path: file parsing and validation occur at explicit load, reload, or watch
@@ -61,8 +61,8 @@ median/minimum/maximum statistics, combined JSON, and a Markdown job summary. Ti
 heap values remain informational and never fail the run. It is sampling infrastructure,
 not a merge or release gate. Use repeated measurements on deployment-like hardware
 before choosing a default queue size, and treat every run as sampled evidence rather than
-a portable throughput guarantee. A bounded default remains UNDECIDED until measurements
-cover normal local disks and a sustained sink stall without unaccounted writes.
+a portable throughput guarantee. ADR 0010 uses the completed cross-platform decision run
+to select the bounded default while keeping timing values non-normative.
 
 ## Review Blockers
 

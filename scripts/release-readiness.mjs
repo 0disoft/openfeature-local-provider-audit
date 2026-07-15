@@ -19,6 +19,20 @@ const AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT = path.join(
   "audit-queue-benchmark-plan.mjs"
 );
 const PACKED_SMOKE_SCRIPT = path.join(ROOT, "scripts", "packed-smoke.mjs");
+const AUDIT_QUEUE_BENCHMARK_SCRIPT = path.join(ROOT, "scripts", "audit-queue-benchmark.mjs");
+const AUDIT_SINK_SOURCE = path.join(
+  ROOT,
+  "packages",
+  "local-provider",
+  "src",
+  "audit",
+  "audit-sink.ts"
+);
+const PUBLIC_TYPES_SOURCE = path.join(ROOT, "packages", "local-provider", "src", "public-types.ts");
+const PACKAGE_README = path.join(ROOT, "packages", "local-provider", "README.md");
+const AUDIT_CONTRACT_DOC = path.join(ROOT, "docs", "library", "audit-event-v1.md");
+const COMPATIBILITY_DOC = path.join(ROOT, "docs", "library", "compatibility.md");
+const AUDIT_QUEUE_ADR = path.join(ROOT, "docs", "adr", "0010-bounded-audit-queue-default.md");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
@@ -36,6 +50,13 @@ const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
 const auditQueueBenchmarkWorkflow = await readText(AUDIT_QUEUE_BENCHMARK_WORKFLOW);
 const auditQueueBenchmarkPlanScript = await readText(AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT);
 const packedSmokeScript = await readText(PACKED_SMOKE_SCRIPT);
+const auditQueueBenchmarkScript = await readText(AUDIT_QUEUE_BENCHMARK_SCRIPT);
+const auditSinkSource = await readText(AUDIT_SINK_SOURCE);
+const publicTypesSource = await readText(PUBLIC_TYPES_SOURCE);
+const packageReadme = await readText(PACKAGE_README);
+const auditContractDoc = await readText(AUDIT_CONTRACT_DOC);
+const compatibilityDoc = await readText(COMPATIBILITY_DOC);
+const auditQueueAdr = await readText(AUDIT_QUEUE_ADR);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
@@ -47,6 +68,16 @@ checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
 checkAuditQueueBenchmarkWorkflow(auditQueueBenchmarkWorkflow, auditQueueBenchmarkPlanScript);
+checkAuditQueueContract({
+  packageJson,
+  auditQueueBenchmarkScript,
+  auditSinkSource,
+  publicTypesSource,
+  packageReadme,
+  auditContractDoc,
+  compatibilityDoc,
+  auditQueueAdr
+});
 checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 
@@ -345,6 +376,44 @@ function checkAuditQueueBenchmarkWorkflow(workflow, planScript) {
   expectIncludes(workflow, "--github-summary", "audit queue benchmark GitHub summary");
   expectIncludes(workflow, "name: audit-queue-summary", "audit queue benchmark summary artifact");
   expectIncludes(workflow, "if-no-files-found: error", "audit queue benchmark artifact gate");
+}
+
+function checkAuditQueueContract({
+  packageJson: localPackage,
+  auditQueueBenchmarkScript,
+  auditSinkSource,
+  publicTypesSource,
+  packageReadme,
+  auditContractDoc,
+  compatibilityDoc,
+  auditQueueAdr
+}) {
+  expectIncludes(auditSinkSource, "DEFAULT_AUDIT_QUEUE_SIZE = 5_000", "audit queue default source");
+  expectIncludes(auditSinkSource, "rejectedWrites += 1", "audit queue reject observability");
+  expectIncludes(
+    publicTypesSource,
+    "readonly maxQueueSize?: number | null",
+    "audit queue unbounded opt-out type"
+  );
+  expectIncludes(
+    publicTypesSource,
+    "readonly rejectedWrites: number",
+    "audit queue rejected stats type"
+  );
+  expectIncludes(
+    auditQueueBenchmarkScript,
+    "maxQueueSize: null",
+    "audit benchmark explicit unbounded mode"
+  );
+  expectIncludes(packageReadme, "bounded to 5,000", "package README audit queue default");
+  expectIncludes(auditContractDoc, "5,000 writes by default", "audit contract queue default");
+  expectIncludes(
+    compatibilityDoc,
+    `## ${localPackage.version} Bounded Audit Queue Default`,
+    "audit queue compatibility version"
+  );
+  expectIncludes(auditQueueAdr, "Status: Accepted", "audit queue ADR status");
+  expectIncludes(auditQueueAdr, "maxQueueSize: null", "audit queue ADR migration opt-out");
 }
 
 function checkPinnedGitHubActions(workflow, label) {

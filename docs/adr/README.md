@@ -20,6 +20,7 @@ which behavior becomes part of the public compatibility contract.
 - File reload/watch ADR: docs/adr/0007-file-reload-watch.md
 - CLI helpers ADR: docs/adr/0008-cli-helpers.md
 - Audit context key redaction ADR: docs/adr/0009-audit-context-key-redaction.md
+- Bounded audit queue default ADR: docs/adr/0010-bounded-audit-queue-default.md
 
 ## Required Decisions
 

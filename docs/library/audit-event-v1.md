@@ -58,7 +58,8 @@ raw user context by default.
   not yet been reported by an earlier flush. Each settled failure is consumed by one
   serialized flush call. Failure count is exact; retained error objects are capped at 16
   per flush interval so an undrained failure ledger cannot grow without bound.
-- File audit sinks expose optional `getStats()` with pending and dropped write counters.
+- File audit sinks expose optional `getStats()` with pending, dropped, and rejected write
+  counters plus the effective queue limit. Counters are cumulative for the sink lifetime.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
 - New POSIX audit directories and files use `0700` and `0600`. The final path rejects
@@ -71,10 +72,12 @@ raw user context by default.
 - Each acquired lock records an owner token. A releasing writer removes the lock only
   when that token still matches, so a stale owner cannot delete a replacement owner's
   lock after takeover.
-- File audit sinks may bound their in-memory write queue with `maxQueueSize`.
+- File audit sinks bound their in-memory write queue to 5,000 writes by default.
+  `maxQueueSize` accepts a positive caller-owned limit, while `null` explicitly selects
+  the pre-0.15 unbounded behavior.
   `queueOverflowPolicy: "reject"` rejects the newest write when full, while
-  `"dropNewest"` resolves without writing the newest event and increments the dropped
-  write counter.
+  `"dropNewest"` resolves without writing the newest event. Reject and drop outcomes
+  increment separate counters.
 - `createLocalProvider({ auditSink })` schedules audit writes after evaluation and logs
   sink failures without changing the returned resolution.
 - Provider audit writes are non-blocking by default. Use

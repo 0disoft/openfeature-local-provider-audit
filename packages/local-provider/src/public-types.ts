@@ -220,6 +220,8 @@ export type AuditQueueOverflowPolicy = "reject" | "dropNewest";
 export interface FileAuditSinkStats {
   readonly pendingWrites: number;
   readonly droppedWrites: number;
+  readonly rejectedWrites: number;
+  readonly maxQueueSize: number | null;
 }
 
 export interface FileAuditSinkOptions {
@@ -230,6 +232,6 @@ export interface FileAuditSinkOptions {
   readonly lock?: boolean;
   readonly lockTimeoutMs?: number;
   readonly staleLockMs?: number;
-  readonly maxQueueSize?: number;
+  readonly maxQueueSize?: number | null;
   readonly queueOverflowPolicy?: AuditQueueOverflowPolicy;
 }

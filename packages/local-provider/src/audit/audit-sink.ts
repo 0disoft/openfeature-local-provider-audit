@@ -10,6 +10,7 @@ import { serializeAuditEvent } from "./audit-event.js";
 
 const AUDIT_FILE_MODE = 0o600;
 const AUDIT_DIRECTORY_MODE = 0o700;
+const DEFAULT_AUDIT_QUEUE_SIZE = 5_000;
 const MAX_RETAINED_FAILURE_CAUSES = 16;
 const AUDIT_OPEN_FLAGS =
   constants.O_APPEND | constants.O_CREAT | constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0);
@@ -26,6 +27,7 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   let unreportedFailureCount = 0;
   let queuedWrites = 0;
   let droppedWrites = 0;
+  let rejectedWrites = 0;
   let writeQueue = Promise.resolve();
   let flushQueue = Promise.resolve();
 
@@ -37,6 +39,7 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
           return;
         }
 
+        rejectedWrites += 1;
         throw new Error(`Audit write queue is full: maxQueueSize=${queue.maxSize}`);
       }
 
@@ -89,7 +92,9 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
     getStats() {
       return {
         pendingWrites: queuedWrites,
-        droppedWrites
+        droppedWrites,
+        rejectedWrites,
+        maxQueueSize: queue.maxSize ?? null
       };
     }
   };
@@ -233,20 +238,21 @@ function createQueueOptions(options: FileAuditSinkOptions): QueueOptions {
     throw new TypeError("queueOverflowPolicy must be reject or dropNewest");
   }
 
-  if (options.maxQueueSize === undefined) {
+  if (options.maxQueueSize === null) {
     return {
       maxSize: undefined,
       overflowPolicy: options.queueOverflowPolicy ?? "reject"
     };
   }
 
-  assertNonNegativeInteger(options.maxQueueSize, "maxQueueSize");
-  if (options.maxQueueSize === 0) {
+  const maxQueueSize = options.maxQueueSize ?? DEFAULT_AUDIT_QUEUE_SIZE;
+  assertNonNegativeInteger(maxQueueSize, "maxQueueSize");
+  if (maxQueueSize === 0) {
     throw new RangeError("maxQueueSize must be greater than 0");
   }
 
   return {
-    maxSize: options.maxQueueSize,
+    maxSize: maxQueueSize,
     overflowPolicy: options.queueOverflowPolicy ?? "reject"
   };
 }

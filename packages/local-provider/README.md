@@ -243,11 +243,13 @@ evaluation promise must wait for its audit write. `OpenFeature.close()` invokes 
 provider close hook, which flushes the configured sink without taking ownership of or
 closing a sink that another provider may share.
 
-Set `maxQueueSize` when local I/O pressure should not grow pending audit writes without
-bound. The default is unbounded for compatibility. With a bounded queue, the default
-overflow policy is `reject`; set `queueOverflowPolicy: "dropNewest"` to resolve the
-overflowing write without appending that event. `auditSink.getStats?.()` returns pending
-and dropped write counters when supported.
+The queue is bounded to 5,000 pending writes by default. Set a positive `maxQueueSize` to
+choose another limit, or set `maxQueueSize: null` only when preserving the pre-0.15
+unbounded behavior is worth the process-memory risk. The default overflow policy is
+`reject`; set `queueOverflowPolicy: "dropNewest"` to resolve the overflowing write without
+appending that event. `auditSink.getStats?.()` returns pending, dropped, and rejected
+write counters plus the effective queue limit. Counters are cumulative for the sink
+lifetime.
 
 Set `maxBytes` to rotate the active audit file by size. `maxFiles` controls how many
 rotated files are retained as `.1`, `.2`, and so on.

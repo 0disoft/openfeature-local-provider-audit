@@ -101,6 +101,17 @@ Detailed compatibility contracts live in:
 - Raw context values, targeting keys, and evaluated values remain excluded under every
   redaction mode.
 
+## 0.15.0 Bounded Audit Queue Default
+
+- File audit sinks now default to a 5,000-write queue with `reject` overflow behavior.
+- Set `maxQueueSize: null` to preserve the pre-0.15 unbounded queue deliberately.
+- `getStats()` now includes cumulative `rejectedWrites` and the effective
+  `maxQueueSize`; existing stats fixtures must add those fields.
+- Direct sink callers must handle queue-full rejections. Provider audit writes preserve
+  evaluation results and report rejection through the existing warning path.
+- `dropNewest` remains opt-in and increments `droppedWrites` instead of
+  `rejectedWrites`.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

@@ -17,8 +17,8 @@ const benchmarkRoot = await mkdtemp(join(tmpdir(), "openfeature-audit-queue-benc
 
 try {
   const scenarios = [
-    await runScenario({ name: "fast-unbounded", blocked: false }),
-    await runScenario({ name: "lock-stalled-unbounded", blocked: true }),
+    await runScenario({ name: "fast-unbounded", blocked: false, maxQueueSize: null }),
+    await runScenario({ name: "lock-stalled-unbounded", blocked: true, maxQueueSize: null }),
     await runScenario({
       name: "lock-stalled-bounded-reject",
       blocked: true,

@@ -679,7 +679,9 @@ describe("audit events", () => {
         );
         expect(auditSink.getStats?.()).toEqual({
           pendingWrites: 1,
-          droppedWrites: 0
+          droppedWrites: 0,
+          rejectedWrites: 1,
+          maxQueueSize: 1
         });
       } finally {
         await rm(lockPath, { force: true });
@@ -690,7 +692,9 @@ describe("audit events", () => {
 
       expect(auditSink.getStats?.()).toEqual({
         pendingWrites: 0,
-        droppedWrites: 0
+        droppedWrites: 0,
+        rejectedWrites: 1,
+        maxQueueSize: 1
       });
       const content = await readFile(auditPath, "utf8");
       expect(content).toContain("evt_queue_reject_1");
@@ -721,7 +725,9 @@ describe("audit events", () => {
         await auditSink.write(createTestAuditEvent("evt_queue_drop_2"));
         expect(auditSink.getStats?.()).toEqual({
           pendingWrites: 1,
-          droppedWrites: 1
+          droppedWrites: 1,
+          rejectedWrites: 0,
+          maxQueueSize: 1
         });
       } finally {
         await rm(lockPath, { force: true });
@@ -732,7 +738,9 @@ describe("audit events", () => {
 
       expect(auditSink.getStats?.()).toEqual({
         pendingWrites: 0,
-        droppedWrites: 1
+        droppedWrites: 1,
+        rejectedWrites: 0,
+        maxQueueSize: 1
       });
       const content = await readFile(auditPath, "utf8");
       expect(content).toContain("evt_queue_drop_1");
@@ -740,6 +748,27 @@ describe("audit events", () => {
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
     }
+  });
+
+  it("uses a bounded queue by default and allows an explicit unbounded opt-out", async () => {
+    const defaultSink = createFileAuditSink({ path: "default-audit.jsonl" });
+    const unboundedSink = createFileAuditSink({
+      path: "unbounded-audit.jsonl",
+      maxQueueSize: null
+    });
+
+    expect(defaultSink.getStats?.()).toEqual({
+      pendingWrites: 0,
+      droppedWrites: 0,
+      rejectedWrites: 0,
+      maxQueueSize: 5000
+    });
+    expect(unboundedSink.getStats?.()).toEqual({
+      pendingWrites: 0,
+      droppedWrites: 0,
+      rejectedWrites: 0,
+      maxQueueSize: null
+    });
   });
 
   it("rejects invalid file audit rotation options", () => {

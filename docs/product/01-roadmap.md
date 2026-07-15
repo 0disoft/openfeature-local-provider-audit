@@ -30,6 +30,9 @@ a feature flag platform.
     existing default behavior.
 11. Complete the `0.14` compatibility hardening: bind `EvaluationRequest` types, reject
     unknown snapshot fields, and default audit context disclosure to key counts.
+12. Complete the `0.15` audit backpressure policy: validate repeated cross-platform
+    overload evidence, default the file sink queue to 5,000, expose reject observability,
+    and retain explicit unbounded migration behavior.
 
 ## Next Evaluation Areas
 
@@ -38,8 +41,6 @@ a feature flag platform.
 - An optional projected-volume consistency strategy and OpenFeature configuration-change
   events. Completion requires Linux symlink-swap fixtures, duplicate-event suppression,
   changed-key semantics, and shutdown integration tests.
-- A bounded-by-default audit queue policy. Completion requires a compatibility decision,
-  overload benchmarks, migration guidance, and explicit drop/reject observability.
 
 ## Deferred
 

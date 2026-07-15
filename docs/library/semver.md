@@ -29,6 +29,7 @@ Semantic versioning protects consumers from silent changes to flag evaluation be
 - Changed reason names or error code mapping.
 - Removed or retyped audit event fields.
 - Changed redaction defaults.
+- Changed file-audit queue defaults, overflow behavior, or counter meanings.
 - Changed package exports or runtime support claims.
 - Changed OpenFeature SDK dependency type from peer dependency to bundled dependency.
 - Changed package name or license metadata.
