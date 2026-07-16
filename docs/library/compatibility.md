@@ -112,6 +112,21 @@ Detailed compatibility contracts live in:
 - `dropNewest` remains opt-in and increments `droppedWrites` instead of
   `rejectedWrites`.
 
+## 0.16.0 Projected-Volume Consistency And Change Events
+
+- `watchFlagSnapshotFile()` accepts optional `consistencyPollIntervalMs` values of at
+  least 50 ms. Omitting the option preserves the existing native watch strategy and resource
+  use.
+- Opted-in polling compares device, inode, modification time, change time, and size, then
+  routes detected changes through the existing debounce and serialized reload queue.
+- Reloadable providers expose the OpenFeature event emitter and emit
+  `PROVIDER_CONFIGURATION_CHANGED` after successful semantic snapshot updates.
+- `flagsChanged` contains code-unit-sorted added, removed, and changed flag keys. A
+  metadata-only snapshot update emits an empty list; invalid and semantically unchanged
+  updates emit nothing.
+- Provider close removes its event handlers. Existing consumers that do not enable polling or
+  subscribe to events keep their prior behavior.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

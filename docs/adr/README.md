@@ -21,7 +21,7 @@ which behavior becomes part of the public compatibility contract.
 - CLI helpers ADR: docs/adr/0008-cli-helpers.md
 - Audit context key redaction ADR: docs/adr/0009-audit-context-key-redaction.md
 - Bounded audit queue default ADR: docs/adr/0010-bounded-audit-queue-default.md
-- Proposed projected-volume consistency ADR: docs/adr/0011-projected-volume-consistency.md
+- Projected-volume consistency ADR: docs/adr/0011-projected-volume-consistency.md
 
 ## Required Decisions
 

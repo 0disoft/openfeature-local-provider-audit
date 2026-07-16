@@ -27,10 +27,11 @@ fixtures across documented runtime targets.
 
 - `examples/node-basic` registers the provider through OpenFeature, resolves a local
   override and rollout flag, atomically replaces a local snapshot, waits for reload,
-  flushes a strict-redaction audit sink, and verifies the same rollout path with
-  `replayEvaluationFixture`.
+  verifies deterministic configuration-change keys, flushes a strict-redaction audit sink,
+  and verifies the same rollout path with `replayEvaluationFixture`.
 - The Node example exits unsuccessfully when override priority, deterministic replay,
-  reload behavior, audit event count, or strict context-key redaction drifts.
+  reload or configuration-event behavior, audit event count, or strict context-key
+  redaction drifts.
 - The root typecheck includes the Node example so consumer-facing type drift is checked
   separately from its runtime smoke.
 - The example context uses synthetic non-personal fields and does not include emails,

@@ -6,6 +6,7 @@ Status: Draft
 
 - Product scope source: docs/product/02-spec.md
 - MVP scope cut source: docs/product/04-scope-cut.md
+- 1.0 readiness source: docs/product/05-1.0-readiness.md
 - Repository strategy source: docs/repository/00-repository-strategy.md
 - Package, license, and runtime policy source: docs/adr/0004-package-license-runtime-policy.md
 - Package manager policy source: docs/adr/0005-pnpm-workspace-policy.md
@@ -26,6 +27,7 @@ Status: Draft
 - Library reason source: docs/library/evaluation-reasons.md
 - Library audit event source: docs/library/audit-event-v1.md
 - Library replay fixture source: docs/library/replay-fixture-v1.md
+- Library configuration-change event source: docs/library/configuration-change-events.md
 - Security source: docs/security/privacy-and-redaction.md and docs/security/threat-model.md
 - Testing source: docs/testing/contract-test-plan.md and docs/testing/replay-test-plan.md
 - Release source: docs/ops/release.md, docs/ops/release-checklist.md, and docs/ops/npm-publishing.md

@@ -213,6 +213,118 @@ describe("snapshot file helpers", () => {
     }
   );
 
+  it.runIf(process.platform === "linux")(
+    "reloads a projected-volume target through opt-in consistency polling",
+    async () => {
+      const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-projected-watch-"));
+      try {
+        const fixture = await createProjectedVolumeFixture(tempDirectory, true);
+        const snapshots: boolean[] = [];
+        const watcher = await watchFlagSnapshotFile({
+          path: fixture.visiblePath,
+          debounceMs: 10,
+          consistencyPollIntervalMs: 50,
+          onSnapshot(snapshot) {
+            snapshots.push(getCheckoutDefaultEnabled(snapshot));
+          }
+        });
+
+        try {
+          await fixture.swap(false);
+          await waitFor(() => snapshots.at(-1) === false);
+          expect(snapshots).toEqual([true, false]);
+        } finally {
+          watcher.close();
+        }
+      } finally {
+        await rm(tempDirectory, { recursive: true, force: true });
+      }
+    }
+  );
+
+  it.runIf(process.platform === "linux")(
+    "preserves and recovers the last snapshot when a polled target disappears",
+    async () => {
+      const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-projected-recovery-"));
+      try {
+        const fixture = await createProjectedVolumeFixture(tempDirectory, true);
+        const snapshots: boolean[] = [];
+        const errors: unknown[] = [];
+        const watcher = await watchFlagSnapshotFile({
+          path: fixture.visiblePath,
+          debounceMs: 10,
+          consistencyPollIntervalMs: 50,
+          onSnapshot(snapshot) {
+            snapshots.push(getCheckoutDefaultEnabled(snapshot));
+          },
+          onError(error) {
+            errors.push(error);
+          }
+        });
+
+        try {
+          await fixture.detach();
+          await waitFor(() => errors.length > 0);
+          expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(true);
+
+          await fixture.swap(false);
+          await waitFor(() => snapshots.at(-1) === false);
+          expect(snapshots).toEqual([true, false]);
+        } finally {
+          watcher.close();
+        }
+      } finally {
+        await rm(tempDirectory, { recursive: true, force: true });
+      }
+    }
+  );
+
+  it("does not publish queued reloads after close", async () => {
+    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-close-reload-"));
+    try {
+      const path = join(tempDirectory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true), "utf8");
+      const secondCallbackStarted = createDeferred();
+      const releaseSecondCallback = createDeferred();
+      let callbackCount = 0;
+      const watcher = await watchFlagSnapshotFile({
+        path,
+        async onSnapshot() {
+          callbackCount += 1;
+          if (callbackCount === 2) {
+            secondCallbackStarted.resolve();
+            await releaseSecondCallback.promise;
+          }
+        }
+      });
+
+      await writeFile(path, createJsonSnapshot(false), "utf8");
+      const activeReload = watcher.reload();
+      await secondCallbackStarted.promise;
+      const queuedReload = watcher.reload();
+      watcher.close();
+      releaseSecondCallback.resolve();
+
+      await Promise.all([activeReload, queuedReload]);
+      expect(callbackCount).toBe(2);
+      expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(true);
+    } finally {
+      await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects unsafe consistency poll intervals before creating a watcher", async () => {
+    await expect(
+      watchFlagSnapshotFile({
+        path: "flags.json",
+        consistencyPollIntervalMs: 49,
+        onSnapshot() {
+          return undefined;
+        }
+      })
+    ).rejects.toThrow("consistencyPollIntervalMs must be an integer greater than or equal to 50");
+  });
+
   it("reports reload errors without replacing the last valid snapshot", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {
@@ -345,12 +457,27 @@ async function createProjectedVolumeFixture(root: string, enabled: boolean) {
 
   return {
     visiblePath,
+    async detach(): Promise<void> {
+      await rename(dataLinkPath, join(root, "..data-detached"));
+    },
     async swap(nextEnabled: boolean): Promise<void> {
       const nextRevision = await writeRevision(nextEnabled);
       const temporaryLinkPath = join(root, "..data-next");
       await symlink(nextRevision, temporaryLinkPath, "dir");
       await rename(temporaryLinkPath, dataLinkPath);
     }
+  };
+}
+
+function createDeferred(): { readonly promise: Promise<void>; resolve(): void } {
+  let resolvePromise: () => void = () => undefined;
+  const promise = new Promise<void>((resolve) => {
+    resolvePromise = resolve;
+  });
+
+  return {
+    promise,
+    resolve: resolvePromise
   };
 }
 

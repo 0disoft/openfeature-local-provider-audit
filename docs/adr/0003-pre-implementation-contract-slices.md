@@ -5,10 +5,10 @@ Owner: 0disoft
 
 ## Context
 
-This repository is still a design scaffold. Implementation has not started, but future
-code will need stable contracts for flag schema, environment overrides, bucketing,
-evaluation reasons, audit events, replay fixtures, privacy, release readiness, and test
-evidence.
+At the time of this decision, the repository was a design scaffold and implementation had
+not started. The planned code needed stable contracts for flag schema, environment
+overrides, bucketing, evaluation reasons, audit events, replay fixtures, privacy, release
+readiness, and test evidence.
 
 Putting those decisions only in source code would make the first implementation the
 accidental source of truth.
@@ -34,9 +34,10 @@ compatibility notes in the same change.
 
 ## Consequences
 
-- Future code changes have clearer review blockers.
+- Code changes have clearer review blockers.
 - Compatibility-sensitive behavior cannot hide inside examples or implementation details.
-- Some technology choices remain undecided until an owner records package, runtime, license, and release decisions.
+- Package, runtime, license, and release decisions were subsequently accepted in ADRs 0004
+  and 0005 and their operational documents.
 
 ## Review Blockers
 

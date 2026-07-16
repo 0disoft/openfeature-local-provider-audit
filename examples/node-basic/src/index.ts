@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { OpenFeature } from "@openfeature/server-sdk";
+import { OpenFeature, ProviderEvents } from "@openfeature/server-sdk";
 import {
   createFileAuditSink,
   createReloadableLocalProvider,
@@ -39,6 +39,10 @@ try {
   await OpenFeature.setProviderAndWait(provider);
 
   const client = OpenFeature.getClient();
+  let configurationChangedFlags: readonly string[] = [];
+  client.addHandler(ProviderEvents.ConfigurationChanged, (details) => {
+    configurationChangedFlags = details?.flagsChanged ?? [];
+  });
   const targetingKey = "sample-cohort-alpha";
   const overrideValue = await client.getBooleanValue("checkout.enabled", true, {
     targetingKey,
@@ -71,6 +75,7 @@ try {
   watcher = await watchFlagSnapshotFile({
     path: flagsPath,
     debounceMs: 25,
+    consistencyPollIntervalMs: 50,
     persistent: false,
     onSnapshot(nextSnapshot) {
       provider.updateSnapshot(nextSnapshot);
@@ -113,7 +118,8 @@ try {
     replayPassed: replay.passed,
     reloadedValue,
     auditText,
-    auditEvents
+    auditEvents,
+    configurationChangedFlags
   });
 
   console.log(
@@ -122,13 +128,18 @@ try {
       rollout: rolloutValue,
       replay: replay.passed,
       reload: reloadedValue,
+      configurationChangedFlags,
       auditContextKeyMode: "none",
       auditEvents: auditEvents.length
     })
   );
 } finally {
   watcher?.close();
-  await rm(tempDirectory, { recursive: true, force: true });
+  try {
+    await OpenFeature.close();
+  } finally {
+    await rm(tempDirectory, { recursive: true, force: true });
+  }
 }
 
 interface ExampleResult {
@@ -138,6 +149,7 @@ interface ExampleResult {
   readonly reloadedValue: boolean;
   readonly auditText: string;
   readonly auditEvents: readonly AuditEvent[];
+  readonly configurationChangedFlags: readonly string[];
 }
 
 function assertExampleResult(result: ExampleResult): void {
@@ -149,6 +161,9 @@ function assertExampleResult(result: ExampleResult): void {
   }
   if (!result.reloadedValue) {
     throw new Error("Atomic flag snapshot reload did not update future evaluations.");
+  }
+  if (!result.configurationChangedFlags.includes("checkout.reloaded")) {
+    throw new Error("Configuration-change event did not include checkout.reloaded.");
   }
   if (result.auditEvents.length !== 3) {
     throw new Error(`Expected 3 audit events, received ${result.auditEvents.length}.`);

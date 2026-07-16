@@ -29,6 +29,8 @@ contracts were covered by tests.
   direct file watching after a rename replaces the watched inode. On Windows, use `fs.watchFile`
   polling for the watched path to avoid Node.js native file-event crashes and path-prefix
   assertion failures seen on Node.js 24 runners.
+- ADR 0011 adds optional metadata consistency polling for visible paths whose backing
+  symlink changes without a visible-filename event. Native watching remains primary.
 - Debounce bursts of native events and suppress event-driven callbacks when the parsed snapshot
   is unchanged. Explicit `reload()` calls still invoke `onSnapshot` after successful validation.
 - Native watcher and reload failures must be reported through `onError` and must not replace the

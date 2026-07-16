@@ -18,6 +18,10 @@ flag service during the MVP.
 6. Return value, variant if available, reason, and error details when applicable.
 7. Emit a redacted audit event that is safe for local logs and replay fixtures.
 
+Snapshot watching remains outside evaluation. Native events and optional metadata polling
+schedule serialized reloads; accepted semantic changes atomically replace provider state and
+emit deterministic OpenFeature configuration-change keys.
+
 ## Quality Attributes
 
 - Maintainability: changes must preserve source-of-truth documents.

@@ -56,7 +56,8 @@ flags:
   );
   await writeFile(
     path.join(consumerDirectory, "esm-smoke.mjs"),
-    `import { parseYamlFlagSnapshot, redactContext } from "@0disoft/openfeature-local-provider";
+    `import { ProviderEvents } from "@openfeature/server-sdk";
+import { createReloadableLocalProvider, parseYamlFlagSnapshot, redactContext, watchFlagSnapshotFile } from "@0disoft/openfeature-local-provider";
 const snapshot = parseYamlFlagSnapshot(await import("node:fs/promises").then(({ readFile }) => readFile("flags.yaml", "utf8")));
 if (snapshot.flags["checkout.enabled"].variants.on !== true) {
   throw new Error("ESM import did not evaluate the packed package correctly.");
@@ -65,6 +66,36 @@ const redactedContext = redactContext({ email: "synthetic@example.test" }, { con
 if (redactedContext.keyMode !== "none" || redactedContext.keys.length !== 0) {
   throw new Error("ESM import did not expose strict audit context redaction.");
 }
+const provider = createReloadableLocalProvider({ snapshot });
+let flagsChanged = [];
+provider.events?.addHandler(ProviderEvents.ConfigurationChanged, (details) => {
+  flagsChanged = details?.flagsChanged ?? [];
+});
+provider.updateSnapshot({
+  schemaVersion: 1,
+  flags: {
+    "checkout.enabled": {
+      type: "boolean",
+      defaultVariant: "off",
+      variants: { on: true, off: false }
+    },
+    "checkout.added": {
+      type: "boolean",
+      defaultVariant: "on",
+      variants: { on: true, off: false }
+    }
+  }
+});
+if (JSON.stringify(flagsChanged) !== JSON.stringify(["checkout.added", "checkout.enabled"])) {
+  throw new Error("Unexpected configuration-change keys: " + JSON.stringify(flagsChanged));
+}
+const watcher = await watchFlagSnapshotFile({
+  path: "flags.yaml",
+  consistencyPollIntervalMs: 50,
+  onSnapshot() {}
+});
+watcher.close();
+await provider.onClose?.();
 `,
     "utf8"
   );
@@ -74,12 +105,15 @@ if (redactedContext.keyMode !== "none" || redactedContext.keys.length !== 0) {
 if (typeof provider.createLocalProvider !== "function") {
   throw new Error("CJS require did not expose createLocalProvider.");
 }
+if (typeof provider.watchFlagSnapshotFile !== "function") {
+  throw new Error("CJS require did not expose watchFlagSnapshotFile.");
+}
 `,
     "utf8"
   );
   await writeFile(
     path.join(consumerDirectory, "typed-smoke.mts"),
-    `import { createLocalProvider, type FlagSnapshot } from "@0disoft/openfeature-local-provider";
+    `import { createLocalProvider, type FlagSnapshot, type WatchFlagSnapshotFileOptions } from "@0disoft/openfeature-local-provider";
 
 const snapshot: FlagSnapshot = {
   schemaVersion: 1,
@@ -94,7 +128,13 @@ const snapshot: FlagSnapshot = {
 
 const provider = createLocalProvider({ snapshot });
 const providerName: string = provider.metadata.name;
+const watchOptions: WatchFlagSnapshotFileOptions = {
+  path: "flags.yaml",
+  consistencyPollIntervalMs: 50,
+  onSnapshot() {}
+};
 void providerName;
+void watchOptions;
 `,
     "utf8"
   );

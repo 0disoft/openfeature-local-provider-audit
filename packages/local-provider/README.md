@@ -13,7 +13,7 @@ npm install @0disoft/openfeature-local-provider @openfeature/server-sdk
 ## Quick Start
 
 ```ts
-import { OpenFeature } from "@openfeature/server-sdk";
+import { OpenFeature, ProviderEvents } from "@openfeature/server-sdk";
 import { createLocalProvider, parseJsonFlagSnapshot } from "@0disoft/openfeature-local-provider";
 
 const snapshot = parseJsonFlagSnapshot(
@@ -128,9 +128,13 @@ const provider = createReloadableLocalProvider({
 });
 
 await OpenFeature.setProviderAndWait(provider);
+OpenFeature.getClient().addHandler(ProviderEvents.ConfigurationChanged, (details) => {
+  console.log("Changed flags", details?.flagsChanged ?? []);
+});
 
 const watcher = await watchFlagSnapshotFile({
   path,
+  consistencyPollIntervalMs: 1000,
   onSnapshot(snapshot) {
     provider.updateSnapshot(snapshot);
   },
@@ -151,6 +155,12 @@ replacement. Windows file watching uses path polling internally to avoid unstabl
 file-event behavior on Node.js 24. Native watcher and reload errors are reported through
 `onError`. Event-driven reloads suppress callbacks for an unchanged parsed snapshot; explicit
 `reload()` calls still invoke `onSnapshot` after successful validation.
+
+`consistencyPollIntervalMs` is opt-in and must be an integer of at least 50 ms. It adds
+metadata polling for visible paths backed by projected-volume symlink swaps while retaining
+native events as the primary signal. Unchanged metadata does not read or parse the snapshot.
+Successful semantic provider updates emit OpenFeature `PROVIDER_CONFIGURATION_CHANGED` with
+code-unit-sorted added, removed, and changed flag keys.
 
 Call `watcher.close()` during process shutdown when the file watcher is no longer
 needed.

@@ -28,6 +28,8 @@ Owner: 0disoft
 - Release candidate workflow avoids long-lived publish tokens.
 - Public npm publishing uses npm trusted publishing from the configured GitHub Actions
   release workflow.
+- Stable releases publish to npm `latest`; SemVer prereleases publish to `next` and create
+  prerelease-marked GitHub Releases.
 - GitHub Releases are created by the release workflow and include the packed `.tgz`
   artifact.
 - The tagged commit is contained in `main`, and npm receives the exact tarball that passed
@@ -41,3 +43,4 @@ Owner: 0disoft
 - Security or license policy is missing for a public release.
 - Trusted publisher settings drift from the GitHub repository or workflow filename.
 - Release workflow permissions cannot create the GitHub Release or request npm OIDC.
+- A prerelease tag can replace npm `latest`.

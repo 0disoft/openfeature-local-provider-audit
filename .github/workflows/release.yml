@@ -54,6 +54,10 @@ jobs:
             exit 1
           fi
 
+      - name: Resolve release channel
+        id: channel
+        run: node scripts/release-channel.mjs --version "${GITHUB_REF_NAME#v}" --github-output "${GITHUB_OUTPUT}"
+
       - name: Check
         run: pnpm run check
 
@@ -99,7 +103,7 @@ jobs:
 
       - name: Publish package
         if: steps.published.outputs.exists != 'true'
-        run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public
+        run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public --tag "${{ steps.channel.outputs.npm-tag }}"
 
       - name: Create GitHub Release
         env:
@@ -111,6 +115,11 @@ jobs:
           fi
 
           package_version="$(node -p "require('./packages/local-provider/package.json').version")"
+          prerelease_flag=""
+          if [ "${{ steps.channel.outputs.github-prerelease }}" = "true" ]; then
+            prerelease_flag="--prerelease"
+          fi
           gh release create "${GITHUB_REF_NAME}" .tmp/release/*.tgz \
             --title "${GITHUB_REF_NAME}" \
-            --notes "Release ${GITHUB_REF_NAME} for @0disoft/openfeature-local-provider ${package_version}."
+            --notes "Release ${GITHUB_REF_NAME} for @0disoft/openfeature-local-provider ${package_version}." \
+            ${prerelease_flag}

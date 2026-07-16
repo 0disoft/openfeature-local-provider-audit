@@ -20,6 +20,7 @@ formatting, and replay fixture helpers.
 - Evaluation reasons: docs/library/evaluation-reasons.md
 - Audit events: docs/library/audit-event-v1.md
 - Replay fixtures: docs/library/replay-fixture-v1.md
+- Configuration-change events: docs/library/configuration-change-events.md
 
 ## Required Decisions
 

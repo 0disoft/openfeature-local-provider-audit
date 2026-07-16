@@ -42,6 +42,8 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 - Deterministic percentage rollout with replayable bucketing.
 - Redacted audit event generation and optional JSON Lines file sinks.
 - Replay fixtures for compatibility-sensitive evaluation behavior.
+- Opt-in projected-volume consistency polling for local snapshot watchers.
+- OpenFeature configuration-change events with deterministic changed-flag keys.
 
 ## What It Does Not Own
 

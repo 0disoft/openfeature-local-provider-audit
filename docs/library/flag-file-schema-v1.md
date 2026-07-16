@@ -31,6 +31,8 @@ because malformed or changed configuration can alter evaluated flag values.
 - Object flag values are allowed but audit output must not include evaluated object values by default.
 - File watching must keep evaluation file-I/O free and preserve the last valid snapshot
   when reload fails.
+- Optional consistency polling performs metadata-only idle checks at a caller-selected
+  interval of at least 50 ms and reads the snapshot only after its stat fingerprint changes.
 
 ## Failure Behavior
 

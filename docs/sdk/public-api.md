@@ -27,6 +27,8 @@ keeping application code on the standard OpenFeature evaluation API.
 - SDK integration examples may combine strict context-key redaction, bounded audit
   queues, atomic file replacement, and reloadable providers, but must fail visibly when
   expected consumer behavior is missing.
+- SDK integration examples may opt into projected-volume consistency polling and subscribe
+  to OpenFeature configuration-change events with deterministic `flagsChanged` keys.
 - SDK validation evidence: replay examples must prove deterministic bucketing when implementation exists.
 - SDK release or rollout policy: example packages must not imply support for untested runtimes.
 - SDK compatibility and migration policy: changed examples require matching public API and compatibility docs.

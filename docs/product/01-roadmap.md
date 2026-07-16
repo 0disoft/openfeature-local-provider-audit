@@ -33,15 +33,16 @@ a feature flag platform.
 12. Complete the `0.15` audit backpressure policy: validate repeated cross-platform
     overload evidence, default the file sink queue to 5,000, expose reject observability,
     and retain explicit unbounded migration behavior.
+13. Complete the `0.16` projected-volume consistency milestone: add opt-in metadata
+    polling, Linux symlink-swap coverage, OpenFeature configuration-change events,
+    deterministic changed-key semantics, duplicate suppression, and close cleanup.
 
 ## Next Evaluation Areas
 
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
-- An optional projected-volume consistency strategy and OpenFeature configuration-change
-  events. ADR 0011 now records the proposed bounded polling boundary and Linux fixtures
-  reproduce the internal symlink swap. Completion still requires interval measurements,
-  implementation, duplicate-event suppression, changed-key semantics, and shutdown tests.
+- Satisfy the `1.0.0` stabilization gates in docs/product/05-1.0-readiness.md, including
+  an independently maintained prerelease consumer result.
 
 ## Deferred
 

@@ -25,6 +25,8 @@ API, and the underlying flag source can later be replaced by another provider.
   post-MVP extension through docs/adr/0006-yaml-snapshot-loader.md.
 - File load, reload, and watch behavior is an accepted post-MVP extension through
   docs/adr/0007-file-reload-watch.md.
+- Projected-volume consistency polling and OpenFeature configuration-change events are
+  accepted post-MVP extensions through docs/adr/0011-projected-volume-consistency.md.
 - Local snapshot validation CLI helpers are an accepted post-MVP extension through
   docs/adr/0008-cli-helpers.md.
 - Environment variable override layer with documented priority over file defaults.

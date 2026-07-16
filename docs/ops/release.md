@@ -21,9 +21,11 @@ checks, npm trusted publishing, and GitHub Release artifact publication.
 - Artifact: packs `@0disoft/openfeature-local-provider` and uploads the `.tgz` as a
   GitHub Actions artifact.
 - Publishing: if the version is not already present on npm, the workflow publishes the
-  exact uploaded `.tgz` with npm trusted publishing and provenance.
+  exact uploaded `.tgz` with npm trusted publishing and provenance. Stable versions use
+  npm dist-tag `latest`; prerelease versions use `next`.
 - GitHub Release: if the tag does not already have a GitHub Release, the workflow creates
-  one and attaches the packed `.tgz`.
+  one and attaches the packed `.tgz`; prerelease package versions create prerelease-marked
+  GitHub Releases.
 
 ## Owners
 

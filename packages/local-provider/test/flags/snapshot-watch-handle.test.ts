@@ -88,6 +88,65 @@ describe("snapshot watch handle", () => {
     handle.close();
   });
 
+  it("adds and releases identity-aware consistency polling on Linux", () => {
+    const fake = createFakeWatchRuntime("linux");
+    const onChange = vi.fn();
+    const handle = createSnapshotWatchHandle(
+      createWatchOptions(onChange, vi.fn(), { consistencyPollIntervalMs: 50 }),
+      fake.runtime
+    );
+
+    expect(fake.records).toHaveLength(1);
+    expect(fake.watchFile).toHaveBeenCalledOnce();
+    expect(fake.watchFile.mock.calls[0]?.[1]).toMatchObject({
+      interval: 50,
+      persistent: false
+    });
+
+    const listener = fake.watchFile.mock.calls[0]?.[2];
+    const initial = createStats({ dev: 1, ino: 10, mtimeMs: 1, ctimeMs: 1, size: 20 });
+    const replacement = createStats({ dev: 1, ino: 11, mtimeMs: 1, ctimeMs: 1, size: 20 });
+    listener?.(initial, initial);
+    listener?.(replacement, initial);
+    expect(onChange).toHaveBeenCalledOnce();
+
+    handle.close();
+    handle.close();
+    expect(fake.unwatchFile).toHaveBeenCalledOnce();
+    expect(fake.records[0]?.watcher.closed).toBe(true);
+
+    listener?.(createStats({ ...replacement, ino: 12 }), replacement);
+    expect(onChange).toHaveBeenCalledOnce();
+  });
+
+  it("closes the native watcher when consistency polling setup fails", () => {
+    const fake = createFakeWatchRuntime("linux");
+    fake.watchFile.mockImplementationOnce(() => {
+      throw new Error("synthetic polling failure");
+    });
+
+    expect(() =>
+      createSnapshotWatchHandle(
+        createWatchOptions(vi.fn(), vi.fn(), { consistencyPollIntervalMs: 50 }),
+        fake.runtime
+      )
+    ).toThrow("synthetic polling failure");
+    expect(fake.records[0]?.watcher.closed).toBe(true);
+  });
+
+  it("rejects consistency polling below the resource floor", () => {
+    const fake = createFakeWatchRuntime("linux");
+
+    expect(() =>
+      createSnapshotWatchHandle(
+        createWatchOptions(vi.fn(), vi.fn(), { consistencyPollIntervalMs: 49 }),
+        fake.runtime
+      )
+    ).toThrow("consistencyPollIntervalMs must be an integer greater than or equal to 50");
+    expect(fake.records).toHaveLength(0);
+    expect(fake.watchFile).not.toHaveBeenCalled();
+  });
+
   it("uses and releases path polling on Windows", () => {
     const fake = createFakeWatchRuntime("win32");
     const onChange = vi.fn();
@@ -104,7 +163,11 @@ describe("snapshot watch handle", () => {
   });
 });
 
-function createWatchOptions(onChange: () => void, onError: (error: unknown) => void) {
+function createWatchOptions(
+  onChange: () => void,
+  onError: (error: unknown) => void,
+  overrides: { readonly consistencyPollIntervalMs?: number } = {}
+) {
   return {
     path: "/flags/flags.json",
     target: {
@@ -114,9 +177,14 @@ function createWatchOptions(onChange: () => void, onError: (error: unknown) => v
     },
     persistent: false,
     debounceMs: 10,
+    ...overrides,
     onChange,
     onError
   };
+}
+
+function createStats(values: Pick<Stats, "dev" | "ino" | "mtimeMs" | "ctimeMs" | "size">): Stats {
+  return values as Stats;
 }
 
 function createFakeWatchRuntime(platform: NodeJS.Platform, failAtRecord?: number) {

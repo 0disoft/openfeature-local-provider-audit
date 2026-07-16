@@ -15,6 +15,8 @@ instead of drifting into a feature flag platform.
   docs/adr/0006-yaml-snapshot-loader.md.
 - File load, reload, and watch behavior as a post-MVP extension approved by
   docs/adr/0007-file-reload-watch.md.
+- Opt-in projected-volume consistency polling and configuration-change events as a
+  post-MVP extension approved by docs/adr/0011-projected-volume-consistency.md.
 - Local snapshot validation CLI helpers as a post-MVP extension approved by
   docs/adr/0008-cli-helpers.md.
 - Explicit environment override support.

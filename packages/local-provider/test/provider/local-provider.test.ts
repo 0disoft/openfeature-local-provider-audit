@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ErrorCode } from "@openfeature/server-sdk";
+import { ErrorCode, ProviderEvents } from "@openfeature/server-sdk";
 import { describe, expect, it, vi } from "vitest";
 import { createFileAuditSink } from "../../src/audit/audit-sink.js";
 import {
@@ -91,6 +91,170 @@ describe("createLocalProvider", () => {
       reason: EVALUATION_REASONS.STATIC,
       variant: "off"
     });
+  });
+
+  it("emits sorted OpenFeature configuration-change keys", () => {
+    const provider = createReloadableLocalProvider({
+      snapshot: {
+        schemaVersion: 1,
+        flags: {
+          beta: createBooleanFlag("on"),
+          alpha: createBooleanFlag("on")
+        }
+      }
+    });
+    const handler = vi.fn();
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, handler);
+
+    provider.updateSnapshot({
+      schemaVersion: 1,
+      flags: {
+        gamma: createBooleanFlag("on"),
+        beta: createBooleanFlag("off")
+      }
+    });
+
+    expect(handler).toHaveBeenCalledOnce();
+    expect(handler).toHaveBeenCalledWith({
+      flagsChanged: ["alpha", "beta", "gamma"]
+    });
+  });
+
+  it("suppresses configuration events for semantically unchanged snapshots", () => {
+    const provider = createReloadableLocalProvider({
+      snapshot: {
+        schemaVersion: 1,
+        flags: {
+          stable: {
+            type: "boolean",
+            variants: { on: true, off: false },
+            defaultVariant: "on",
+            metadata: { owner: "checkout", revision: 1 }
+          }
+        },
+        metadata: { source: "test", revision: 1 }
+      }
+    });
+    const handler = vi.fn();
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, handler);
+
+    provider.updateSnapshot({
+      metadata: { revision: 1, source: "test" },
+      flags: {
+        stable: {
+          metadata: { revision: 1, owner: "checkout" },
+          defaultVariant: "on",
+          variants: { off: false, on: true },
+          type: "boolean"
+        }
+      },
+      schemaVersion: 1
+    });
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("emits an empty changed-key list for snapshot metadata-only updates", () => {
+    const provider = createReloadableLocalProvider({
+      snapshot: { ...staticSnapshot, metadata: { revision: 1 } }
+    });
+    const handler = vi.fn();
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, handler);
+
+    provider.updateSnapshot({ ...staticSnapshot, metadata: { revision: 2 } });
+
+    expect(handler).toHaveBeenCalledWith({
+      flagsChanged: []
+    });
+  });
+
+  it("isolates configuration-change handler failures", () => {
+    const provider = createReloadableLocalProvider({ snapshot: staticSnapshot });
+    const throwingHandler = vi.fn(() => {
+      throw new Error("consumer handler failed");
+    });
+    const succeedingHandler = vi.fn();
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, throwingHandler);
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, succeedingHandler);
+
+    expect(() =>
+      provider.updateSnapshot({
+        schemaVersion: 1,
+        flags: { changed: createBooleanFlag("on") }
+      })
+    ).not.toThrow();
+    expect(throwingHandler).toHaveBeenCalledOnce();
+    expect(succeedingHandler).toHaveBeenCalledOnce();
+  });
+
+  it("activates the new snapshot before emitting its change event", () => {
+    const provider = createReloadableLocalProvider({
+      snapshot: { schemaVersion: 1, flags: { status: createBooleanFlag("on") } }
+    });
+    let activeDefaultVariant: string | undefined;
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, () => {
+      activeDefaultVariant = provider.getSnapshot().flags.status?.defaultVariant;
+    });
+
+    provider.updateSnapshot({
+      schemaVersion: 1,
+      flags: { status: createBooleanFlag("off") }
+    });
+
+    expect(activeDefaultVariant).toBe("off");
+  });
+
+  it("does not emit configuration events for rejected snapshots", () => {
+    const provider = createReloadableLocalProvider({ snapshot: staticSnapshot });
+    const handler = vi.fn();
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, handler);
+
+    expect(() =>
+      provider.updateSnapshot({
+        schemaVersion: 1,
+        flags: {
+          broken: {
+            type: "boolean",
+            defaultVariant: "missing",
+            variants: { on: true }
+          }
+        }
+      } as never)
+    ).toThrow("defaultVariant must reference an existing variant");
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("removes provider event handlers during close", async () => {
+    const provider = createReloadableLocalProvider({ snapshot: staticSnapshot });
+    const handler = vi.fn();
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, handler);
+
+    await provider.onClose?.();
+    provider.updateSnapshot({
+      schemaVersion: 1,
+      flags: { "after.close": createBooleanFlag("on") }
+    });
+
+    expect(handler).not.toHaveBeenCalled();
+    expect(provider.events?.getHandlers(ProviderEvents.ConfigurationChanged)).toEqual([]);
+  });
+
+  it("removes provider event handlers when close-time audit flushing fails", async () => {
+    const provider = createReloadableLocalProvider({
+      snapshot: staticSnapshot,
+      auditSink: {
+        async write() {
+          return undefined;
+        },
+        async flush() {
+          throw new Error("flush failed");
+        }
+      }
+    });
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, vi.fn());
+
+    await expect(provider.onClose?.()).rejects.toThrow("flush failed");
+    expect(provider.events?.getHandlers(ProviderEvents.ConfigurationChanged)).toEqual([]);
   });
 
   it("does not let caller mutations change provider state outside updateSnapshot", async () => {
@@ -447,5 +611,16 @@ function createDeferred(): { readonly promise: Promise<void>; resolve(): void } 
   return {
     promise,
     resolve: resolvePromise
+  };
+}
+
+function createBooleanFlag(defaultVariant: "on" | "off") {
+  return {
+    type: "boolean" as const,
+    defaultVariant,
+    variants: {
+      on: true,
+      off: false
+    }
   };
 }

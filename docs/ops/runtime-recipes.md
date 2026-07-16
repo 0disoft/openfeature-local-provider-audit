@@ -19,9 +19,10 @@ When the mount does not emit an event for the watched path, copy the projected c
 consumer-owned concrete file with an atomic rename, or invoke `watcher.reload()` from a known
 configuration-change signal.
 
-ADR 0011 proposes an opt-in metadata consistency poll, but no such public option exists yet.
-Continue using the explicit reload or consumer-owned copy strategies until that ADR's validation
-gates are implemented.
+Set `consistencyPollIntervalMs` when the visible path can change through a projected-volume
+symlink without receiving its own native event. The value must be at least 50 ms; choose the
+slowest interval that satisfies the process's freshness target. Native watching remains active,
+and unchanged poll fingerprints do not read the snapshot.
 
 Invalid or oversized replacements call `onError` and leave the last valid snapshot active.
 Record the error without logging snapshot contents.

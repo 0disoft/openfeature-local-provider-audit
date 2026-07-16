@@ -38,7 +38,9 @@ Contract tests prove provider behavior that consumers can rely on.
   bounded read before parsing, and oversized explicit JSON overrides fail before parsing.
 - Linux fixture coverage models a projected volume with a visible file linked through
   `..data`, proves an atomic internal symlink swap changes the resolved snapshot, and
-  documents that the current visible-filename event filter ignores the `..data` event.
+  proves opt-in consistency polling reloads that target despite the filtered `..data` event.
+- Configuration-change tests cover sorted added, removed, and modified flag keys,
+  metadata-only updates, semantic duplicate suppression, invalid snapshots, and close cleanup.
 - Provider adapter converts internal runtime evaluation exceptions to caller defaults
   with `ERROR` reason and `PROVIDER_NOT_READY` error details.
 - Package exports match docs/library/public-api.md.

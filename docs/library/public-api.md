@@ -72,6 +72,9 @@ Implementation must not expose internal modules only because examples need conve
   Omitting `contextKeys` selects `count`; `names` is an explicit metadata-disclosure opt-in.
 - `LoadFlagSnapshotFileOptions` with optional `format`, optional `encoding`, and optional
   `maxBytes`.
+- `WatchFlagSnapshotFileOptions` with optional `debounceMs`, `persistent`, and
+  `consistencyPollIntervalMs`. Consistency polling is disabled when omitted; supplied values
+  must be integers of at least 50 ms.
 - `CreateEnvOverridesOptions` with optional `overridesJson`, optional
   `maxOverridesJsonBytes`, and optional injectable `env`.
 - `FileAuditSinkOptions` with `path`, optional `createDirectory`, optional `maxBytes`,
@@ -90,6 +93,9 @@ Implementation must not expose internal modules only because examples need conve
   pending, dropped, and rejected writes plus their effective queue limit.
 - Providers flush an optional audit sink through the OpenFeature `onClose` lifecycle hook;
   they do not close or take exclusive ownership of shared sinks.
+- Reloadable providers emit OpenFeature `PROVIDER_CONFIGURATION_CHANGED` events after a
+  successful semantic snapshot change. `flagsChanged` is a code-unit-sorted list of added,
+  removed, or changed flag keys; metadata-only changes use an empty list.
 - Snapshot and override hash generation uses locale-independent key ordering.
 - `openfeature-local-provider validate <file>` validates a local JSON/YAML snapshot and
   returns exit code `0` on success, `1` on snapshot validation failure, and `2` on usage

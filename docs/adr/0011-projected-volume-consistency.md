@@ -1,6 +1,6 @@
 # ADR 0011: Projected-Volume Consistency
 
-Status: Proposed
+Status: Accepted
 Owner: 0disoft
 
 ## Purpose
@@ -29,46 +29,49 @@ I/O.
 - The deterministic Linux watch-handle test proves that a `rename` event for `..data` is
   filtered while an event for the visible `flags.json` path triggers reload work.
 - Existing event-driven reloads already serialize through one queue and suppress callbacks
-  for semantically unchanged snapshots.
+  when the validated snapshot serialization is unchanged.
 
-This evidence proves the gap and the reusable reload boundary. It does not yet establish a
-portable polling interval or implementation cost.
+The implemented consistency poll reuses that reload boundary. Cross-platform tests establish
+the 50 ms minimum interval, metadata-only idle work, serialized reload behavior, and clean
+shutdown contract; the remaining filesystem limitation is recorded below.
 
-## Proposed Decision
+## Decision
 
 - Keep native watching as the primary low-latency signal.
-- Add an explicit, opt-in consistency poll to `watchFlagSnapshotFile` rather than enabling
-  background polling for every existing consumer.
+- Add `consistencyPollIntervalMs` as an explicit, opt-in consistency poll on
+  `watchFlagSnapshotFile` rather than enabling background polling for every existing
+  consumer.
 - Poll metadata for the resolved visible path, not Kubernetes-specific `..data` paths. The
   fingerprint must detect target replacement even when file size and modification time are
   unchanged; device and inode identity must be included where the platform exposes them.
 - A changed fingerprint enters the same debounce and serialized reload queue as a native
-  event. Parsed snapshots that are semantically unchanged remain suppressed.
+  event. Parsed snapshots whose validated serialization is unchanged remain suppressed;
+  provider-level semantic comparison separately ignores object insertion-order differences.
 - A poll tick performs metadata work only. It must not read, parse, or validate the snapshot
   unless the fingerprint changes.
 - Poll failures use the existing `onError` boundary and preserve the last valid snapshot.
 - `close()` must stop polling, cancel pending debounce work, and prevent a queued poll from
   publishing a snapshot after closure.
 - Manual `reload()` remains available and keeps its current callback behavior.
-- The public option name, minimum interval, and whether unsupported inode identity requires a
-  conservative reload remain `UNDECIDED` until implementation measurements and cross-platform
-  fixtures exist.
-
-No public option or runtime behavior is added by this ADR alone.
+- Require an integer interval of at least 50 ms. This reuses the existing Windows polling
+  floor and bounds one watcher's idle metadata checks to at most 20 per second.
+- Compare device, inode, modification time, change time, and size. Filesystems that do not
+  expose useful identity and preserve every remaining field across a content change remain
+  outside the consistency guarantee.
 
 ## Performance Boundary
 
-The future poll must have one timer per watcher and constant metadata work per tick. The
-polling interval must be validated as a positive bounded value, but an exact minimum is not
-claimed without measurements. Benchmarks must report idle metadata operations and changed-path
-reload cost separately; evaluation remains free of file I/O.
+The poll uses Node.js `fs.watchFile`, has one stat watcher per opted-in snapshot watcher, and
+performs constant metadata work per tick. The 50 ms floor bounds idle metadata checks to 20 per
+second; callers should choose a slower interval when their freshness target permits it. Snapshot
+read and parse work occurs only after the stat fingerprint changes. Evaluation remains free of
+file I/O.
 
 ## Compatibility
 
-The proposed mode is opt-in, so existing watcher behavior and resource use remain unchanged.
-Adding the option later is expected to be a pre-1.0 minor change because it introduces a new
-public capability. Changing the default watcher strategy would require a separate compatibility
-decision and migration note.
+The mode is opt-in, so existing watcher behavior and resource use remain unchanged. The option
+and configuration-change events are released as the pre-1.0 minor version `0.16.0`. Changing the
+default watcher strategy would require a separate compatibility decision and migration note.
 
 ## Validation Gates
 
@@ -78,7 +81,7 @@ decision and migration note.
 - Invalid and temporarily missing targets report errors without replacing the active snapshot.
 - Closing during debounce, metadata polling, and queued reload work produces no later callback.
 - Windows and macOS tests prove that opting out preserves their current watch strategy.
-- Performance evidence names the selected interval and idle metadata-call budget.
+- Tests verify the selected interval and the 20-checks-per-second maximum idle budget.
 
 ## Rejected Alternatives
 
@@ -92,7 +95,7 @@ decision and migration note.
 
 ## Review Blockers
 
-- Implementation invents a public option or interval that this ADR still marks `UNDECIDED`.
+- Polling activates without an explicit `consistencyPollIntervalMs`.
 - A timer reads the full snapshot when metadata is unchanged.
 - Poll and native events bypass the existing reload queue or duplicate callbacks.
 - Shutdown allows polling or queued reload work to publish after `close()`.

@@ -101,6 +101,7 @@ export interface LoadFlagSnapshotFileOptions {
 export interface WatchFlagSnapshotFileOptions extends LoadFlagSnapshotFileOptions {
   readonly path: string | URL;
   readonly debounceMs?: number;
+  readonly consistencyPollIntervalMs?: number;
   readonly persistent?: boolean;
   onSnapshot(snapshot: FlagSnapshot): void | Promise<void>;
   onError?(error: unknown): void | Promise<void>;

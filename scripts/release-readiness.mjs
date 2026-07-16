@@ -1,5 +1,6 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
+import { resolveReleaseChannel } from "./release-channel.mjs";
 
 const ROOT = process.cwd();
 const PACKAGE_JSON = path.join(ROOT, "packages", "local-provider", "package.json");
@@ -34,6 +35,28 @@ const AUDIT_CONTRACT_DOC = path.join(ROOT, "docs", "library", "audit-event-v1.md
 const COMPATIBILITY_DOC = path.join(ROOT, "docs", "library", "compatibility.md");
 const AUDIT_QUEUE_ADR = path.join(ROOT, "docs", "adr", "0010-bounded-audit-queue-default.md");
 const PROJECTED_VOLUME_ADR = path.join(ROOT, "docs", "adr", "0011-projected-volume-consistency.md");
+const SNAPSHOT_FILE_SOURCE = path.join(
+  ROOT,
+  "packages",
+  "local-provider",
+  "src",
+  "flags",
+  "snapshot-file.ts"
+);
+const LOCAL_PROVIDER_SOURCE = path.join(
+  ROOT,
+  "packages",
+  "local-provider",
+  "src",
+  "provider",
+  "local-provider.ts"
+);
+const CONFIGURATION_CHANGE_DOC = path.join(
+  ROOT,
+  "docs",
+  "library",
+  "configuration-change-events.md"
+);
 const SNAPSHOT_WATCH_HANDLE_TEST = path.join(
   ROOT,
   "packages",
@@ -46,6 +69,8 @@ const ROADMAP_DOC = path.join(ROOT, "docs", "product", "01-roadmap.md");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
+const RELEASE_CHANNEL_SCRIPT = path.join(ROOT, "scripts", "release-channel.mjs");
+const RELEASE_CHANNEL_TEST = path.join(ROOT, "scripts", "release-channel.test.mjs");
 const REQUIRED_PACKAGE_FILES = ["bin", "dist", "LICENSE", "README.md"];
 const PINNED_ACTION_REF_PATTERN = /^[a-f0-9]{40}$/;
 
@@ -68,11 +93,16 @@ const auditContractDoc = await readText(AUDIT_CONTRACT_DOC);
 const compatibilityDoc = await readText(COMPATIBILITY_DOC);
 const auditQueueAdr = await readText(AUDIT_QUEUE_ADR);
 const projectedVolumeAdr = await readText(PROJECTED_VOLUME_ADR);
+const snapshotFileSource = await readText(SNAPSHOT_FILE_SOURCE);
+const localProviderSource = await readText(LOCAL_PROVIDER_SOURCE);
+const configurationChangeDoc = await readText(CONFIGURATION_CHANGE_DOC);
 const snapshotWatchHandleTest = await readText(SNAPSHOT_WATCH_HANDLE_TEST);
 const roadmapDoc = await readText(ROADMAP_DOC);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
+const releaseChannelScript = await readText(RELEASE_CHANNEL_SCRIPT);
+const releaseChannelTest = await readText(RELEASE_CHANNEL_TEST);
 
 await checkRequiredFiles();
 checkRootPackage(rootPackageJson);
@@ -82,7 +112,6 @@ checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
 checkAuditQueueBenchmarkWorkflow(auditQueueBenchmarkWorkflow, auditQueueBenchmarkPlanScript);
 checkAuditQueueContract({
-  packageJson,
   auditQueueBenchmarkScript,
   auditSinkSource,
   publicTypesSource,
@@ -91,9 +120,21 @@ checkAuditQueueContract({
   compatibilityDoc,
   auditQueueAdr
 });
-checkProjectedVolumeProposal(projectedVolumeAdr, snapshotWatchHandleTest, roadmapDoc);
+checkProjectedVolumeContract({
+  packageJson,
+  projectedVolumeAdr,
+  snapshotFileSource,
+  localProviderSource,
+  publicTypesSource,
+  snapshotWatchHandleTest,
+  configurationChangeDoc,
+  compatibilityDoc,
+  roadmapDoc,
+  packedSmokeScript
+});
 checkDependabotConfig(dependabotConfig);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
+checkReleaseChannel(releaseChannelScript, releaseChannelTest);
 
 if (blockers.length > 0) {
   console.error("Release readiness: blocked");
@@ -174,12 +215,14 @@ function checkRootPackage(rootPackage) {
     "test:benchmark-tools",
     "node --test scripts/audit-queue-benchmark-summary.test.mjs"
   );
+  expectScript(rootPackage, "test:release-tools", "node --test scripts/release-channel.test.mjs");
   expectScript(
     rootPackage,
     "test:coverage",
-    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:benchmark-tools"
+    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:benchmark-tools && pnpm run test:release-tools"
   );
   expectScriptIncludes(rootPackage, "test", "pnpm run test:benchmark-tools");
+  expectScriptIncludes(rootPackage, "test", "pnpm run test:release-tools");
   expectScriptIncludes(rootPackage, "check", "pnpm run test:coverage");
   expectScriptIncludes(rootPackage, "check", "pnpm run release-readiness");
   expectScriptIncludes(
@@ -267,11 +310,13 @@ function checkReleaseWorkflow(workflow) {
     "release workflow smoke example"
   );
   expectIncludes(workflow, "pnpm run packed-smoke", "release workflow packed smoke");
+  expectIncludes(workflow, "node scripts/release-channel.mjs", "release channel resolver");
   expectIncludes(
     workflow,
-    'npm publish "${' + '{ steps.pack.outputs.tarball }}" --provenance --access public',
+    '--tag "${' + '{ steps.channel.outputs.npm-tag }}"',
     "release workflow npm publish command"
   );
+  expectIncludes(workflow, 'prerelease_flag="--prerelease"', "GitHub prerelease marker");
   expectIncludes(workflow, "gh release create", "release workflow GitHub Release creation");
   expectIncludes(
     workflow,
@@ -393,7 +438,6 @@ function checkAuditQueueBenchmarkWorkflow(workflow, planScript) {
 }
 
 function checkAuditQueueContract({
-  packageJson: localPackage,
   auditQueueBenchmarkScript,
   auditSinkSource,
   publicTypesSource,
@@ -423,26 +467,60 @@ function checkAuditQueueContract({
   expectIncludes(auditContractDoc, "5,000 writes by default", "audit contract queue default");
   expectIncludes(
     compatibilityDoc,
-    `## ${localPackage.version} Bounded Audit Queue Default`,
+    "## 0.15.0 Bounded Audit Queue Default",
     "audit queue compatibility version"
   );
   expectIncludes(auditQueueAdr, "Status: Accepted", "audit queue ADR status");
   expectIncludes(auditQueueAdr, "maxQueueSize: null", "audit queue ADR migration opt-out");
 }
 
-function checkProjectedVolumeProposal(adr, watchHandleTest, roadmap) {
-  expectIncludes(adr, "Status: Proposed", "projected-volume ADR status");
+function checkProjectedVolumeContract({
+  packageJson: localPackage,
+  projectedVolumeAdr,
+  snapshotFileSource,
+  localProviderSource,
+  publicTypesSource,
+  snapshotWatchHandleTest,
+  configurationChangeDoc,
+  compatibilityDoc,
+  roadmapDoc,
+  packedSmokeScript
+}) {
+  expectIncludes(projectedVolumeAdr, "Status: Accepted", "projected-volume ADR status");
   expectIncludes(
-    adr,
-    "No public option or runtime behavior is added by this ADR alone.",
-    "projected-volume proposal boundary"
+    publicTypesSource,
+    "readonly consistencyPollIntervalMs?: number",
+    "projected-volume public option"
   );
-  expectIncludes(adr, "remain `UNDECIDED`", "projected-volume interval decision boundary");
-  expectIncludes(watchHandleTest, 'listener("rename", "..data")', "projected-volume event fixture");
+  expectIncludes(snapshotFileSource, "MIN_POLL_INTERVAL_MS = 50", "projected-volume polling floor");
+  expectIncludes(snapshotFileSource, "current.ino === previous.ino", "polling inode fingerprint");
   expectIncludes(
-    roadmap,
-    "ADR 0011 now records the proposed bounded polling boundary",
-    "projected-volume roadmap status"
+    localProviderSource,
+    "ProviderEvents.ConfigurationChanged",
+    "provider change event"
+  );
+  expectIncludes(localProviderSource, "flagsChanged:", "provider changed-key payload");
+  expectIncludes(
+    packedSmokeScript,
+    "consistencyPollIntervalMs: 50",
+    "packed consistency polling smoke"
+  );
+  expectIncludes(packedSmokeScript, "ProviderEvents.ConfigurationChanged", "packed event smoke");
+  expectIncludes(
+    snapshotWatchHandleTest,
+    'listener("rename", "..data")',
+    "projected-volume event fixture"
+  );
+  expectIncludes(configurationChangeDoc, "code-unit order", "configuration-change key ordering");
+  expectIncludes(
+    compatibilityDoc,
+    `## ${localPackage.version} Projected-Volume Consistency And Change Events`,
+    "projected-volume compatibility version"
+  );
+  expectIncludes(
+    roadmapDoc,
+    "Complete the `0.16` projected-volume consistency milestone",
+    "projected-volume roadmap completion"
   );
 }
 
@@ -469,14 +547,21 @@ function checkPublishingDocs(npmDoc, releaseDocText) {
   expectIncludes(npmDoc, "release.yml", "npm publishing doc workflow filename");
   expectIncludes(
     npmDoc,
-    'npm publish "${' + '{ steps.pack.outputs.tarball }}" --provenance --access public',
+    '--tag\n  "${' + '{ steps.channel.outputs.npm-tag }}"',
     "npm publishing doc publish command"
   );
+  expectIncludes(npmDoc, "dist-tag `next`", "npm prerelease dist-tag policy");
   expectIncludes(
     releaseDocText,
     "npm trusted publishing and provenance",
     "release doc publish method"
   );
+}
+
+function checkReleaseChannel(script, testSource) {
+  expectIncludes(script, 'npmTag: prerelease ? "next" : "latest"', "release npm channel policy");
+  expectIncludes(script, "githubPrerelease: prerelease", "GitHub prerelease policy");
+  expectIncludes(testSource, 'resolveReleaseChannel("1.0.0-rc.1")', "prerelease channel test");
 }
 
 function expectScript(packageObject, name, expected) {
@@ -497,8 +582,10 @@ function expectEqual(actual, expected, label) {
 }
 
 function expectSemver(value, label) {
-  if (typeof value !== "string" || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(value)) {
-    blockers.push(`${label} must be a stable semver version, got ${format(value)}`);
+  try {
+    resolveReleaseChannel(value);
+  } catch {
+    blockers.push(`${label} must be a valid semver version, got ${format(value)}`);
   }
 }
 

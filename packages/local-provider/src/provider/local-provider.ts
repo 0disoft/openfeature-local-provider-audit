@@ -5,6 +5,7 @@ import type {
   Provider,
   ResolutionDetails
 } from "@openfeature/server-sdk";
+import { OpenFeatureEventEmitter, ProviderEvents } from "@openfeature/server-sdk";
 import {
   createAuditEvent,
   createOverrideHash,
@@ -90,11 +91,14 @@ interface ProviderState {
   readonly snapshotHash: string;
   readonly overrides: EnvOverrideState;
   readonly overrideHash?: string;
+  readonly flagHashes: ReadonlyMap<string, string>;
 }
 
 class LocalFeatureProvider implements ReloadableLocalProvider {
   readonly metadata: { readonly name: string };
+  readonly events = new OpenFeatureEventEmitter();
   private state: ProviderState;
+  private closed = false;
 
   constructor(
     snapshot: FlagSnapshot,
@@ -113,11 +117,27 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   }
 
   updateSnapshot(snapshot: FlagSnapshot): void {
-    this.state = this.createState(snapshot);
+    const previousState = this.state;
+    const nextState = this.createState(snapshot);
+    if (nextState.snapshotHash === previousState.snapshotHash) {
+      return;
+    }
+
+    this.state = nextState;
+    if (!this.closed) {
+      this.events.emit(ProviderEvents.ConfigurationChanged, {
+        flagsChanged: findChangedFlagKeys(previousState.flagHashes, nextState.flagHashes)
+      });
+    }
   }
 
   async onClose(): Promise<void> {
-    await this.auditSink?.flush?.();
+    this.closed = true;
+    try {
+      await this.auditSink?.flush?.();
+    } finally {
+      this.events.removeAllHandlers();
+    }
   }
 
   async resolveBooleanEvaluation(
@@ -264,9 +284,38 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       snapshot: validatedSnapshot,
       snapshotHash: createSnapshotHash(validatedSnapshot),
       overrides,
+      flagHashes: createFlagHashes(validatedSnapshot),
       ...(hasOverrideState(overrides) ? { overrideHash: createOverrideHash(overrides) } : {})
     };
   }
+}
+
+function createFlagHashes(snapshot: FlagSnapshot): ReadonlyMap<string, string> {
+  return new Map(
+    Object.entries(snapshot.flags).map(([flagKey, flag]) => [
+      flagKey,
+      createSnapshotHash({ schemaVersion: 1, flags: { [flagKey]: flag } })
+    ])
+  );
+}
+
+function findChangedFlagKeys(
+  previous: ReadonlyMap<string, string>,
+  next: ReadonlyMap<string, string>
+): string[] {
+  return [...new Set([...previous.keys(), ...next.keys()])]
+    .filter((flagKey) => previous.get(flagKey) !== next.get(flagKey))
+    .sort(compareCodeUnits);
+}
+
+function compareCodeUnits(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
 }
 
 function hasOverrideState(overrides: EnvOverrideState): boolean {

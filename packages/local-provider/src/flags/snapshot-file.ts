@@ -23,7 +23,7 @@ import { parseYamlFlagSnapshot } from "./parse-yaml-snapshot.js";
 
 const DEFAULT_DEBOUNCE_MS = 50;
 const DEFAULT_MAX_SNAPSHOT_FILE_BYTES = 10 * 1024 * 1024;
-const MIN_WINDOWS_POLL_INTERVAL_MS = 50;
+const MIN_POLL_INTERVAL_MS = 50;
 const SNAPSHOT_READ_CHUNK_BYTES = 64 * 1024;
 
 interface SnapshotFileTarget {
@@ -62,6 +62,7 @@ interface SnapshotWatchOptions {
   readonly target: SnapshotFileTarget;
   readonly persistent: boolean;
   readonly debounceMs: number;
+  readonly consistencyPollIntervalMs?: number;
   readonly onChange: () => void;
   readonly onError: (error: unknown) => void;
 }
@@ -109,11 +110,15 @@ export async function watchFlagSnapshotFile(
   const watcherPath = options.path;
   const target = resolveSnapshotFileTarget(watcherPath);
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
+  assertOptionalPollInterval(options.consistencyPollIntervalMs);
   const watcher = createSnapshotWatchHandle({
     path: watcherPath,
     target,
     persistent: options.persistent ?? false,
     debounceMs,
+    ...(options.consistencyPollIntervalMs !== undefined
+      ? { consistencyPollIntervalMs: options.consistencyPollIntervalMs }
+      : {}),
     onChange() {
       if (closed) {
         return;
@@ -279,26 +284,33 @@ export function createSnapshotWatchHandle(
   options: SnapshotWatchOptions,
   runtime: SnapshotWatchRuntime = DEFAULT_SNAPSHOT_WATCH_RUNTIME
 ): SnapshotWatchHandle {
+  assertOptionalPollInterval(options.consistencyPollIntervalMs);
+
   if (runtime.platform === "win32") {
-    const listener: SnapshotWatchFileListener = (current, previous) => {
-      if (current.mtimeMs === previous.mtimeMs && current.size === previous.size) {
-        return;
+    let closed = false;
+    const listener = createSnapshotWatchFileListener(() => {
+      if (!closed) {
+        options.onChange();
       }
-      options.onChange();
-    };
+    });
 
     runtime.watchFile(
       options.target.path,
       {
         bigint: false,
         persistent: options.persistent,
-        interval: Math.max(options.debounceMs, MIN_WINDOWS_POLL_INTERVAL_MS)
+        interval:
+          options.consistencyPollIntervalMs ?? Math.max(options.debounceMs, MIN_POLL_INTERVAL_MS)
       },
       listener
     );
 
     return {
       close() {
+        if (closed) {
+          return;
+        }
+        closed = true;
         runtime.unwatchFile(options.target.path, listener);
       }
     };
@@ -330,15 +342,19 @@ export function createSnapshotWatchHandle(
   );
 
   if (runtime.platform !== "darwin") {
-    return {
-      close() {
-        if (handleClosed) {
-          return;
+    return addConsistencyPolling(
+      {
+        close() {
+          if (handleClosed) {
+            return;
+          }
+          handleClosed = true;
+          directoryWatcher.close();
         }
-        handleClosed = true;
-        directoryWatcher.close();
-      }
-    };
+      },
+      options,
+      runtime
+    );
   }
 
   try {
@@ -346,17 +362,21 @@ export function createSnapshotWatchHandle(
       options.onChange();
     });
 
-    return {
-      close() {
-        if (handleClosed) {
-          return;
+    return addConsistencyPolling(
+      {
+        close() {
+          if (handleClosed) {
+            return;
+          }
+          handleClosed = true;
+          directoryWatcher.close();
+          fileWatcher?.close();
+          fileWatcher = undefined;
         }
-        handleClosed = true;
-        directoryWatcher.close();
-        fileWatcher?.close();
-        fileWatcher = undefined;
-      }
-    };
+      },
+      options,
+      runtime
+    );
   } catch (error) {
     handleClosed = true;
     directoryWatcher.close();
@@ -375,6 +395,69 @@ export function createSnapshotWatchHandle(
       options.onError(error);
     }
   }
+}
+
+function addConsistencyPolling(
+  nativeHandle: SnapshotWatchHandle,
+  options: SnapshotWatchOptions,
+  runtime: SnapshotWatchRuntime
+): SnapshotWatchHandle {
+  const interval = options.consistencyPollIntervalMs;
+  if (interval === undefined) {
+    return nativeHandle;
+  }
+
+  let closed = false;
+  const listener = createSnapshotWatchFileListener(() => {
+    if (!closed) {
+      options.onChange();
+    }
+  });
+
+  try {
+    runtime.watchFile(
+      options.target.path,
+      {
+        bigint: false,
+        persistent: options.persistent,
+        interval
+      },
+      listener
+    );
+  } catch (error) {
+    nativeHandle.close();
+    throw error;
+  }
+
+  return {
+    close() {
+      if (closed) {
+        return;
+      }
+      closed = true;
+      runtime.unwatchFile(options.target.path, listener);
+      nativeHandle.close();
+    }
+  };
+}
+
+function createSnapshotWatchFileListener(onChange: () => void): SnapshotWatchFileListener {
+  return (current, previous) => {
+    if (haveSameSnapshotFileFingerprint(current, previous)) {
+      return;
+    }
+    onChange();
+  };
+}
+
+function haveSameSnapshotFileFingerprint(current: Stats, previous: Stats): boolean {
+  return (
+    current.dev === previous.dev &&
+    current.ino === previous.ino &&
+    current.mtimeMs === previous.mtimeMs &&
+    current.ctimeMs === previous.ctimeMs &&
+    current.size === previous.size
+  );
 }
 
 function createNativeWatcher(
@@ -401,5 +484,16 @@ function closeWatcher(
 function assertPositiveInteger(value: number, name: string): void {
   if (!Number.isInteger(value) || value <= 0) {
     throw new RangeError(`${name} must be a positive integer`);
+  }
+}
+
+function assertOptionalPollInterval(value: number | undefined): void {
+  if (value === undefined) {
+    return;
+  }
+  if (!Number.isInteger(value) || value < MIN_POLL_INTERVAL_MS) {
+    throw new RangeError(
+      `consistencyPollIntervalMs must be an integer greater than or equal to ${MIN_POLL_INTERVAL_MS}`
+    );
   }
 }

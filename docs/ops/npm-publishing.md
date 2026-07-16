@@ -29,7 +29,10 @@ smoke evidence before public release.
 - The workflow checks whether the package version is already published.
 - If the version is not already published, the workflow publishes the already packed and
   tested tarball with
-  `npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public`.
+  `npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public --tag
+  "${{ steps.channel.outputs.npm-tag }}"`.
+- Stable versions resolve to npm dist-tag `latest`; versions with a SemVer prerelease
+  identifier resolve to npm dist-tag `next` and create prerelease-marked GitHub Releases.
 - The workflow creates a GitHub Release for the tag and attaches the packed `.tgz`.
 - It does not use a long-lived npm token.
 
