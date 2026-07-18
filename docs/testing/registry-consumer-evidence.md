@@ -35,6 +35,16 @@ registry. It did not use a workspace link, checkout `dist`, or a local tarball.
   priority, replay, watcher reload, configuration-change events, audit redaction, audit
   sink flush, and shutdown.
 
+## Hosted Registry Matrix
+
+- Workflow run: [29648435330](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29648435330).
+- Tested commit: `ba4220d6195aa0e40ae823f3cfe82c1d8dfa7e94`.
+- Result: all six Node.js 24 jobs completed successfully on 2026-07-18.
+- Matrix: npm `latest` and `next` on `ubuntu-latest`, `windows-latest`, and pinned
+  `macos-15`.
+- Every job completed the clean dependency install and `Consume published package` step.
+- `latest` covered `0.16.0`; `next` covered `1.0.0-rc.1`.
+
 ## Evidence Boundary
 
 This proves exact public-registry artifact identity and a normal clean install. The
