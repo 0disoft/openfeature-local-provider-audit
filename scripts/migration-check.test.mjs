@@ -38,6 +38,17 @@ test("rejects a missing source-version migration path", () => {
   );
 });
 
+test("rejects a missing candidate publication status", () => {
+  const guide = createCompleteGuide("1.0.0-rc.1").replace(
+    "Candidate publication:",
+    "Candidate status:"
+  );
+  assert.match(
+    validateMigrationGuide({ packageVersion: "1.0.0-rc.1", guide }).join("\n"),
+    /Candidate publication:/
+  );
+});
+
 test("rejects stale package-version linkage", () => {
   const errors = validateMigrationGuide({
     packageVersion: "1.0.0-rc.1",

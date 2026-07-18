@@ -64,3 +64,12 @@ Owner: 0disoft
 - A `1.0` candidate lacks package-version-linked migration guidance.
 - Stable `1.0.0` is promoted without exact registry-artifact and independent-consumer
   evidence from the candidate series.
+
+## Current RC Evidence
+
+- `v1.0.0-rc.1` release run `29646276937` completed successfully on 2026-07-18.
+- npm `next` resolves to `1.0.0-rc.1`; npm `latest` remains `0.16.0`.
+- npm and GitHub Release tarballs are both 98,118 bytes with SHA-256
+  `7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8`.
+- The repository-owned normal-registry consumer passed. Independent maintainer feedback
+  remains required before stable promotion.

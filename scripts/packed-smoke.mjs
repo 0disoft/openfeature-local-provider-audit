@@ -1,4 +1,5 @@
 import { exec, execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { access, mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -67,13 +68,11 @@ try {
   const openFeatureServerSdkSpec = resolveOpenFeatureServerSdkSpec(packageJson);
   const nodeTypesSpec = requirePinnedDependency(rootPackageJson, "@types/node");
   const latestTypescriptSpec = requirePinnedDependency(rootPackageJson, "typescript");
-  const tarballPath = await resolveTarballPath(packDirectory);
-  const tarballBytes = (await stat(tarballPath)).size;
-  if (tarballBytes > MAX_PACKED_TARBALL_BYTES) {
-    throw new Error(
-      `Packed tarball is ${tarballBytes} bytes, exceeding the ${MAX_PACKED_TARBALL_BYTES}-byte release budget.`
-    );
-  }
+  const installTarget = await resolveInstallTarget(
+    packDirectory,
+    packageJson,
+    parseRegistryVersion(process.argv.slice(2))
+  );
 
   await writeFile(
     path.join(consumerDirectory, "package.json"),
@@ -85,13 +84,34 @@ try {
     [
       "add",
       "--save-exact",
-      tarballPath,
+      installTarget.spec,
       `@openfeature/server-sdk@${openFeatureServerSdkSpec}`,
       `@types/node@${nodeTypesSpec}`,
       `typescript@${STRICT_CONSUMER_TYPESCRIPT_VERSION}`
     ],
     consumerDirectory
   );
+
+  const installedPackageJson = JSON.parse(
+    await readFile(
+      path.join(
+        consumerDirectory,
+        "node_modules",
+        "@0disoft",
+        "openfeature-local-provider",
+        "package.json"
+      ),
+      "utf8"
+    )
+  );
+  if (
+    installedPackageJson.name !== PACKAGE_NAME ||
+    installedPackageJson.version !== installTarget.version
+  ) {
+    throw new Error(
+      `Consumer installed ${String(installedPackageJson.name)}@${String(installedPackageJson.version)}, expected ${PACKAGE_NAME}@${installTarget.version}.`
+    );
+  }
 
   await writeFile(
     path.join(consumerDirectory, "flags.yaml"),
@@ -205,9 +225,31 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
     throw new Error(`CLI packed smoke returned an unexpected result: ${stdout}`);
   }
 
-  console.log(
-    `Packed smoke passed for ${packageJson.name}@${packageJson.version} (${tarballBytes} bytes) with TypeScript ${STRICT_CONSUMER_TYPESCRIPT_VERSION} (full library check) and ${latestTypescriptSpec} (consumer surface check).`
-  );
+  if (installTarget.source === "registry") {
+    console.log(
+      JSON.stringify(
+        {
+          result: "registry-consumer-smoke-passed",
+          package: `${packageJson.name}@${installTarget.version}`,
+          source: installTarget.source,
+          tarballBytes: installTarget.tarballBytes,
+          sha256: installTarget.sha256,
+          integrity: installTarget.integrity,
+          node: process.version,
+          platform: `${process.platform}-${process.arch}`,
+          openFeatureServerSdk: openFeatureServerSdkSpec,
+          strictTypeScript: STRICT_CONSUMER_TYPESCRIPT_VERSION,
+          consumerSurfaceTypeScript: latestTypescriptSpec
+        },
+        null,
+        2
+      )
+    );
+  } else {
+    console.log(
+      `Packed smoke passed for ${packageJson.name}@${packageJson.version} (${installTarget.tarballBytes} bytes) with TypeScript ${STRICT_CONSUMER_TYPESCRIPT_VERSION} (full library check) and ${latestTypescriptSpec} (consumer surface check).`
+    );
+  }
 } finally {
   await rm(tempDirectory, { recursive: true, force: true });
 }
@@ -440,6 +482,77 @@ function resolveOpenFeatureServerSdkSpec(packageJson) {
     throw new Error("Packed smoke could not resolve the OpenFeature server SDK peer range.");
   }
   return peerSpec;
+}
+
+function parseRegistryVersion(args) {
+  if (args.length === 0) {
+    return undefined;
+  }
+  if (args.length !== 2 || args[0] !== "--registry-version" || args[1].length === 0) {
+    throw new Error("Usage: packed-smoke.mjs [--registry-version <package|version>]");
+  }
+  return args[1];
+}
+
+async function resolveInstallTarget(packDirectory, packageJson, registryVersion) {
+  if (registryVersion !== undefined) {
+    const version = registryVersion === "package" ? packageJson.version : registryVersion;
+    if (version !== packageJson.version) {
+      throw new Error(
+        `Registry consumer version ${version} must match source package version ${packageJson.version}.`
+      );
+    }
+    const metadataResponse = await fetch(
+      `https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}/${encodeURIComponent(version)}`,
+      { headers: { accept: "application/json" } }
+    );
+    if (!metadataResponse.ok) {
+      throw new Error(`Registry metadata request failed with HTTP ${metadataResponse.status}.`);
+    }
+    const metadata = await metadataResponse.json();
+    const tarballUrl = metadata?.dist?.tarball;
+    if (metadata?.version !== version || typeof tarballUrl !== "string" || tarballUrl === "") {
+      throw new Error(`Registry metadata for ${PACKAGE_NAME}@${version} is incomplete.`);
+    }
+    const tarballResponse = await fetch(tarballUrl, {
+      headers: { accept: "application/octet-stream" }
+    });
+    if (!tarballResponse.ok) {
+      throw new Error(`Registry tarball request failed with HTTP ${tarballResponse.status}.`);
+    }
+    const tarball = Buffer.from(await tarballResponse.arrayBuffer());
+    enforceTarballBudget(tarball.length);
+    return {
+      source: "registry",
+      spec: `${PACKAGE_NAME}@${version}`,
+      version,
+      tarballBytes: tarball.length,
+      sha256: createHash("sha256").update(tarball).digest("hex"),
+      integrity: typeof metadata.dist.integrity === "string" ? metadata.dist.integrity : null
+    };
+  }
+
+  const tarballPath = await resolveTarballPath(packDirectory);
+  const tarballBytes = (await stat(tarballPath)).size;
+  enforceTarballBudget(tarballBytes);
+  return {
+    source: "packed",
+    spec: tarballPath,
+    version: packageJson.version,
+    tarballBytes,
+    sha256: createHash("sha256")
+      .update(await readFile(tarballPath))
+      .digest("hex"),
+    integrity: null
+  };
+}
+
+function enforceTarballBudget(tarballBytes) {
+  if (tarballBytes > MAX_PACKED_TARBALL_BYTES) {
+    throw new Error(
+      `Packed tarball is ${tarballBytes} bytes, exceeding the ${MAX_PACKED_TARBALL_BYTES}-byte release budget.`
+    );
+  }
 }
 
 async function resolveTarballPath(packDirectory) {

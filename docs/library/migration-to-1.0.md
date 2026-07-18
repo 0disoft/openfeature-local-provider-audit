@@ -6,11 +6,10 @@ Owner: 0disoft
 Current repository package version: `1.0.0-rc.1`.
 Target candidate: `1.0.0-rc.1`.
 
-The candidate source is prepared, but source state is not publication evidence. This
-document does not claim that `1.0.0-rc.1` exists on npm, that its registry artifact
-passed installation checks, or that an independently maintained consumer has completed
-integration. Those results must be recorded after publication before stable `1.0.0`
-promotion.
+The candidate source and publication are complete. Its public npm and GitHub tarballs
+match, and the exact registry artifact passed the repository-owned clean consumer. This
+does not claim that an independently maintained consumer has completed integration;
+that separate result must be recorded before stable `1.0.0` promotion.
 
 ## Supported starting versions
 
@@ -140,6 +139,7 @@ compatibility note rather than a silent downgrade recommendation.
 - Audit event v1: [audit-event-v1.md](audit-event-v1.md)
 - Configuration-change events: [configuration-change-events.md](configuration-change-events.md)
 - Candidate and stable gates: [../product/05-1.0-readiness.md](../product/05-1.0-readiness.md)
+- Registry consumer evidence: [../testing/registry-consumer-evidence.md](../testing/registry-consumer-evidence.md)
 - Release procedure: [../ops/release.md](../ops/release.md)
 - Rollback policy: [../ops/rollback.md](../ops/rollback.md)
 
@@ -147,8 +147,10 @@ compatibility note rather than a silent downgrade recommendation.
 
 - Current source baseline: repository package version `0.16.0`.
 - Candidate source: repository package version `1.0.0-rc.1`.
-- Candidate publication: not yet evidenced by this document.
-- Exact registry-artifact installation: not yet evidenced by this document.
+- Candidate publication: npm `next` and GitHub prerelease `v1.0.0-rc.1`, release workflow
+  run `29646276937` completed successfully on 2026-07-18.
+- Exact registry-artifact installation: passed on Windows x64 with Node.js `v24.18.0`;
+  npm and GitHub tarballs were both 98,118 bytes with SHA-256
+  `7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8`.
 - Independently maintained consumer result: not yet evidenced by this document.
-- Stable `1.0.0` promotion: blocked until the candidate gates and external-consumer gate
-  are satisfied.
+- Stable `1.0.0` promotion: blocked until the external-consumer gate is satisfied.

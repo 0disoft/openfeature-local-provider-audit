@@ -75,6 +75,12 @@ const CODEOWNERS = path.join(ROOT, ".github", "CODEOWNERS");
 const SECURITY_POLICY = path.join(ROOT, "SECURITY.md");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
+const REGISTRY_CONSUMER_EVIDENCE = path.join(
+  ROOT,
+  "docs",
+  "testing",
+  "registry-consumer-evidence.md"
+);
 const RELEASE_CHANNEL_SCRIPT = path.join(ROOT, "scripts", "release-channel.mjs");
 const RELEASE_CHANNEL_TEST = path.join(ROOT, "scripts", "release-channel.test.mjs");
 const REGISTRY_RELEASE_SCRIPT = path.join(ROOT, "scripts", "registry-release.mjs");
@@ -115,6 +121,7 @@ const codeowners = await readText(CODEOWNERS);
 const securityPolicy = await readText(SECURITY_POLICY);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
+const registryConsumerEvidence = await readText(REGISTRY_CONSUMER_EVIDENCE);
 const releaseChannelScript = await readText(RELEASE_CHANNEL_SCRIPT);
 const releaseChannelTest = await readText(RELEASE_CHANNEL_TEST);
 const registryReleaseScript = await readText(REGISTRY_RELEASE_SCRIPT);
@@ -144,7 +151,6 @@ checkAuditQueueContract({
   auditQueueAdr
 });
 checkProjectedVolumeContract({
-  packageJson,
   projectedVolumeAdr,
   snapshotFileSource,
   localProviderSource,
@@ -160,6 +166,7 @@ checkMaintenancePolicy(codeowners, securityPolicy);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 checkReleaseChannel(releaseChannelScript, releaseChannelTest);
 checkRegistryRelease(registryReleaseScript, registryReleaseTest);
+checkRegistryConsumerEvidence(registryConsumerEvidence, packageJson);
 
 if (blockers.length > 0) {
   console.error("Release readiness: blocked");
@@ -220,6 +227,11 @@ function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
+  expectScript(
+    rootPackage,
+    "registry-smoke",
+    "node scripts/packed-smoke.mjs --registry-version package"
+  );
   expectScript(rootPackage, "api:check", "pnpm run build && node scripts/api-surface.mjs --check");
   expectScript(rootPackage, "contract", "pnpm run api:check && pnpm run packed-smoke");
   expectScript(
@@ -455,6 +467,13 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
   );
   expectIncludes(workflow, "pnpm run packed-smoke", "compatibility workflow packed smoke");
   expectIncludes(packedSmokeScript, "MAX_PACKED_TARBALL_BYTES = 1_048_576", "packed size budget");
+  expectIncludes(packedSmokeScript, "registry-consumer-smoke-passed", "registry consumer result");
+  expectIncludes(packedSmokeScript, "--registry-version", "registry consumer version selector");
+  expectIncludes(
+    packedSmokeScript,
+    "installedPackageJson.version !== installTarget.version",
+    "registry installed-version gate"
+  );
   expectIncludes(
     packedSmokeScript,
     'pnpm", ["exec", "tsc"',
@@ -589,7 +608,6 @@ function checkAuditQueueContract({
 }
 
 function checkProjectedVolumeContract({
-  packageJson: localPackage,
   projectedVolumeAdr,
   snapshotFileSource,
   localProviderSource,
@@ -686,6 +704,22 @@ function checkRegistryRelease(script, testSource) {
   expectIncludes(testSource, "supports trusted publishing", "trusted publishing npm CLI test");
   expectIncludes(testSource, "dist-tag", "registry dist-tag test");
   expectIncludes(testSource, "retries bounded registry propagation", "registry retry test");
+}
+
+function checkRegistryConsumerEvidence(evidence, localPackage) {
+  expectIncludes(
+    evidence,
+    `${localPackage.name}@${localPackage.version}`,
+    "registry evidence package"
+  );
+  expectIncludes(evidence, "registry-consumer-smoke-passed", "registry evidence result");
+  expectIncludes(
+    evidence,
+    "7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8",
+    "registry evidence SHA-256"
+  );
+  expectIncludes(evidence, "98,118 bytes", "registry evidence tarball size");
+  expectIncludes(evidence, "not evidence of adoption", "registry evidence independence boundary");
 }
 
 function expectScript(packageObject, name, expected) {

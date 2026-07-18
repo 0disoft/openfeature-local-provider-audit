@@ -33,6 +33,11 @@ on the supported Node.js runtime matrix.
 - Packed smoke rejects release tarballs larger than 1 MiB (1,048,576 bytes). This is a
   compressed artifact budget intended to catch accidentally shipped fixtures, caches, or
   generated output; raising it requires a reviewed package-content explanation.
+- `registry-smoke` creates a temporary consumer outside the workspace, installs the exact
+  source package version by name from the normal npm registry, confirms the installed
+  package metadata, records registry tarball integrity and SHA-256, and then runs the same
+  ESM, CJS, TypeScript, CLI, watcher, event, replay, and audit contract as packed smoke.
+  This proves registry installation, not independent maintainer adoption.
 - `.github/workflows/audit-queue-benchmark.yml` runs only on manual dispatch. Its `quick`
   profile runs one small sample on Node.js 24.x across Ubuntu, Windows, and macOS. Its
   `decision` profile runs three repeated 1-second, 5-second, and 30-second stall samples

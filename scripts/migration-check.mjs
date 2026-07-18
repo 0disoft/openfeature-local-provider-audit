@@ -21,7 +21,7 @@ export const REQUIRED_MIGRATION_LITERALS = Object.freeze([
   "exit codes `0` for success, `1` for snapshot failure, and `2` for usage error",
   "prereleases must not replace `latest`",
   "They are not a substitute for installing the exact npm artifact.",
-  "Candidate publication: not yet evidenced by this document.",
+  "Candidate publication:",
   "Independently maintained consumer result: not yet evidenced by this document."
 ]);
 export const MIGRATION_SOURCE_BASELINE = "0.16.0";

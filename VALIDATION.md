@@ -16,6 +16,7 @@ Executable validation now runs through pnpm package scripts.
 - coverage
 - contract
 - migration-check
+- registry-smoke
 - smoke
 - docs
 - check
@@ -38,6 +39,7 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - coverage: `pnpm run test:coverage`
 - contract: `pnpm run contract`
 - migration-check: `pnpm run migration-check`
+- registry-smoke: `pnpm run registry-smoke`
 - smoke: `pnpm run build` and `pnpm run pack:check`
 - docs: `pnpm run release-readiness`
 - check: `pnpm run check`
