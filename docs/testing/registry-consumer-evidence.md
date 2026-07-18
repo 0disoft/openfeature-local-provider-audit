@@ -40,4 +40,5 @@ registry. It did not use a workspace link, checkout `dist`, or a local tarball.
 This proves exact public-registry artifact identity and a normal clean install. The
 consumer harness is maintained in this repository, so this is not evidence of adoption
 or integration by an independently maintained consumer. Stable `1.0.0` remains blocked
-until that separate human or external-repository result is recorded.
+until that separate human or external-repository result is recorded through
+[GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).

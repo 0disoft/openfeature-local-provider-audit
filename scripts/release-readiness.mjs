@@ -774,6 +774,11 @@ function checkRegistryConsumerEvidence(evidence, localPackage) {
   );
   expectIncludes(evidence, "98,118 bytes", "registry evidence tarball size");
   expectIncludes(evidence, "not evidence of adoption", "registry evidence independence boundary");
+  expectIncludes(
+    evidence,
+    "https://github.com/0disoft/openfeature-local-provider-audit/issues/5",
+    "registry evidence external-consumer issue"
+  );
 }
 
 function expectScript(packageObject, name, expected) {

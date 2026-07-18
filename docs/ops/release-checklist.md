@@ -75,4 +75,5 @@ Owner: 0disoft
 - npm and GitHub Release tarballs are both 98,118 bytes with SHA-256
   `7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8`.
 - The repository-owned normal-registry consumer passed. Independent maintainer feedback
-  remains required before stable promotion.
+  remains required before stable promotion and is tracked in
+  [GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).
