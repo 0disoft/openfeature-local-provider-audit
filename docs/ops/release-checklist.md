@@ -40,6 +40,9 @@ Owner: 0disoft
   watcher, audit, replay, and OpenFeature configuration-event consumer paths.
 - At least one independently maintained consumer records a normal registry-install result
   for a published release candidate before stable `1.0.0` promotion.
+- External consumer evidence uses `.github/ISSUE_TEMPLATE/rc-consumer-report.md` or records
+  the same immutable revision, exact package install path, environment, exercised surfaces,
+  result, and maintainer relationship.
 
 ## 1.0 Release Candidate Readiness
 

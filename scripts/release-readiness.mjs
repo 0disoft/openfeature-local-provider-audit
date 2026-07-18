@@ -9,6 +9,12 @@ const RELEASE_WORKFLOW = path.join(ROOT, ".github", "workflows", "release.yml");
 const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
 const COMPATIBILITY_WORKFLOW = path.join(ROOT, ".github", "workflows", "compatibility.yml");
 const REGISTRY_CONSUMER_WORKFLOW = path.join(ROOT, ".github", "workflows", "registry-consumer.yml");
+const RC_CONSUMER_REPORT_TEMPLATE = path.join(
+  ROOT,
+  ".github",
+  "ISSUE_TEMPLATE",
+  "rc-consumer-report.md"
+);
 const AUDIT_QUEUE_BENCHMARK_WORKFLOW = path.join(
   ROOT,
   ".github",
@@ -98,6 +104,7 @@ const releaseWorkflow = await readText(RELEASE_WORKFLOW);
 const ciWorkflow = await readText(CI_WORKFLOW);
 const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
 const registryConsumerWorkflow = await readText(REGISTRY_CONSUMER_WORKFLOW);
+const rcConsumerReportTemplate = await readText(RC_CONSUMER_REPORT_TEMPLATE);
 const auditQueueBenchmarkWorkflow = await readText(AUDIT_QUEUE_BENCHMARK_WORKFLOW);
 const auditQueueBenchmarkPlanScript = await readText(AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT);
 const packedSmokeScript = await readText(PACKED_SMOKE_SCRIPT);
@@ -136,6 +143,7 @@ checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
 checkRegistryConsumerWorkflow(registryConsumerWorkflow);
+checkRcConsumerReportTemplate(rcConsumerReportTemplate);
 checkApiSurfaceContract({
   apiSurfaceScript,
   apiSurfaceTest,
@@ -508,6 +516,24 @@ function checkRegistryConsumerWorkflow(workflow) {
     'pnpm run registry-smoke --registry-version "$' + '{{ matrix.channel }}"',
     "registry consumer command"
   );
+}
+
+function checkRcConsumerReportTemplate(template) {
+  expectIncludes(template, "name: Release Candidate Consumer Report", "RC report template name");
+  expectIncludes(template, "## Independence", "RC report independence section");
+  expectIncludes(template, "Consumer commit or immutable revision", "RC report revision evidence");
+  expectIncludes(template, "## Package and install path", "RC report install section");
+  expectIncludes(template, "Package version", "RC report exact package version");
+  expectIncludes(
+    template,
+    "Clean install without a workspace link",
+    "RC report clean install gate"
+  );
+  expectIncludes(template, "## Environment", "RC report environment section");
+  expectIncludes(template, "## Integration exercised", "RC report integration section");
+  expectIncludes(template, "## Result", "RC report result section");
+  expectIncludes(template, "## Reproduction and evidence", "RC report reproduction section");
+  expectIncludes(template, "maintained independently", "RC report independence confirmation");
 }
 
 function checkApiSurfaceContract({
