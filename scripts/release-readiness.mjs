@@ -8,6 +8,7 @@ const ROOT_PACKAGE_JSON = path.join(ROOT, "package.json");
 const RELEASE_WORKFLOW = path.join(ROOT, ".github", "workflows", "release.yml");
 const CI_WORKFLOW = path.join(ROOT, ".github", "workflows", "ci.yml");
 const COMPATIBILITY_WORKFLOW = path.join(ROOT, ".github", "workflows", "compatibility.yml");
+const REGISTRY_CONSUMER_WORKFLOW = path.join(ROOT, ".github", "workflows", "registry-consumer.yml");
 const AUDIT_QUEUE_BENCHMARK_WORKFLOW = path.join(
   ROOT,
   ".github",
@@ -96,6 +97,7 @@ const packageJson = await readJson(PACKAGE_JSON);
 const releaseWorkflow = await readText(RELEASE_WORKFLOW);
 const ciWorkflow = await readText(CI_WORKFLOW);
 const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
+const registryConsumerWorkflow = await readText(REGISTRY_CONSUMER_WORKFLOW);
 const auditQueueBenchmarkWorkflow = await readText(AUDIT_QUEUE_BENCHMARK_WORKFLOW);
 const auditQueueBenchmarkPlanScript = await readText(AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT);
 const packedSmokeScript = await readText(PACKED_SMOKE_SCRIPT);
@@ -133,6 +135,7 @@ checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
+checkRegistryConsumerWorkflow(registryConsumerWorkflow);
 checkApiSurfaceContract({
   apiSurfaceScript,
   apiSurfaceTest,
@@ -227,11 +230,7 @@ function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
-  expectScript(
-    rootPackage,
-    "registry-smoke",
-    "node scripts/packed-smoke.mjs --registry-version package"
-  );
+  expectScript(rootPackage, "registry-smoke", "node scripts/packed-smoke.mjs");
   expectScript(rootPackage, "api:check", "pnpm run build && node scripts/api-surface.mjs --check");
   expectScript(rootPackage, "contract", "pnpm run api:check && pnpm run packed-smoke");
   expectScript(
@@ -471,6 +470,16 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
   expectIncludes(packedSmokeScript, "--registry-version", "registry consumer version selector");
   expectIncludes(
     packedSmokeScript,
+    "spec: `$" + "{PACKAGE_NAME}@$" + "{version}`",
+    "registry consumer exact resolved version install"
+  );
+  expectIncludes(
+    packedSmokeScript,
+    "requestedVersion: installTarget.requestedVersion",
+    "registry consumer requested channel evidence"
+  );
+  expectIncludes(
+    packedSmokeScript,
     "installedPackageJson.version !== installTarget.version",
     "registry installed-version gate"
   );
@@ -480,6 +489,25 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
     "packed smoke TypeScript consumer compile"
   );
   expectIncludes(packedSmokeScript, "PACKED_SMOKE_TARBALL", "packed smoke prebuilt tarball input");
+}
+
+function checkRegistryConsumerWorkflow(workflow) {
+  checkPinnedGitHubActions(workflow, "registry consumer workflow");
+  expectIncludes(workflow, 'cron: "41 4 * * 3"', "registry consumer schedule");
+  expectIncludes(workflow, "workflow_dispatch:", "registry consumer manual trigger");
+  expectIncludes(workflow, "ubuntu-latest", "registry consumer Ubuntu runner");
+  expectIncludes(workflow, "windows-latest", "registry consumer Windows runner");
+  expectIncludes(workflow, "macos-15", "registry consumer pinned macOS runner");
+  expectIncludes(workflow, "timeout-minutes: 15", "registry consumer timeout");
+  expectIncludes(workflow, "node-version: 24.x", "registry consumer Node runtime");
+  expectIncludes(workflow, "- latest", "registry consumer stable channel");
+  expectIncludes(workflow, "- next", "registry consumer prerelease channel");
+  expectIncludes(workflow, "pnpm install --frozen-lockfile", "registry consumer install gate");
+  expectIncludes(
+    workflow,
+    'pnpm run registry-smoke --registry-version "$' + '{{ matrix.channel }}"',
+    "registry consumer command"
+  );
 }
 
 function checkApiSurfaceContract({

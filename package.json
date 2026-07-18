@@ -23,7 +23,7 @@
     "pack:check": "pnpm --filter @0disoft/openfeature-local-provider pack:check",
     "packed-smoke": "node scripts/packed-smoke.mjs",
     "release-readiness": "node scripts/release-readiness.mjs",
-    "registry-smoke": "node scripts/packed-smoke.mjs --registry-version package",
+    "registry-smoke": "node scripts/packed-smoke.mjs",
     "test": "pnpm --filter @0disoft/openfeature-local-provider test && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools",
     "test:api-tools": "node --test scripts/api-surface.test.mjs",
     "test:benchmark-tools": "node --test scripts/audit-queue-benchmark-summary.test.mjs",

@@ -232,6 +232,7 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
           result: "registry-consumer-smoke-passed",
           package: `${packageJson.name}@${installTarget.version}`,
           source: installTarget.source,
+          requestedVersion: installTarget.requestedVersion,
           tarballBytes: installTarget.tarballBytes,
           sha256: installTarget.sha256,
           integrity: installTarget.integrity,
@@ -496,23 +497,24 @@ function parseRegistryVersion(args) {
 
 async function resolveInstallTarget(packDirectory, packageJson, registryVersion) {
   if (registryVersion !== undefined) {
-    const version = registryVersion === "package" ? packageJson.version : registryVersion;
-    if (version !== packageJson.version) {
-      throw new Error(
-        `Registry consumer version ${version} must match source package version ${packageJson.version}.`
-      );
-    }
+    const requestedVersion = registryVersion === "package" ? packageJson.version : registryVersion;
     const metadataResponse = await fetch(
-      `https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}/${encodeURIComponent(version)}`,
+      `https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}/${encodeURIComponent(requestedVersion)}`,
       { headers: { accept: "application/json" } }
     );
     if (!metadataResponse.ok) {
       throw new Error(`Registry metadata request failed with HTTP ${metadataResponse.status}.`);
     }
     const metadata = await metadataResponse.json();
+    const version = metadata?.version;
     const tarballUrl = metadata?.dist?.tarball;
-    if (metadata?.version !== version || typeof tarballUrl !== "string" || tarballUrl === "") {
-      throw new Error(`Registry metadata for ${PACKAGE_NAME}@${version} is incomplete.`);
+    if (typeof version !== "string" || typeof tarballUrl !== "string" || tarballUrl === "") {
+      throw new Error(`Registry metadata for ${PACKAGE_NAME}@${requestedVersion} is incomplete.`);
+    }
+    if (registryVersion === "package" && version !== packageJson.version) {
+      throw new Error(
+        `Registry resolved ${version}, expected current source package version ${packageJson.version}.`
+      );
     }
     const tarballResponse = await fetch(tarballUrl, {
       headers: { accept: "application/octet-stream" }
@@ -525,6 +527,7 @@ async function resolveInstallTarget(packDirectory, packageJson, registryVersion)
     return {
       source: "registry",
       spec: `${PACKAGE_NAME}@${version}`,
+      requestedVersion,
       version,
       tarballBytes: tarball.length,
       sha256: createHash("sha256").update(tarball).digest("hex"),
