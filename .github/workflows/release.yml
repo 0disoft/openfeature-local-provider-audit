@@ -2,8 +2,6 @@ name: release
 
 on:
   push:
-    branches:
-      - "v0.16.0"
     tags:
       - "v*"
 
