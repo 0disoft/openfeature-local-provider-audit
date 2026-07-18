@@ -501,6 +501,19 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
 
 function checkRegistryConsumerWorkflow(workflow) {
   checkPinnedGitHubActions(workflow, "registry consumer workflow");
+  expectIncludes(workflow, "push:", "registry consumer push trigger");
+  expectIncludes(workflow, "branches:", "registry consumer main branch filter");
+  expectIncludes(workflow, "- main", "registry consumer main branch");
+  expectIncludes(workflow, "paths:", "registry consumer path filter");
+  expectIncludes(
+    workflow,
+    ".github/workflows/registry-consumer.yml",
+    "registry consumer workflow path"
+  );
+  expectIncludes(workflow, "scripts/packed-smoke.mjs", "registry consumer harness path");
+  expectIncludes(workflow, "scripts/release-readiness.mjs", "registry readiness path");
+  expectIncludes(workflow, "package.json", "registry consumer package script path");
+  expectIncludes(workflow, "pnpm-lock.yaml", "registry consumer lockfile path");
   expectIncludes(workflow, 'cron: "41 4 * * 3"', "registry consumer schedule");
   expectIncludes(workflow, "workflow_dispatch:", "registry consumer manual trigger");
   expectIncludes(workflow, "ubuntu-latest", "registry consumer Ubuntu runner");
