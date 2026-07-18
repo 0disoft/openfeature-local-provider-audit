@@ -3,13 +3,14 @@
 Status: Planned candidate guidance
 Owner: 0disoft
 
-Current repository package version: `0.16.0`.
+Current repository package version: `1.0.0-rc.1`.
 Target candidate: `1.0.0-rc.1`.
 
-The target candidate is a plan, not publication evidence. This document does not claim
-that `1.0.0-rc.1` exists on npm, that its registry artifact passed installation checks,
-or that an independently maintained consumer has completed integration. Those results
-must be recorded after publication before stable `1.0.0` promotion.
+The candidate source is prepared, but source state is not publication evidence. This
+document does not claim that `1.0.0-rc.1` exists on npm, that its registry artifact
+passed installation checks, or that an independently maintained consumer has completed
+integration. Those results must be recorded after publication before stable `1.0.0`
+promotion.
 
 ## Supported starting versions
 
@@ -145,6 +146,7 @@ compatibility note rather than a silent downgrade recommendation.
 ## Evidence status
 
 - Current source baseline: repository package version `0.16.0`.
+- Candidate source: repository package version `1.0.0-rc.1`.
 - Candidate publication: not yet evidenced by this document.
 - Exact registry-artifact installation: not yet evidenced by this document.
 - Independently maintained consumer result: not yet evidenced by this document.

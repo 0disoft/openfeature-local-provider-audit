@@ -628,7 +628,7 @@ function checkProjectedVolumeContract({
   expectIncludes(configurationChangeDoc, "code-unit order", "configuration-change key ordering");
   expectIncludes(
     compatibilityDoc,
-    `## ${localPackage.version} Projected-Volume Consistency And Change Events`,
+    "## 0.16.0 Projected-Volume Consistency And Change Events",
     "projected-volume compatibility version"
   );
   expectIncludes(

@@ -24,6 +24,7 @@ export const REQUIRED_MIGRATION_LITERALS = Object.freeze([
   "Candidate publication: not yet evidenced by this document.",
   "Independently maintained consumer result: not yet evidenced by this document."
 ]);
+export const MIGRATION_SOURCE_BASELINE = "0.16.0";
 
 const PACKAGE_PATH = path.join("packages", "local-provider", "package.json");
 const GUIDE_PATH = path.join("docs", "library", "migration-to-1.0.md");
@@ -32,7 +33,7 @@ export function validateMigrationGuide({ packageVersion, guide }) {
   const errors = [];
   const normalizedGuide = normalizeWhitespace(guide);
   const versionLine = `Current repository package version: \`${packageVersion}\`.`;
-  const evidenceLine = `Current source baseline: repository package version \`${packageVersion}\`.`;
+  const evidenceLine = `Current source baseline: repository package version \`${MIGRATION_SOURCE_BASELINE}\`.`;
 
   if (!normalizedGuide.includes(normalizeWhitespace(versionLine))) {
     errors.push(`migration guide must link its current package version with: ${versionLine}`);

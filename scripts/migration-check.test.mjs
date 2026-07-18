@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import {
+  MIGRATION_SOURCE_BASELINE,
   REQUIRED_MIGRATION_LITERALS,
   checkMigrationGuide,
   validateMigrationGuide
@@ -14,6 +15,16 @@ test("accepts a complete inventory linked to the current package version", () =>
     validateMigrationGuide({
       packageVersion: "0.16.0",
       guide: createCompleteGuide("0.16.0")
+    }),
+    []
+  );
+});
+
+test("keeps the 0.x migration baseline while validating RC source metadata", () => {
+  assert.deepEqual(
+    validateMigrationGuide({
+      packageVersion: "1.0.0-rc.1",
+      guide: createCompleteGuide("1.0.0-rc.1")
     }),
     []
   );
@@ -32,9 +43,8 @@ test("rejects stale package-version linkage", () => {
     packageVersion: "1.0.0-rc.1",
     guide: createCompleteGuide("0.16.0")
   });
-  assert.equal(errors.length, 2);
+  assert.equal(errors.length, 1);
   assert.match(errors[0], /1\.0\.0-rc\.1/);
-  assert.match(errors[1], /1\.0\.0-rc\.1/);
 });
 
 test("reads package metadata and the migration guide from one repository root", async () => {
@@ -62,7 +72,7 @@ test("reads package metadata and the migration guide from one repository root", 
 function createCompleteGuide(version) {
   return [
     `Current repository package version: \`${version}\`.`,
-    `- Current source baseline: repository package version \`${version}\`.`,
+    `- Current source baseline: repository package version \`${MIGRATION_SOURCE_BASELINE}\`.`,
     ...REQUIRED_MIGRATION_LITERALS
   ].join("\n");
 }
