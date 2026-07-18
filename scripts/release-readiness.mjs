@@ -20,6 +20,10 @@ const AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT = path.join(
   "audit-queue-benchmark-plan.mjs"
 );
 const PACKED_SMOKE_SCRIPT = path.join(ROOT, "scripts", "packed-smoke.mjs");
+const API_SURFACE_SCRIPT = path.join(ROOT, "scripts", "api-surface.mjs");
+const API_SURFACE_TEST = path.join(ROOT, "scripts", "api-surface.test.mjs");
+const API_BASELINE_METADATA = path.join(ROOT, "api", "local-provider.api.json");
+const API_BASELINE_DECLARATIONS = path.join(ROOT, "api", "local-provider.api.d.ts");
 const AUDIT_QUEUE_BENCHMARK_SCRIPT = path.join(ROOT, "scripts", "audit-queue-benchmark.mjs");
 const AUDIT_SINK_SOURCE = path.join(
   ROOT,
@@ -67,10 +71,14 @@ const SNAPSHOT_WATCH_HANDLE_TEST = path.join(
 );
 const ROADMAP_DOC = path.join(ROOT, "docs", "product", "01-roadmap.md");
 const DEPENDABOT_CONFIG = path.join(ROOT, ".github", "dependabot.yml");
+const CODEOWNERS = path.join(ROOT, ".github", "CODEOWNERS");
+const SECURITY_POLICY = path.join(ROOT, "SECURITY.md");
 const NPM_PUBLISHING_DOC = path.join(ROOT, "docs", "ops", "npm-publishing.md");
 const RELEASE_DOC = path.join(ROOT, "docs", "ops", "release.md");
 const RELEASE_CHANNEL_SCRIPT = path.join(ROOT, "scripts", "release-channel.mjs");
 const RELEASE_CHANNEL_TEST = path.join(ROOT, "scripts", "release-channel.test.mjs");
+const REGISTRY_RELEASE_SCRIPT = path.join(ROOT, "scripts", "registry-release.mjs");
+const REGISTRY_RELEASE_TEST = path.join(ROOT, "scripts", "registry-release.test.mjs");
 const REQUIRED_PACKAGE_FILES = ["bin", "dist", "LICENSE", "README.md"];
 const PINNED_ACTION_REF_PATTERN = /^[a-f0-9]{40}$/;
 
@@ -85,6 +93,10 @@ const compatibilityWorkflow = await readText(COMPATIBILITY_WORKFLOW);
 const auditQueueBenchmarkWorkflow = await readText(AUDIT_QUEUE_BENCHMARK_WORKFLOW);
 const auditQueueBenchmarkPlanScript = await readText(AUDIT_QUEUE_BENCHMARK_PLAN_SCRIPT);
 const packedSmokeScript = await readText(PACKED_SMOKE_SCRIPT);
+const apiSurfaceScript = await readText(API_SURFACE_SCRIPT);
+const apiSurfaceTest = await readText(API_SURFACE_TEST);
+const apiBaselineMetadata = await readJson(API_BASELINE_METADATA);
+const apiBaselineDeclarations = await readText(API_BASELINE_DECLARATIONS);
 const auditQueueBenchmarkScript = await readText(AUDIT_QUEUE_BENCHMARK_SCRIPT);
 const auditSinkSource = await readText(AUDIT_SINK_SOURCE);
 const publicTypesSource = await readText(PUBLIC_TYPES_SOURCE);
@@ -99,10 +111,14 @@ const configurationChangeDoc = await readText(CONFIGURATION_CHANGE_DOC);
 const snapshotWatchHandleTest = await readText(SNAPSHOT_WATCH_HANDLE_TEST);
 const roadmapDoc = await readText(ROADMAP_DOC);
 const dependabotConfig = await readText(DEPENDABOT_CONFIG);
+const codeowners = await readText(CODEOWNERS);
+const securityPolicy = await readText(SECURITY_POLICY);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
 const releaseChannelScript = await readText(RELEASE_CHANNEL_SCRIPT);
 const releaseChannelTest = await readText(RELEASE_CHANNEL_TEST);
+const registryReleaseScript = await readText(REGISTRY_RELEASE_SCRIPT);
+const registryReleaseTest = await readText(REGISTRY_RELEASE_TEST);
 
 await checkRequiredFiles();
 checkRootPackage(rootPackageJson);
@@ -110,6 +126,13 @@ checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
+checkApiSurfaceContract({
+  apiSurfaceScript,
+  apiSurfaceTest,
+  apiBaselineMetadata,
+  apiBaselineDeclarations,
+  packageJson
+});
 checkAuditQueueBenchmarkWorkflow(auditQueueBenchmarkWorkflow, auditQueueBenchmarkPlanScript);
 checkAuditQueueContract({
   auditQueueBenchmarkScript,
@@ -133,8 +156,10 @@ checkProjectedVolumeContract({
   packedSmokeScript
 });
 checkDependabotConfig(dependabotConfig);
+checkMaintenancePolicy(codeowners, securityPolicy);
 checkPublishingDocs(npmPublishingDoc, releaseDoc);
 checkReleaseChannel(releaseChannelScript, releaseChannelTest);
+checkRegistryRelease(registryReleaseScript, registryReleaseTest);
 
 if (blockers.length > 0) {
   console.error("Release readiness: blocked");
@@ -195,6 +220,14 @@ function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
+  expectScript(rootPackage, "api:check", "pnpm run build && node scripts/api-surface.mjs --check");
+  expectScript(rootPackage, "contract", "pnpm run api:check && pnpm run packed-smoke");
+  expectScript(
+    rootPackage,
+    "migration-check",
+    "pnpm run test:migration-tools && node scripts/migration-check.mjs"
+  );
+  expectScript(rootPackage, "test:api-tools", "node --test scripts/api-surface.test.mjs");
   expectScript(
     rootPackage,
     "benchmark:audit-queue",
@@ -215,15 +248,26 @@ function checkRootPackage(rootPackage) {
     "test:benchmark-tools",
     "node --test scripts/audit-queue-benchmark-summary.test.mjs"
   );
-  expectScript(rootPackage, "test:release-tools", "node --test scripts/release-channel.test.mjs");
+  expectScript(rootPackage, "test:migration-tools", "node --test scripts/migration-check.test.mjs");
+  expectScript(
+    rootPackage,
+    "test:release-tools",
+    "node --test scripts/release-channel.test.mjs scripts/registry-release.test.mjs"
+  );
   expectScript(
     rootPackage,
     "test:coverage",
-    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:benchmark-tools && pnpm run test:release-tools"
+    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools"
   );
   expectScriptIncludes(rootPackage, "test", "pnpm run test:benchmark-tools");
   expectScriptIncludes(rootPackage, "test", "pnpm run test:release-tools");
+  expectScriptIncludes(rootPackage, "test", "pnpm run test:api-tools");
+  expectScriptIncludes(rootPackage, "test", "pnpm run test:migration-tools");
+  expectScriptIncludes(rootPackage, "test:coverage", "pnpm run test:api-tools");
+  expectScriptIncludes(rootPackage, "test:coverage", "pnpm run test:migration-tools");
   expectScriptIncludes(rootPackage, "check", "pnpm run test:coverage");
+  expectScriptIncludes(rootPackage, "check", "pnpm run api:check");
+  expectScriptIncludes(rootPackage, "check", "pnpm run migration-check");
   expectScriptIncludes(rootPackage, "check", "pnpm run release-readiness");
   expectScriptIncludes(
     rootPackage,
@@ -273,6 +317,11 @@ function checkPackageMetadata(localPackage) {
 
 function checkReleaseWorkflow(workflow) {
   checkPinnedGitHubActions(workflow, "release workflow");
+  expectIncludes(workflow, "validate and pack release candidate", "release package job");
+  expectIncludes(workflow, "publish or reconcile npm artifact", "release npm job");
+  expectIncludes(workflow, "create GitHub Release from registry bytes", "release GitHub job");
+  expectIncludes(workflow, "timeout-minutes: 20", "release package timeout");
+  expectIncludes(workflow, "timeout-minutes: 10", "release publish timeout");
   expectIncludes(
     workflow,
     "contents: write",
@@ -302,7 +351,6 @@ function checkReleaseWorkflow(workflow) {
     'git merge-base --is-ancestor "$' + '{GITHUB_SHA}" "origin/main"',
     "release workflow main ancestry gate"
   );
-  expectIncludes(workflow, "pnpm run release-readiness", "release workflow readiness gate");
   expectIncludes(workflow, "pnpm run check", "release workflow check gate");
   expectIncludes(
     workflow,
@@ -313,16 +361,24 @@ function checkReleaseWorkflow(workflow) {
   expectIncludes(workflow, "node scripts/release-channel.mjs", "release channel resolver");
   expectIncludes(
     workflow,
-    '--tag "${' + '{ steps.channel.outputs.npm-tag }}"',
+    '--tag "${' + '{ needs.package.outputs.npm-tag }}"',
     "release workflow npm publish command"
   );
-  expectIncludes(workflow, 'prerelease_flag="--prerelease"', "GitHub prerelease marker");
-  expectIncludes(workflow, "gh release create", "release workflow GitHub Release creation");
+  expectIncludes(workflow, "steps.registry.outputs.published != 'true'", "npm publish guard");
+  expectIncludes(workflow, "registry-release.mjs candidate", "candidate digest recorder");
+  expectIncludes(workflow, "registry-release.mjs npm-version", "trusted publishing npm CLI gate");
+  expectIncludes(workflow, "registry-release.mjs probe", "npm version probe");
+  expectIncludes(workflow, "registry-release.mjs verify", "registry byte verifier");
+  expectIncludes(workflow, "candidate-sha256", "candidate SHA-256 handoff");
+  expectIncludes(workflow, "openfeature-local-provider-registry-", "verified registry artifact");
+  expectIncludes(workflow, "GITHUB_PRERELEASE", "GitHub prerelease marker");
   expectIncludes(
     workflow,
-    'if npm view "@0disoft/openfeature-local-provider@$' + '{package_version}" version',
-    "release workflow published-version guard"
+    'release create "$' + '{GITHUB_REF_NAME}"',
+    "release workflow GitHub Release creation"
   );
+  expectIncludes(workflow, "docs/library/migration-to-1.0.md", "release workflow migration guide");
+  expectNotMatches(workflow, /node\s+--input-type=module\s+<<|<<['"]?NODE/, "release workflow");
   expectNotMatches(
     workflow,
     /\b(NPM_TOKEN|NODE_AUTH_TOKEN|NPM_PUBLISH_TOKEN|_authToken)\b/,
@@ -338,9 +394,11 @@ function checkCiWorkflow(workflow) {
   expectNotMatches(workflow, /\bmacos-latest\b/, "CI workflow macOS runner matrix");
   expectIncludes(workflow, "22.x", "CI Node 22 matrix");
   expectIncludes(workflow, "24.x", "CI Node 24 matrix");
+  expectIncludes(workflow, "timeout-minutes: 20", "CI job timeout");
   expectIncludes(workflow, "pnpm run format:check", "CI format gate");
   expectIncludes(workflow, "pnpm run lint", "CI lint gate");
   expectIncludes(workflow, "pnpm run typecheck", "CI typecheck gate");
+  expectIncludes(workflow, "pnpm run api:check", "CI API surface gate");
   expectIncludes(workflow, "pnpm run test", "CI test gate");
   expectIncludes(workflow, "pnpm run test:coverage", "CI coverage gate");
   expectIncludes(workflow, "pnpm run release-readiness", "CI release readiness gate");
@@ -362,23 +420,74 @@ function checkDependabotConfig(config) {
   expectIncludes(config, "update-types:", "Dependabot grouped update types");
 }
 
+function checkMaintenancePolicy(codeownersText, securityPolicyText) {
+  expectIncludes(codeownersText, "* @0disoft", "default CODEOWNERS rule");
+  expectIncludes(
+    securityPolicyText,
+    "/security/advisories/new",
+    "private vulnerability report route"
+  );
+  expectIncludes(securityPolicyText, "three business days", "security acknowledgement target");
+  expectIncludes(
+    securityPolicyText,
+    "status update at least every seven",
+    "security update cadence"
+  );
+  expectIncludes(securityPolicyText, "calendar days", "security status update target");
+  expectIncludes(securityPolicyText, "Do not open public issues", "security disclosure warning");
+}
+
 function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
   checkPinnedGitHubActions(workflow, "compatibility workflow");
   expectIncludes(workflow, 'cron: "17 3 * * 1"', "compatibility workflow schedule");
   expectIncludes(workflow, "workflow_dispatch:", "compatibility workflow manual trigger");
   expectIncludes(workflow, "node-version: 24.x", "compatibility workflow Node version");
+  expectIncludes(workflow, "timeout-minutes: 15", "compatibility workflow timeout");
   expectIncludes(
     workflow,
     "OPENFEATURE_SERVER_SDK_VERSION: peer",
     "compatibility workflow peer-range selection"
   );
   expectIncludes(workflow, "pnpm run packed-smoke", "compatibility workflow packed smoke");
+  expectIncludes(packedSmokeScript, "MAX_PACKED_TARBALL_BYTES = 1_048_576", "packed size budget");
   expectIncludes(
     packedSmokeScript,
     'pnpm", ["exec", "tsc"',
     "packed smoke TypeScript consumer compile"
   );
   expectIncludes(packedSmokeScript, "PACKED_SMOKE_TARBALL", "packed smoke prebuilt tarball input");
+}
+
+function checkApiSurfaceContract({
+  apiSurfaceScript,
+  apiSurfaceTest,
+  apiBaselineMetadata,
+  apiBaselineDeclarations,
+  packageJson
+}) {
+  expectEqual(
+    apiBaselineMetadata.schemaVersion,
+    "openfeature-local-provider.api-surface/v1",
+    "API baseline schema"
+  );
+  expectEqual(apiBaselineMetadata.packageName, packageJson.name, "API baseline package name");
+  expectEqual(apiBaselineMetadata.version, packageJson.version, "API baseline package version");
+  expectEqual(
+    apiBaselineMetadata.declarations,
+    "local-provider.api.d.ts",
+    "API baseline declaration path"
+  );
+  expectIncludes(apiBaselineDeclarations, "export {", "API declaration baseline export surface");
+  expectIncludes(apiSurfaceScript, 'from "typescript"', "API surface TypeScript compiler API");
+  expectIncludes(
+    apiSurfaceScript,
+    "compareDeclarationSurfaces",
+    "API surface declaration comparison"
+  );
+  expectIncludes(apiSurfaceScript, "readImportRuntimeExports", "API surface ESM runtime check");
+  expectIncludes(apiSurfaceScript, "readRequireRuntimeExports", "API surface CJS runtime check");
+  expectIncludes(apiSurfaceTest, "supporting type changes", "API surface supporting-type test");
+  expectIncludes(apiSurfaceTest, "version policy", "API surface version-policy test");
 }
 
 function checkAuditQueueBenchmarkWorkflow(workflow, planScript) {
@@ -551,17 +660,27 @@ function checkPublishingDocs(npmDoc, releaseDocText) {
     "npm publishing doc publish command"
   );
   expectIncludes(npmDoc, "dist-tag `next`", "npm prerelease dist-tag policy");
-  expectIncludes(
-    releaseDocText,
-    "npm trusted publishing and provenance",
-    "release doc publish method"
-  );
+  expectIncludes(releaseDocText, "npm trusted", "release doc publish method");
+  expectIncludes(releaseDocText, "publishing and provenance", "release doc provenance method");
 }
 
 function checkReleaseChannel(script, testSource) {
   expectIncludes(script, 'npmTag: prerelease ? "next" : "latest"', "release npm channel policy");
   expectIncludes(script, "githubPrerelease: prerelease", "GitHub prerelease policy");
   expectIncludes(testSource, 'resolveReleaseChannel("1.0.0-rc.1")', "prerelease channel test");
+}
+
+function checkRegistryRelease(script, testSource) {
+  expectIncludes(script, "11.5.1", "trusted publishing minimum npm CLI");
+  expectIncludes(script, "assertTrustedPublishingNpmVersion", "trusted publishing npm CLI check");
+  expectIncludes(script, "probeRegistryVersion", "registry version probe");
+  expectIncludes(script, "validateRegistryRelease", "registry release validator");
+  expectIncludes(script, "verifyRegistryReleaseWithRetry", "registry propagation verifier");
+  expectIncludes(script, "Published tarball SHA-256 mismatch", "registry byte identity gate");
+  expectIncludes(testSource, "differs from the tested candidate", "registry byte mismatch test");
+  expectIncludes(testSource, "supports trusted publishing", "trusted publishing npm CLI test");
+  expectIncludes(testSource, "dist-tag", "registry dist-tag test");
+  expectIncludes(testSource, "retries bounded registry propagation", "registry retry test");
 }
 
 function expectScript(packageObject, name, expected) {

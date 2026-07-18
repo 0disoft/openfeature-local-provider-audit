@@ -36,6 +36,8 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - typecheck: `pnpm run typecheck`
 - test: `pnpm run test`
 - coverage: `pnpm run test:coverage`
+- contract: `pnpm run contract`
+- migration-check: `pnpm run migration-check`
 - smoke: `pnpm run build` and `pnpm run pack:check`
 - docs: `pnpm run release-readiness`
 - check: `pnpm run check`

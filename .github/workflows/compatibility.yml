@@ -16,6 +16,7 @@ jobs:
   latest-compatible-peer:
     name: latest compatible OpenFeature peer
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     steps:
       - name: Checkout

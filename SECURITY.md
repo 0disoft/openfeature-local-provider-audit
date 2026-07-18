@@ -2,9 +2,22 @@
 
 Status: Draft
 
+## Supported Versions
+
+Security fixes are provided for the latest published minor release. Earlier `0.x`
+minor releases are unsupported once a newer minor release is available. Prereleases
+receive best-effort fixes until they are superseded by a newer prerelease or stable
+release.
+
 ## Reporting a Vulnerability
 
-Use GitHub private vulnerability reporting when available for this repository.
+Report vulnerabilities through the repository's
+[private security advisory form](https://github.com/0disoft/openfeature-local-provider-audit/security/advisories/new).
+
+The maintainer aims to acknowledge a complete report within three business days. While
+the report remains open, the maintainer will provide a status update at least every seven
+calendar days until a fix, mitigation, or closure decision is available. Disclosure timing
+will be coordinated through the private advisory.
 
 Do not open public issues for suspected vulnerabilities involving audit redaction,
 targeting context exposure, package publishing, or dependency compromise. Public reports

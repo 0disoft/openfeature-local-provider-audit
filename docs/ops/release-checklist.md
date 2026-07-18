@@ -34,6 +34,23 @@ Owner: 0disoft
   artifact.
 - The tagged commit is contained in `main`, and npm receives the exact tarball that passed
   packed smoke and was uploaded to the GitHub Release.
+- `docs/library/migration-to-1.0.md` identifies separate `0.15.x` and `0.16.x` upgrade
+  paths and is linked to the current package version by the migration check.
+- The exact registry-installed release candidate passes ESM, CJS, TypeScript, CLI,
+  watcher, audit, replay, and OpenFeature configuration-event consumer paths.
+- At least one independently maintained consumer records a normal registry-install result
+  for a published release candidate before stable `1.0.0` promotion.
+
+## 1.0 Release Candidate Readiness
+
+- The documented package-root API and generated API-surface baseline agree.
+- Every documented public runtime export is exercised through packed ESM and CJS consumers,
+  and every public type is covered by packed TypeScript consumer fixtures.
+- The `0.15.x` and `0.16.x` migration paths list every approved candidate difference or
+  explicitly preserve the compatibility-sensitive contracts.
+- `1.0.0-rc.N` resolves to npm dist-tag `next` and a prerelease-marked GitHub Release.
+- Publishing the candidate does not itself satisfy exact registry-artifact installation,
+  independent-consumer feedback, or stable-promotion gates.
 
 ## Review Blockers
 
@@ -44,3 +61,6 @@ Owner: 0disoft
 - Trusted publisher settings drift from the GitHub repository or workflow filename.
 - Release workflow permissions cannot create the GitHub Release or request npm OIDC.
 - A prerelease tag can replace npm `latest`.
+- A `1.0` candidate lacks package-version-linked migration guidance.
+- Stable `1.0.0` is promoted without exact registry-artifact and independent-consumer
+  evidence from the candidate series.

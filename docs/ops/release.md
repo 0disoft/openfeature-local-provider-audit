@@ -18,14 +18,19 @@ checks, npm trusted publishing, and GitHub Release artifact publication.
   workflow comments.
 - Validation: runs the repository `check` command, the Node basic example smoke, and the
   packed package smoke.
-- Artifact: packs `@0disoft/openfeature-local-provider` and uploads the `.tgz` as a
-  GitHub Actions artifact.
-- Publishing: if the version is not already present on npm, the workflow publishes the
-  exact uploaded `.tgz` with npm trusted publishing and provenance. Stable versions use
-  npm dist-tag `latest`; prerelease versions use `next`.
-- GitHub Release: if the tag does not already have a GitHub Release, the workflow creates
-  one and attaches the packed `.tgz`; prerelease package versions create prerelease-marked
-  GitHub Releases.
+- Artifact: the validation job records the tested `.tgz` SHA-256 and transfers that
+  candidate, plus the dependency-free registry verifier, to the isolated publish job.
+- Publishing: the publish job has npm OIDC permission but no GitHub write permission. If
+  the version is absent, it publishes the exact tested candidate with npm trusted
+  publishing and provenance. The job rejects npm CLI versions older than 11.5.1 before
+  attempting OIDC. Stable versions use npm dist-tag `latest`; prerelease versions use
+  `next`.
+- Registry reconciliation: whether the version was newly published or already existed,
+  the workflow downloads the npm registry tarball and requires its SHA-256 and dist-tag to
+  match the tested candidate and selected release channel.
+- GitHub Release: a separate job with no npm OIDC permission attaches the registry-downloaded
+  bytes. Prerelease package versions create prerelease-marked GitHub Releases, and 1.0
+  releases link the migration guide.
 
 ## Owners
 
@@ -39,4 +44,4 @@ checks, npm trusted publishing, and GitHub Release artifact publication.
 - Release blocker status: changed public behavior without matching docs and validation.
 - Remaining operational risk: npm trusted publisher settings must continue to match
   `0disoft/openfeature-local-provider-audit` and `.github/workflows/release.yml`; GitHub
-  Release creation requires `contents: write` on the release workflow.
+  Release creation requires `contents: write` on the isolated GitHub Release job.

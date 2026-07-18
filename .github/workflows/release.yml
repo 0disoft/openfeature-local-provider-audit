@@ -5,24 +5,29 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
-  id-token: write
-
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   package:
-    name: package release candidate
+    name: validate and pack release candidate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.package.outputs.version }}
+      npm-tag: ${{ steps.channel.outputs.npm-tag }}
+      github-prerelease: ${{ steps.channel.outputs.github-prerelease }}
+      candidate-sha256: ${{ steps.candidate.outputs.candidate-sha256 }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
@@ -38,6 +43,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Verify tag matches package version
+        id: package
         run: |
           package_version="$(node -p "require('./packages/local-provider/package.json').version")"
           expected_tag="v${package_version}"
@@ -45,6 +51,7 @@ jobs:
             echo "Tag ${GITHUB_REF_NAME} does not match package version ${package_version}."
             exit 1
           fi
+          echo "version=${package_version}" >> "${GITHUB_OUTPUT}"
 
       - name: Verify release commit is on main
         run: |
@@ -60,9 +67,6 @@ jobs:
 
       - name: Check
         run: pnpm run check
-
-      - name: Release readiness
-        run: pnpm run release-readiness
 
       - name: Smoke example
         run: pnpm --filter openfeature-local-provider-node-basic-example start
@@ -84,42 +88,147 @@ jobs:
           PACKED_SMOKE_TARBALL: ${{ steps.pack.outputs.tarball }}
         run: pnpm run packed-smoke
 
-      - name: Upload release artifact
+      - name: Record tested candidate digest
+        id: candidate
+        run: >-
+          node scripts/registry-release.mjs candidate
+          --tarball "${{ steps.pack.outputs.tarball }}"
+          --bundle-tool "${GITHUB_WORKSPACE}/.tmp/release/registry-release.mjs"
+          --github-output "${GITHUB_OUTPUT}"
+
+      - name: Upload tested release candidate
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: openfeature-local-provider-${{ github.ref_name }}
-          path: .tmp/release/*.tgz
+          name: openfeature-local-provider-candidate-${{ github.ref_name }}
+          path: .tmp/release/*
           if-no-files-found: error
+          retention-days: 7
 
-      - name: Check npm published version
-        id: published
+  publish:
+    name: publish or reconcile npm artifact
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Setup Node.js for npm trusted publishing
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Download tested release candidate
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: openfeature-local-provider-candidate-${{ github.ref_name }}
+          path: .tmp/candidate
+
+      - name: Verify npm trusted publishing support
+        run: node .tmp/candidate/registry-release.mjs npm-version
+
+      - name: Locate tested release candidate
+        id: candidate
         run: |
-          package_version="$(node -p "require('./packages/local-provider/package.json').version")"
-          if npm view "@0disoft/openfeature-local-provider@${package_version}" version >/dev/null 2>&1; then
-            echo "exists=true" >> "${GITHUB_OUTPUT}"
-          else
-            echo "exists=false" >> "${GITHUB_OUTPUT}"
+          tarball="$(find .tmp/candidate -maxdepth 1 -name '*.tgz' -print -quit)"
+          if [ -z "${tarball}" ]; then
+            echo "Tested release candidate was not downloaded."
+            exit 1
           fi
+          echo "tarball=${tarball}" >> "${GITHUB_OUTPUT}"
 
-      - name: Publish package
-        if: steps.published.outputs.exists != 'true'
-        run: npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public --tag "${{ steps.channel.outputs.npm-tag }}"
+      - name: Probe npm registry version
+        id: registry
+        env:
+          PACKAGE_VERSION: ${{ needs.package.outputs.version }}
+        run: >-
+          node .tmp/candidate/registry-release.mjs probe
+          --package "@0disoft/openfeature-local-provider"
+          --version "${PACKAGE_VERSION}"
+          --github-output "${GITHUB_OUTPUT}"
 
-      - name: Create GitHub Release
+      - name: Publish tested candidate to npm
+        if: steps.registry.outputs.published != 'true'
+        run: >-
+          npm publish "${{ steps.candidate.outputs.tarball }}"
+          --provenance
+          --access public
+          --tag "${{ needs.package.outputs.npm-tag }}"
+
+      - name: Verify npm registry bytes and channel
+        env:
+          PACKAGE_VERSION: ${{ needs.package.outputs.version }}
+          VERIFY_ATTEMPTS: ${{ steps.registry.outputs.published == 'true' && '1' || '12' }}
+        run: >-
+          node .tmp/candidate/registry-release.mjs verify
+          --package "@0disoft/openfeature-local-provider"
+          --version "${PACKAGE_VERSION}"
+          --expected-tag "${{ needs.package.outputs.npm-tag }}"
+          --candidate "${{ steps.candidate.outputs.tarball }}"
+          --expected-sha256 "${{ needs.package.outputs.candidate-sha256 }}"
+          --output-dir ".tmp/registry"
+          --attempts "${VERIFY_ATTEMPTS}"
+          --github-output "${GITHUB_OUTPUT}"
+
+      - name: Upload verified registry artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: openfeature-local-provider-registry-${{ github.ref_name }}
+          path: .tmp/registry/*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  github-release:
+    name: create GitHub Release from registry bytes
+    needs:
+      - package
+      - publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download verified registry artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: openfeature-local-provider-registry-${{ github.ref_name }}
+          path: .tmp/registry
+
+      - name: Create or reconcile GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          PACKAGE_VERSION: ${{ needs.package.outputs.version }}
+          GITHUB_PRERELEASE: ${{ needs.package.outputs.github-prerelease }}
         run: |
+          tarball="$(find .tmp/registry -maxdepth 1 -name '*.tgz' -print -quit)"
+          if [ -z "${tarball}" ]; then
+            echo "Verified registry tarball was not downloaded."
+            exit 1
+          fi
+
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            echo "GitHub Release ${GITHUB_REF_NAME} already exists."
+            gh release upload "${GITHUB_REF_NAME}" "${tarball}" --clobber
+            gh release edit "${GITHUB_REF_NAME}" --prerelease="${GITHUB_PRERELEASE}"
             exit 0
           fi
 
-          package_version="$(node -p "require('./packages/local-provider/package.json').version")"
-          prerelease_flag=""
-          if [ "${{ steps.channel.outputs.github-prerelease }}" = "true" ]; then
-            prerelease_flag="--prerelease"
+          release_args=(
+            release create "${GITHUB_REF_NAME}" "${tarball}"
+            --title "${GITHUB_REF_NAME}"
+            --generate-notes
+            --verify-tag
+          )
+          if [ "${GITHUB_PRERELEASE}" = "true" ]; then
+            release_args+=(--prerelease)
           fi
-          gh release create "${GITHUB_REF_NAME}" .tmp/release/*.tgz \
-            --title "${GITHUB_REF_NAME}" \
-            --notes "Release ${GITHUB_REF_NAME} for @0disoft/openfeature-local-provider ${package_version}." \
-            ${prerelease_flag}
+          if [[ "${PACKAGE_VERSION}" =~ ^1\.0\.0($|-) ]]; then
+            release_args+=(
+              --notes
+              "Migration guide: https://github.com/0disoft/openfeature-local-provider-audit/blob/${GITHUB_SHA}/docs/library/migration-to-1.0.md"
+            )
+          fi
+          gh "${release_args[@]}"

@@ -1,0 +1,6 @@
+{
+  "schemaVersion": "openfeature-local-provider.api-surface/v1",
+  "packageName": "@0disoft/openfeature-local-provider",
+  "version": "0.16.0",
+  "declarations": "local-provider.api.d.ts"
+}

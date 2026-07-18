@@ -26,14 +26,18 @@ smoke evidence before public release.
 - The workflow rejects tags that do not match the package version.
 - The workflow rejects tagged commits that are not contained in `origin/main`.
 - The workflow runs package validation and uploads the packed `.tgz` artifact.
-- The workflow checks whether the package version is already published.
+- The isolated publish job checks whether the package version is already published.
+- The publish job requires npm CLI 11.5.1 or newer before requesting trusted-publishing
+  credentials.
 - If the version is not already published, the workflow publishes the already packed and
   tested tarball with
   `npm publish "${{ steps.pack.outputs.tarball }}" --provenance --access public --tag
   "${{ steps.channel.outputs.npm-tag }}"`.
 - Stable versions resolve to npm dist-tag `latest`; versions with a SemVer prerelease
   identifier resolve to npm dist-tag `next` and create prerelease-marked GitHub Releases.
-- The workflow creates a GitHub Release for the tag and attaches the packed `.tgz`.
+- After publishing or finding an existing version, the workflow downloads the registry
+  tarball and requires its SHA-256 and dist-tag to match the tested candidate. A separate
+  job creates the GitHub Release and attaches those registry-downloaded bytes.
 - It does not use a long-lived npm token.
 
 ## Release Gate Candidates

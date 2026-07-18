@@ -8,6 +8,8 @@ import { loadFlagSnapshotFile, watchFlagSnapshotFile } from "../../src/flags/sna
 import type { FlagSnapshot } from "../../src/public-types.js";
 
 const WATCH_STARTUP_STRESS_ITERATIONS = 8;
+const WINDOWS_RENAME_RETRY_TIMEOUT_MS = 1_000;
+const WINDOWS_RENAME_RETRY_DELAY_MS = 20;
 
 describe("snapshot file helpers", () => {
   it("loads JSON snapshots by extension", async () => {
@@ -177,14 +179,14 @@ describe("snapshot file helpers", () => {
       });
 
       await writeFile(join(tempDirectory, "flags-next.json"), createJsonSnapshot(false), "utf8");
-      await rename(join(tempDirectory, "flags-next.json"), path);
+      await replaceFileAtomically(join(tempDirectory, "flags-next.json"), path);
       await waitFor(() => snapshots.at(-1) === false);
 
       await writeFile(path, createJsonSnapshot(true), "utf8");
       await waitFor(() => snapshots.length >= 3 && snapshots.at(-1) === true);
 
       await writeFile(join(tempDirectory, "flags-next.json"), createJsonSnapshot(false), "utf8");
-      await rename(join(tempDirectory, "flags-next.json"), path);
+      await replaceFileAtomically(join(tempDirectory, "flags-next.json"), path);
       await waitFor(() => snapshots.length >= 4 && snapshots.at(-1) === false);
       watcher.close();
 
@@ -435,6 +437,34 @@ async function waitFor(predicate: () => boolean): Promise<void> {
     }
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
+}
+
+async function replaceFileAtomically(source: string, destination: string): Promise<void> {
+  const startedAt = Date.now();
+
+  while (true) {
+    try {
+      await rename(source, destination);
+      return;
+    } catch (error) {
+      if (
+        process.platform !== "win32" ||
+        !isTransientWindowsRenameError(error) ||
+        Date.now() - startedAt >= WINDOWS_RENAME_RETRY_TIMEOUT_MS
+      ) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, WINDOWS_RENAME_RETRY_DELAY_MS));
+    }
+  }
+}
+
+function isTransientWindowsRenameError(error: unknown): boolean {
+  if (!(error instanceof Error) || !("code" in error)) {
+    return false;
+  }
+
+  return error.code === "EACCES" || error.code === "EBUSY" || error.code === "EPERM";
 }
 
 async function createProjectedVolumeFixture(root: string, enabled: boolean) {

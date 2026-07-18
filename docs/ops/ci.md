@@ -25,6 +25,14 @@ on the supported Node.js runtime matrix.
   newest `@openfeature/server-sdk` version allowed by the package peer range into the packed
   consumer smoke project without changing the lockfile, compiles a strict TypeScript
   consumer, and then runs ESM, CJS, and CLI checks.
+- Packed declaration consumption runs twice: TypeScript 5.9.3 checks the complete dependency
+  declaration graph with `skipLibCheck: false`, while the repository TypeScript version checks
+  the package consumer surface with `skipLibCheck: true`. The latter isolates the package contract
+  from the known TypeScript 6 incompatibility inside `@openfeature/server-sdk@1.22.0` declarations;
+  it must not be described as a complete dependency-library type check.
+- Packed smoke rejects release tarballs larger than 1 MiB (1,048,576 bytes). This is a
+  compressed artifact budget intended to catch accidentally shipped fixtures, caches, or
+  generated output; raising it requires a reviewed package-content explanation.
 - `.github/workflows/audit-queue-benchmark.yml` runs only on manual dispatch. Its `quick`
   profile runs one small sample on Node.js 24.x across Ubuntu, Windows, and macOS. Its
   `decision` profile runs three repeated 1-second, 5-second, and 30-second stall samples

@@ -19,6 +19,7 @@ jobs:
   validate:
     name: validate node ${{ matrix.node-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -53,6 +54,9 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
+
+      - name: Check API surface
+        run: pnpm run api:check
 
       - name: Test
         if: runner.os != 'Linux' || matrix.node-version != '24.x'

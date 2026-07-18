@@ -20,11 +20,14 @@ fixtures across documented runtime targets.
 - SDK ownership boundary: examples and compatibility notes, not hosted service operations.
 - SDK public contract: examples must follow the documented provider API.
 - SDK validation evidence: sample flag files and replay fixtures are required for compatibility claims.
-- SDK release or rollout policy: publish examples with the same package version as the provider.
+- SDK release or rollout policy: private examples are not published; CI must validate them
+  against the same workspace package or exact packed/registry artifact under review.
 - SDK compatibility and migration policy: mark changed reason names, audit fields, schema, or bucketing behavior as migration-sensitive.
 
 ## Implemented Example
 
+- `examples/node-basic` is a private `0.0.0` workspace consumer, not a separately
+  published SDK package or version claim.
 - `examples/node-basic` registers the provider through OpenFeature, resolves a local
   override and rollout flag, atomically replaces a local snapshot, waits for reload,
   verifies deterministic configuration-change keys, flushes a strict-redaction audit sink,

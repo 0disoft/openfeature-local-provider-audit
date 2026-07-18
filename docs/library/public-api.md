@@ -52,6 +52,39 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+The package-root runtime value surface is exactly:
+
+- `LocalProviderError` and `isLocalProviderError`.
+- `LOCAL_PROVIDER_ERROR_CODES`, `EVALUATION_REASONS`, and `EVALUATION_SOURCES`.
+- `createLocalProvider` and `createReloadableLocalProvider`.
+- `parseJsonFlagSnapshot`, `parseYamlFlagSnapshot`, `loadFlagSnapshotFile`, and
+  `watchFlagSnapshotFile`.
+- `createEnvOverrides` and `evaluateFlag`.
+- `replayEvaluationFixture`.
+- `createAuditEvent`, `serializeAuditEvent`, `redactContext`, and `createFileAuditSink`.
+
+The package-root type surface is exactly:
+
+- `LocalProviderError`, `LocalProviderErrorCode`, `EvaluationReason`, and
+  `EvaluationSource`.
+- `EvaluationRequest`, `EvaluationResult`, `EvaluationContext`, `EnvOverrideState`, and
+  `EnvSource`.
+- `FlagSnapshot`, `FlagDefinition`, `FlagType`, `FlagValue`, `PercentageRolloutRule`,
+  `JsonObject`, and `JsonValue`.
+- `LocalProviderOptions`, `ReloadableLocalProvider`, `CreateEnvOverridesOptions`,
+  `LoadFlagSnapshotFileOptions`, `WatchFlagSnapshotFileOptions`,
+  `FlagSnapshotFileWatcher`, and `SnapshotFileFormat`.
+- `AuditEvent`, `AuditContextKeyMode`, `AuditQueueOverflowPolicy`,
+  `AuditRedactionOptions`, `AuditSink`, `AuditWriteMode`, `CreateAuditEventOptions`,
+  `FileAuditSinkOptions`, `FileAuditSinkStats`, and `RedactedAuditContext`.
+- `ReplayExpectedResult`, `ReplayFixture`, `ReplayMismatch`, `ReplayOverrideInput`,
+  and `ReplayResult`.
+
+`api/local-provider.api.d.ts` is the reviewed declaration baseline and
+`api/local-provider.api.json` owns its package version. `pnpm run api:check` compares both
+ESM and CJS declarations, value/type namespaces, dependent declaration shapes, and actual
+runtime exports. Baseline updates are explicit release-review actions; CI never rewrites them.
+
 - `createLocalProvider(options)`.
 - `createReloadableLocalProvider(options)`.
 - `parseJsonFlagSnapshot(json)`.
