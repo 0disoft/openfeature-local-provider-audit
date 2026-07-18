@@ -374,6 +374,11 @@ function checkReleaseWorkflow(workflow) {
   expectIncludes(workflow, "GITHUB_PRERELEASE", "GitHub prerelease marker");
   expectIncludes(
     workflow,
+    "GH_REPO: $" + "{{ github.repository }}",
+    "GitHub CLI repository context"
+  );
+  expectIncludes(
+    workflow,
     'release create "$' + '{GITHUB_REF_NAME}"',
     "release workflow GitHub Release creation"
   );
