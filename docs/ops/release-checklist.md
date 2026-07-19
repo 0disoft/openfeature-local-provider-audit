@@ -43,6 +43,10 @@ Owner: 0disoft
 - External consumer evidence uses `.github/ISSUE_TEMPLATE/rc-consumer-report.md` or records
   the same immutable revision, exact package install path, environment, exercised surfaces,
   result, and maintainer relationship.
+- `docs/testing/independent-consumer-evidence.json` remains `pending` until a maintainer reviews
+  a genuine independent report. The `stable-release-gate` validation must reject stable `1.x`
+  while that record is pending or incomplete, including attempts to skip directly to a later
+  patch version.
 
 ## 1.0 Release Candidate Readiness
 
@@ -80,3 +84,5 @@ Owner: 0disoft
 - The repository-owned normal-registry consumer passed. Independent maintainer feedback
   remains required before stable promotion and is tracked in
   [GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).
+- The machine-readable independent-consumer record is still `pending`; no stable `1.0.0` tag
+  may pass the release workflow in this state.

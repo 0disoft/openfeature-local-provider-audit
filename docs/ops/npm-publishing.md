@@ -25,6 +25,9 @@ smoke evidence before public release.
 - `.github/workflows/release.yml` builds release candidates on `v*` tag pushes.
 - The workflow rejects tags that do not match the package version.
 - The workflow rejects tagged commits that are not contained in `origin/main`.
+- The workflow runs `stable-release-gate` before packaging. Stable `1.x` is
+  rejected unless `docs/testing/independent-consumer-evidence.json` contains a complete,
+  maintainer-reviewed independent consumer result.
 - The workflow runs package validation and uploads the packed `.tgz` artifact.
 - The isolated publish job checks whether the package version is already published.
 - The publish job requires npm CLI 11.5.1 or newer before requesting trusted-publishing
@@ -61,3 +64,5 @@ smoke evidence before public release.
 - npm trusted publisher configuration no longer matches the GitHub organization,
   repository, or workflow filename recorded above.
 - Release workflow permissions cannot create the GitHub Release or request npm OIDC.
+- Stable `1.0.0` is published while the independent-consumer evidence record is pending,
+  incomplete, or based only on repository-owned smoke coverage.

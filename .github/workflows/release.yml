@@ -65,6 +65,9 @@ jobs:
         id: channel
         run: node scripts/release-channel.mjs --version "${GITHUB_REF_NAME#v}" --github-output "${GITHUB_OUTPUT}"
 
+      - name: Verify stable promotion evidence
+        run: pnpm run stable-release-gate
+
       - name: Check
         run: pnpm run check
 

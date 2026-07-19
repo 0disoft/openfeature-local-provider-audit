@@ -52,3 +52,16 @@ consumer harness is maintained in this repository, so this is not evidence of ad
 or integration by an independently maintained consumer. Stable `1.0.0` remains blocked
 until that separate human or external-repository result is recorded through
 [GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).
+
+## Stable Promotion Enforcement
+
+`docs/testing/independent-consumer-evidence.json` is the source-owned release-gate record.
+It is intentionally `pending` while issue #5 has no accepted independent report. After a
+maintainer verifies a report, the record must identify the exact candidate package spec,
+consumer project and immutable revision, issue URL, normal registry install, independent
+maintainer relationship, successful outcome, reviewer, and review timestamp.
+
+`pnpm run stable-release-gate` validates that record. Prereleases and existing `0.x`
+releases remain runnable with pending evidence, but stable `1.x` is rejected until the
+record is complete and accepted; changing the patch version cannot bypass the gate. This is an accidental-promotion guard, not a
+substitute for maintainer review or proof that the consumer is genuinely independent.

@@ -1,6 +1,7 @@
 import { access, readFile } from "node:fs/promises";
 import path from "node:path";
 import { resolveReleaseChannel } from "./release-channel.mjs";
+import { validateStableReleaseEvidence } from "./stable-release-gate.mjs";
 
 const ROOT = process.cwd();
 const PACKAGE_JSON = path.join(ROOT, "packages", "local-provider", "package.json");
@@ -88,10 +89,18 @@ const REGISTRY_CONSUMER_EVIDENCE = path.join(
   "testing",
   "registry-consumer-evidence.md"
 );
+const INDEPENDENT_CONSUMER_EVIDENCE = path.join(
+  ROOT,
+  "docs",
+  "testing",
+  "independent-consumer-evidence.json"
+);
 const RELEASE_CHANNEL_SCRIPT = path.join(ROOT, "scripts", "release-channel.mjs");
 const RELEASE_CHANNEL_TEST = path.join(ROOT, "scripts", "release-channel.test.mjs");
 const REGISTRY_RELEASE_SCRIPT = path.join(ROOT, "scripts", "registry-release.mjs");
 const REGISTRY_RELEASE_TEST = path.join(ROOT, "scripts", "registry-release.test.mjs");
+const STABLE_RELEASE_GATE_SCRIPT = path.join(ROOT, "scripts", "stable-release-gate.mjs");
+const STABLE_RELEASE_GATE_TEST = path.join(ROOT, "scripts", "stable-release-gate.test.mjs");
 const REQUIRED_PACKAGE_FILES = ["bin", "dist", "LICENSE", "README.md"];
 const PINNED_ACTION_REF_PATTERN = /^[a-f0-9]{40}$/;
 
@@ -131,10 +140,13 @@ const securityPolicy = await readText(SECURITY_POLICY);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
 const registryConsumerEvidence = await readText(REGISTRY_CONSUMER_EVIDENCE);
+const independentConsumerEvidence = await readJson(INDEPENDENT_CONSUMER_EVIDENCE);
 const releaseChannelScript = await readText(RELEASE_CHANNEL_SCRIPT);
 const releaseChannelTest = await readText(RELEASE_CHANNEL_TEST);
 const registryReleaseScript = await readText(REGISTRY_RELEASE_SCRIPT);
 const registryReleaseTest = await readText(REGISTRY_RELEASE_TEST);
+const stableReleaseGateScript = await readText(STABLE_RELEASE_GATE_SCRIPT);
+const stableReleaseGateTest = await readText(STABLE_RELEASE_GATE_TEST);
 
 await checkRequiredFiles();
 checkRootPackage(rootPackageJson);
@@ -178,6 +190,12 @@ checkPublishingDocs(npmPublishingDoc, releaseDoc);
 checkReleaseChannel(releaseChannelScript, releaseChannelTest);
 checkRegistryRelease(registryReleaseScript, registryReleaseTest);
 checkRegistryConsumerEvidence(registryConsumerEvidence, packageJson);
+checkStableReleaseGate({
+  packageJson,
+  evidence: independentConsumerEvidence,
+  script: stableReleaseGateScript,
+  testSource: stableReleaseGateTest
+});
 
 if (blockers.length > 0) {
   console.error("Release readiness: blocked");
@@ -239,6 +257,7 @@ function checkRootPackage(rootPackage) {
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
   expectScript(rootPackage, "registry-smoke", "node scripts/packed-smoke.mjs");
+  expectScript(rootPackage, "stable-release-gate", "node scripts/stable-release-gate.mjs");
   expectScript(rootPackage, "api:check", "pnpm run build && node scripts/api-surface.mjs --check");
   expectScript(rootPackage, "contract", "pnpm run api:check && pnpm run packed-smoke");
   expectScript(
@@ -271,7 +290,7 @@ function checkRootPackage(rootPackage) {
   expectScript(
     rootPackage,
     "test:release-tools",
-    "node --test scripts/release-channel.test.mjs scripts/registry-release.test.mjs"
+    "node --test scripts/release-channel.test.mjs scripts/registry-release.test.mjs scripts/stable-release-gate.test.mjs"
   );
   expectScript(
     rootPackage,
@@ -287,6 +306,7 @@ function checkRootPackage(rootPackage) {
   expectScriptIncludes(rootPackage, "check", "pnpm run test:coverage");
   expectScriptIncludes(rootPackage, "check", "pnpm run api:check");
   expectScriptIncludes(rootPackage, "check", "pnpm run migration-check");
+  expectScriptIncludes(rootPackage, "check", "pnpm run stable-release-gate");
   expectScriptIncludes(rootPackage, "check", "pnpm run release-readiness");
   expectScriptIncludes(
     rootPackage,
@@ -378,6 +398,7 @@ function checkReleaseWorkflow(workflow) {
   );
   expectIncludes(workflow, "pnpm run packed-smoke", "release workflow packed smoke");
   expectIncludes(workflow, "node scripts/release-channel.mjs", "release channel resolver");
+  expectIncludes(workflow, "pnpm run stable-release-gate", "stable promotion evidence gate");
   expectIncludes(
     workflow,
     '--tag "${' + '{ needs.package.outputs.npm-tag }}"',
@@ -792,6 +813,30 @@ function checkRegistryConsumerEvidence(evidence, localPackage) {
     "https://github.com/0disoft/openfeature-local-provider-audit/issues/5",
     "registry evidence external-consumer issue"
   );
+}
+
+function checkStableReleaseGate({ packageJson, evidence, script, testSource }) {
+  expectIncludes(script, "validateStableReleaseEvidence", "stable release evidence validator");
+  expectIncludes(
+    script,
+    "stable 1.x promotion requires an accepted independently maintained consumer report",
+    "stable release independent-consumer blocker"
+  );
+  expectIncludes(testSource, 'packageVersion: "1.0.0"', "stable release 1.0.0 regression test");
+  expectIncludes(
+    testSource,
+    "blocks stable 1.0.0 while independent evidence is pending",
+    "stable release pending-evidence regression test"
+  );
+
+  const result = validateStableReleaseEvidence({
+    packageName: packageJson.name,
+    packageVersion: packageJson.version,
+    evidence
+  });
+  for (const error of result.errors) {
+    blockers.push(`stable release gate: ${error}`);
+  }
 }
 
 function expectScript(packageObject, name, expected) {
