@@ -36,13 +36,16 @@ a feature flag platform.
 13. Complete the `0.16` projected-volume consistency milestone: add opt-in metadata
     polling, Linux symlink-swap coverage, OpenFeature configuration-change events,
     deterministic changed-key semantics, duplicate suppression, and close cleanup.
+14. Validate `1.0.0-rc.2` from the normal npm registry in the separate
+    `0disoft/service-catalog-generator` repository, using OpenFeature flags to select real
+    report output and requiring successful hosted CI at an immutable consumer commit.
 
 ## Next Evaluation Areas
 
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
-- Satisfy the `1.0.0` stabilization gates in docs/product/05-1.0-readiness.md, including
-  an independently maintained prerelease consumer result.
+- Promote stable `1.0.0` after the remaining release checklist is revalidated; the
+  cross-repository prerelease consumer gate is satisfied.
 
 ## Deferred
 

@@ -3,46 +3,48 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { resolveReleaseChannel } from "./release-channel.mjs";
 
-export const INDEPENDENT_CONSUMER_EVIDENCE_SCHEMA =
-  "openfeature-local-provider.independent-consumer-evidence/v1";
+export const CROSS_REPOSITORY_CONSUMER_EVIDENCE_SCHEMA =
+  "openfeature-local-provider.cross-repository-consumer-evidence/v1";
 
 const INITIAL_STABLE_VERSION = "1.0.0";
 const FIRST_STABLE_MAJOR = 1;
 const ACCEPTED_STATUS = "accepted";
 const PENDING_STATUS = "pending";
 const ACCEPTED_OUTCOME = "passed";
-const INDEPENDENT_RELATIONSHIP = "independent";
+const ACCEPTED_MAINTAINER_RELATIONSHIPS = new Set(["independent", "same-maintainer"]);
 const REPORT_URL_PATTERN =
   /^https:\/\/github\.com\/0disoft\/openfeature-local-provider-audit\/issues\/[1-9]\d*$/;
+const CONSUMER_CI_URL_PATTERN = /^https:\/\/github\.com\/[^/]+\/[^/]+\/actions\/runs\/[1-9]\d*$/;
+const COMMIT_SHA_PATTERN = /^[0-9a-f]{40}$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
 export function validateStableReleaseEvidence({ packageName, packageVersion, evidence }) {
   const errors = [];
-  const requiresIndependentEvidence = isInitialStablePromotion(packageVersion, errors);
+  const requiresCrossRepositoryEvidence = isInitialStablePromotion(packageVersion, errors);
 
   if (!isRecord(evidence)) {
     return {
-      errors: [...errors, "independent consumer evidence must be a JSON object"],
-      requiresIndependentEvidence
+      errors: [...errors, "cross-repository consumer evidence must be a JSON object"],
+      requiresCrossRepositoryEvidence
     };
   }
 
-  if (evidence.schemaVersion !== INDEPENDENT_CONSUMER_EVIDENCE_SCHEMA) {
+  if (evidence.schemaVersion !== CROSS_REPOSITORY_CONSUMER_EVIDENCE_SCHEMA) {
     errors.push(
-      `independent consumer evidence schemaVersion must be ${INDEPENDENT_CONSUMER_EVIDENCE_SCHEMA}`
+      `cross-repository consumer evidence schemaVersion must be ${CROSS_REPOSITORY_CONSUMER_EVIDENCE_SCHEMA}`
     );
   }
 
   if (evidence.status !== PENDING_STATUS && evidence.status !== ACCEPTED_STATUS) {
-    errors.push('independent consumer evidence status must be "pending" or "accepted"');
+    errors.push('cross-repository consumer evidence status must be "pending" or "accepted"');
   }
 
   if (!isInitialStableCandidate(evidence.candidateVersion)) {
-    errors.push("independent consumer candidateVersion must be a valid 1.0.0 prerelease");
+    errors.push("cross-repository consumer candidateVersion must be a valid 1.0.0 prerelease");
   }
 
   if (evidence.status === PENDING_STATUS && evidence.acceptedReport !== null) {
-    errors.push("pending independent consumer evidence must keep acceptedReport null");
+    errors.push("pending cross-repository consumer evidence must keep acceptedReport null");
   }
 
   if (evidence.status === ACCEPTED_STATUS) {
@@ -54,21 +56,24 @@ export function validateStableReleaseEvidence({ packageName, packageVersion, evi
     });
   }
 
-  if (requiresIndependentEvidence && evidence.status !== ACCEPTED_STATUS) {
-    errors.push(
-      "stable 1.x promotion requires an accepted independently maintained consumer report"
-    );
+  if (requiresCrossRepositoryEvidence && evidence.status !== ACCEPTED_STATUS) {
+    errors.push("stable 1.x promotion requires accepted cross-repository consumer evidence");
   }
 
-  return { errors, requiresIndependentEvidence };
+  return { errors, requiresCrossRepositoryEvidence };
 }
 
 export async function checkStableReleaseGate(root = process.cwd()) {
   const packagePath = path.join(root, "packages", "local-provider", "package.json");
-  const evidencePath = path.join(root, "docs", "testing", "independent-consumer-evidence.json");
+  const evidencePath = path.join(
+    root,
+    "docs",
+    "testing",
+    "cross-repository-consumer-evidence.json"
+  );
   const [packageJson, evidence] = await Promise.all([
     readJson(packagePath, "package metadata"),
-    readJson(evidencePath, "independent consumer evidence")
+    readJson(evidencePath, "cross-repository consumer evidence")
   ]);
 
   return validateStableReleaseEvidence({
@@ -100,14 +105,19 @@ function isInitialStableCandidate(version) {
 
 function validateAcceptedReport({ report, packageName, candidateVersion, errors }) {
   if (!isRecord(report)) {
-    errors.push("accepted independent consumer evidence must include acceptedReport");
+    errors.push("accepted cross-repository consumer evidence must include acceptedReport");
     return;
   }
 
   expectNonEmptyString(report.consumerProject, "acceptedReport.consumerProject", errors);
-  expectNonEmptyString(report.consumerRevision, "acceptedReport.consumerRevision", errors);
   expectNonEmptyString(report.reviewedBy, "acceptedReport.reviewedBy", errors);
 
+  if (!COMMIT_SHA_PATTERN.test(report.consumerRevision ?? "")) {
+    errors.push("acceptedReport.consumerRevision must be a full lowercase Git commit SHA");
+  }
+  if (!CONSUMER_CI_URL_PATTERN.test(report.consumerCiUrl ?? "")) {
+    errors.push("acceptedReport.consumerCiUrl must reference a GitHub Actions run");
+  }
   if (!REPORT_URL_PATTERN.test(report.issueUrl ?? "")) {
     errors.push("acceptedReport.issueUrl must reference an issue in this repository");
   }
@@ -117,8 +127,11 @@ function validateAcceptedReport({ report, packageName, candidateVersion, errors 
   if (report.normalRegistryInstall !== true) {
     errors.push("acceptedReport.normalRegistryInstall must be true");
   }
-  if (report.maintainerRelationship !== INDEPENDENT_RELATIONSHIP) {
-    errors.push('acceptedReport.maintainerRelationship must be "independent"');
+  if (report.separateRepository !== true) {
+    errors.push("acceptedReport.separateRepository must be true");
+  }
+  if (!ACCEPTED_MAINTAINER_RELATIONSHIPS.has(report.maintainerRelationship)) {
+    errors.push('acceptedReport.maintainerRelationship must be "independent" or "same-maintainer"');
   }
   if (report.outcome !== ACCEPTED_OUTCOME) {
     errors.push('acceptedReport.outcome must be "passed"');
@@ -168,8 +181,8 @@ async function main() {
   }
 
   console.log(
-    result.requiresIndependentEvidence
-      ? "Stable release gate: accepted independent consumer evidence verified"
+    result.requiresCrossRepositoryEvidence
+      ? "Stable release gate: accepted cross-repository consumer evidence verified"
       : "Stable release gate: pass (not a stable 1.x promotion)"
   );
 }

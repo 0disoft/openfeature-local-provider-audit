@@ -1,21 +1,21 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  INDEPENDENT_CONSUMER_EVIDENCE_SCHEMA,
+  CROSS_REPOSITORY_CONSUMER_EVIDENCE_SCHEMA,
   validateStableReleaseEvidence
 } from "./stable-release-gate.mjs";
 
 const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const CANDIDATE_VERSION = "1.0.0-rc.2";
 
-test("allows the current prerelease while independent evidence is pending", () => {
+test("allows the current prerelease while cross-repository evidence is pending", () => {
   const result = validateStableReleaseEvidence({
     packageName: PACKAGE_NAME,
     packageVersion: CANDIDATE_VERSION,
     evidence: pendingEvidence()
   });
 
-  assert.deepEqual(result, { errors: [], requiresIndependentEvidence: false });
+  assert.deepEqual(result, { errors: [], requiresCrossRepositoryEvidence: false });
 });
 
 test("keeps 0.x stable releases outside the initial 1.0 promotion gate", () => {
@@ -25,18 +25,18 @@ test("keeps 0.x stable releases outside the initial 1.0 promotion gate", () => {
     evidence: pendingEvidence()
   });
 
-  assert.deepEqual(result, { errors: [], requiresIndependentEvidence: false });
+  assert.deepEqual(result, { errors: [], requiresCrossRepositoryEvidence: false });
 });
 
-test("blocks stable 1.0.0 while independent evidence is pending", () => {
+test("blocks stable 1.0.0 while cross-repository evidence is pending", () => {
   const result = validateStableReleaseEvidence({
     packageName: PACKAGE_NAME,
     packageVersion: "1.0.0",
     evidence: pendingEvidence()
   });
 
-  assert.equal(result.requiresIndependentEvidence, true);
-  assert.match(result.errors.join("\n"), /requires an accepted independently maintained consumer/);
+  assert.equal(result.requiresCrossRepositoryEvidence, true);
+  assert.match(result.errors.join("\n"), /requires accepted cross-repository consumer evidence/);
 });
 
 test("does not allow a later stable 1.x version to bypass pending evidence", () => {
@@ -46,18 +46,18 @@ test("does not allow a later stable 1.x version to bypass pending evidence", () 
     evidence: pendingEvidence()
   });
 
-  assert.equal(result.requiresIndependentEvidence, true);
+  assert.equal(result.requiresCrossRepositoryEvidence, true);
   assert.match(result.errors.join("\n"), /stable 1\.x promotion/);
 });
 
-test("accepts a complete independent consumer report for stable 1.0.0", () => {
+test("accepts complete same-maintainer cross-repository evidence for stable 1.0.0", () => {
   const result = validateStableReleaseEvidence({
     packageName: PACKAGE_NAME,
     packageVersion: "1.0.0",
     evidence: acceptedEvidence()
   });
 
-  assert.deepEqual(result, { errors: [], requiresIndependentEvidence: true });
+  assert.deepEqual(result, { errors: [], requiresCrossRepositoryEvidence: true });
 });
 
 test("keeps accepted initial evidence valid for later stable 1.x releases", () => {
@@ -67,10 +67,10 @@ test("keeps accepted initial evidence valid for later stable 1.x releases", () =
     evidence: acceptedEvidence()
   });
 
-  assert.deepEqual(result, { errors: [], requiresIndependentEvidence: true });
+  assert.deepEqual(result, { errors: [], requiresCrossRepositoryEvidence: true });
 });
 
-test("rejects a report that did not use the exact registry candidate", () => {
+test("rejects evidence that did not use the exact registry candidate", () => {
   const evidence = acceptedEvidence();
   evidence.acceptedReport.packageSpec = `${PACKAGE_NAME}@next`;
   evidence.acceptedReport.normalRegistryInstall = false;
@@ -85,11 +85,14 @@ test("rejects a report that did not use the exact registry candidate", () => {
   assert.match(result.errors.join("\n"), /normalRegistryInstall must be true/);
 });
 
-test("rejects self-maintained, failed, or unreviewed evidence", () => {
+test("rejects same-repository, undisclosed, failed, or unreviewed evidence", () => {
   const evidence = acceptedEvidence();
-  evidence.acceptedReport.maintainerRelationship = "same-maintainer";
+  evidence.acceptedReport.consumerRevision = "119b211";
+  evidence.acceptedReport.consumerCiUrl = "https://example.com/run/1";
+  evidence.acceptedReport.separateRepository = false;
+  evidence.acceptedReport.maintainerRelationship = "undisclosed";
   evidence.acceptedReport.outcome = "failed";
-  evidence.acceptedReport.reviewedAt = "2026-07-19";
+  evidence.acceptedReport.reviewedAt = "2026-07-20";
 
   const result = validateStableReleaseEvidence({
     packageName: PACKAGE_NAME,
@@ -97,7 +100,13 @@ test("rejects self-maintained, failed, or unreviewed evidence", () => {
     evidence
   });
 
-  assert.match(result.errors.join("\n"), /maintainerRelationship must be "independent"/);
+  assert.match(
+    result.errors.join("\n"),
+    /consumerRevision must be a full lowercase Git commit SHA/
+  );
+  assert.match(result.errors.join("\n"), /consumerCiUrl must reference a GitHub Actions run/);
+  assert.match(result.errors.join("\n"), /separateRepository must be true/);
+  assert.match(result.errors.join("\n"), /maintainerRelationship must be/);
   assert.match(result.errors.join("\n"), /outcome must be "passed"/);
   assert.match(result.errors.join("\n"), /reviewedAt must be an ISO 8601 UTC timestamp/);
 });
@@ -119,7 +128,7 @@ test("rejects malformed evidence even before stable promotion", () => {
 
 function pendingEvidence() {
   return {
-    schemaVersion: INDEPENDENT_CONSUMER_EVIDENCE_SCHEMA,
+    schemaVersion: CROSS_REPOSITORY_CONSUMER_EVIDENCE_SCHEMA,
     status: "pending",
     candidateVersion: CANDIDATE_VERSION,
     acceptedReport: null
@@ -128,19 +137,22 @@ function pendingEvidence() {
 
 function acceptedEvidence() {
   return {
-    schemaVersion: INDEPENDENT_CONSUMER_EVIDENCE_SCHEMA,
+    schemaVersion: CROSS_REPOSITORY_CONSUMER_EVIDENCE_SCHEMA,
     status: "accepted",
     candidateVersion: CANDIDATE_VERSION,
     acceptedReport: {
       issueUrl: "https://github.com/0disoft/openfeature-local-provider-audit/issues/5",
-      consumerProject: "independent/example-consumer",
-      consumerRevision: "0123456789abcdef0123456789abcdef01234567",
+      consumerProject: "0disoft/service-catalog-generator",
+      consumerRevision: "119b211f49e9a4824ab168fb4c92bce1a4655908",
+      consumerCiUrl:
+        "https://github.com/0disoft/service-catalog-generator/actions/runs/29716348265",
       packageSpec: `${PACKAGE_NAME}@${CANDIDATE_VERSION}`,
       normalRegistryInstall: true,
-      maintainerRelationship: "independent",
+      separateRepository: true,
+      maintainerRelationship: "same-maintainer",
       outcome: "passed",
       reviewedBy: "0disoft",
-      reviewedAt: "2026-07-19T00:00:00Z"
+      reviewedAt: "2026-07-20T04:35:44Z"
     }
   };
 }

@@ -8,8 +8,9 @@ Target candidate: `1.0.0-rc.2`.
 
 The corrected `1.0.0-rc.2` candidate is published on npm `next` and as a GitHub
 prerelease. Its public npm and GitHub tarballs match, and that exact registry artifact
-passed the repository-owned clean consumer. No independently maintained consumer has
-completed integration, so stable `1.0.0` promotion remains blocked.
+passed both the package-repository clean consumer and the separate
+`0disoft/service-catalog-generator` integration at an immutable commit. The
+cross-repository consumer gate is accepted with the `same-maintainer` relationship disclosed.
 
 ## Supported starting versions
 
@@ -161,5 +162,8 @@ compatibility note rather than a silent downgrade recommendation.
 - Exact registry-artifact installation for `1.0.0-rc.2`: passed on Windows x64 with
   Node.js `v24.18.0`; npm and GitHub tarballs were both 98,580 bytes with SHA-256
   `fbc56fe6b5501d0e690a30b22cf413444a3268c05d67d3ad271f1570d8e7a4d0`.
-- Independently maintained consumer result: not yet evidenced by this document.
-- Stable `1.0.0` promotion: blocked until the external-consumer gate is satisfied.
+- Cross-repository consumer result: `0disoft/service-catalog-generator` commit
+  `119b211f49e9a4824ab168fb4c92bce1a4655908` passed CI run `29716348265` while consuming
+  the exact published RC through the normal registry.
+- Stable `1.0.0` promotion: no longer blocked by the consumer-evidence gate; the remaining
+  release checklist must still be revalidated before tagging.

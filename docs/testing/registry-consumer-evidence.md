@@ -52,24 +52,44 @@ registry. It did not use a workspace link, checkout `dist`, or a local tarball.
 - This matrix predates `1.0.0-rc.2`; the next scheduled or manually dispatched matrix
   remains pending and is not implied by the local rc.2 registry smoke.
 
+## Cross-Repository Consumer
+
+The published candidate is also installed in the separate
+[`0disoft/service-catalog-generator`](https://github.com/0disoft/service-catalog-generator)
+repository at commit `119b211f49e9a4824ab168fb4c92bce1a4655908`.
+
+- Package spec: `@0disoft/openfeature-local-provider@1.0.0-rc.2`, resolved from the normal
+  npm registry through the committed pnpm lockfile.
+- OpenFeature peer: `@openfeature/server-sdk@1.22.0`.
+- Consumer behavior: three boolean flags select JSON and HTML output while suppressing DOT,
+  then the built SCG CLI compiles two services and the fixture verifies the generated files.
+- Main CI run:
+  [29716348265](https://github.com/0disoft/service-catalog-generator/actions/runs/29716348265),
+  completed successfully on 2026-07-20.
+- Additional successful runs:
+  [action-self-smoke 29716348297](https://github.com/0disoft/service-catalog-generator/actions/runs/29716348297)
+  and [CodeQL 29716348289](https://github.com/0disoft/service-catalog-generator/actions/runs/29716348289).
+- Provider-side review record:
+  [GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).
+- Maintainer relationship: `same-maintainer`. This is disclosed ownership, not an
+  independent-maintainer claim.
+
 ## Evidence Boundary
 
-This proves exact public-registry artifact identity and a normal clean install. The
-consumer harness is maintained in this repository, so this is not evidence of adoption
-or integration by an independently maintained consumer. Stable `1.0.0` remains blocked
-until that separate human or external-repository result is recorded through
-[GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).
+The package repository's own harness proves exact artifact identity and broad package-surface
+compatibility. The SCG result adds actual use in a separate repository with its own lockfile,
+build, CLI behavior, tests, and hosted CI. Both repositories are maintained by `0disoft`, so the
+result proves cross-repository dogfooding but not organizational independence.
 
 ## Stable Promotion Enforcement
 
-`docs/testing/independent-consumer-evidence.json` is the source-owned release-gate record.
-It is intentionally `pending` while issue #5 has no accepted independent report. After a
-maintainer verifies a report, the record must identify the exact candidate package spec,
-consumer project and immutable revision, issue URL, normal registry install, independent
-maintainer relationship, successful outcome, reviewer, and review timestamp.
+`docs/testing/cross-repository-consumer-evidence.json` is the source-owned release-gate record.
+It accepts the SCG result and identifies the exact candidate package spec, separate consumer
+project and immutable revision, successful consumer CI run, issue URL, normal registry install,
+disclosed maintainer relationship, outcome, reviewer, and review timestamp.
 
 `pnpm run stable-release-gate` validates that record. Prereleases and existing `0.x`
-releases remain runnable with pending evidence, but stable `1.x` is rejected until the
-record is complete and accepted; changing the patch version cannot bypass the gate. This
-is an accidental-promotion guard, not a substitute for maintainer review or proof that
-the consumer is genuinely independent.
+releases remain runnable with pending evidence, but stable `1.x` is rejected until a complete
+cross-repository result is accepted; changing the patch version cannot bypass the gate. The
+accepted same-maintainer result is sufficient because repository separation, normal-registry
+installation, immutable revision, hosted CI, and ownership disclosure are all enforced.

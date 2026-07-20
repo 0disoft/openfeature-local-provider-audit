@@ -1,13 +1,14 @@
 ---
 name: Release Candidate Consumer Report
-about: Record an independent normal-registry integration result for a published release candidate.
+about: Record a separate-repository normal-registry integration result for a published release candidate.
 ---
 
-## Independence
+## Repository separation
 
 - Consumer repository or project:
 - Consumer commit or immutable revision:
-- Relationship to the package maintainer:
+- Consumer CI run:
+- Relationship to the package maintainer (`independent` or `same-maintainer`):
 
 ## Package and install path
 
@@ -52,4 +53,5 @@ about: Record an independent normal-registry integration result for a published 
 ## Confirmation
 
 - Sensitive or private details were removed: yes/no
-- This report comes from a consumer maintained independently from this package: yes/no
+- Separate repository from this package: yes/no
+- Maintainer relationship is disclosed accurately: yes/no

@@ -18,11 +18,11 @@ checks, npm trusted publishing, and GitHub Release artifact publication.
   workflow comments.
 - Validation: runs the repository `check` command, the Node basic example smoke, and the
   packed package smoke.
-- Stable promotion gate: `stable-release-gate` reads the source-owned independent-consumer
+- Stable promotion gate: `stable-release-gate` reads the source-owned cross-repository consumer
   evidence record. It allows prereleases and existing `0.x` releases while the record is
-  pending, but rejects stable `1.x` unless a reviewed independent report records the exact
-  candidate install and required provenance fields. Skipping to a later patch version does not
-  bypass the gate.
+  pending, but rejects stable `1.x` unless a reviewed separate-repository result records the
+  exact candidate install, immutable revision, successful CI, ownership relationship, and
+  required provenance fields. Skipping to a later patch version does not bypass the gate.
 - Artifact: the validation job records the tested `.tgz` SHA-256 and transfers that
   candidate, plus the dependency-free registry verifier, to the isolated publish job.
 - Publishing: the publish job has npm OIDC permission but no GitHub write permission. If
@@ -50,5 +50,5 @@ checks, npm trusted publishing, and GitHub Release artifact publication.
 - Remaining operational risk: npm trusted publisher settings must continue to match
   `0disoft/openfeature-local-provider-audit` and `.github/workflows/release.yml`; GitHub
   Release creation requires `contents: write` on the isolated GitHub Release job. The
-  machine-readable evidence record prevents accidental promotion but cannot itself prove the
-  claimed consumer-maintainer independence; that remains a maintainer review obligation.
+  machine-readable evidence record prevents accidental promotion but cannot replace review of
+  whether the recorded consumer actually runs in a separate repository at the cited revision.

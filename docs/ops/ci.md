@@ -37,12 +37,12 @@ on the supported Node.js runtime matrix.
   source package version by name from the normal npm registry, confirms the installed
   package metadata, records registry tarball integrity and SHA-256, and then runs the same
   ESM, CJS, TypeScript, CLI, watcher, event, replay, and audit contract as packed smoke.
-  This proves registry installation, not independent maintainer adoption.
+  This proves registry installation, not separate-repository adoption.
 - `.github/workflows/registry-consumer.yml` runs weekly, on manual dispatch, and when its
   workflow or registry-consumer harness changes on `main`. It installs both npm `latest`
   and `next` on Node.js 24 across Ubuntu, Windows, and pinned macOS 15, using the registry
   smoke contract. Channel failures expose publication or platform drift without treating
-  the repository-owned matrix as independent maintainer feedback.
+  the package-repository matrix as cross-repository consumer evidence.
 - `.github/workflows/audit-queue-benchmark.yml` runs only on manual dispatch. Its `quick`
   profile runs one small sample on Node.js 24.x across Ubuntu, Windows, and macOS. Its
   `decision` profile runs three repeated 1-second, 5-second, and 30-second stall samples

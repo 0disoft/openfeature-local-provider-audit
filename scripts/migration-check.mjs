@@ -22,7 +22,7 @@ export const REQUIRED_MIGRATION_LITERALS = Object.freeze([
   "prereleases must not replace `latest`",
   "They are not a substitute for installing the exact npm artifact.",
   "Candidate publication:",
-  "Independently maintained consumer result: not yet evidenced by this document."
+  "Cross-repository consumer result: `0disoft/service-catalog-generator` commit"
 ]);
 export const MIGRATION_SOURCE_BASELINE = "0.16.0";
 

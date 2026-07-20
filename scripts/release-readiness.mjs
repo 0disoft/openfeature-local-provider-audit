@@ -89,11 +89,11 @@ const REGISTRY_CONSUMER_EVIDENCE = path.join(
   "testing",
   "registry-consumer-evidence.md"
 );
-const INDEPENDENT_CONSUMER_EVIDENCE = path.join(
+const CROSS_REPOSITORY_CONSUMER_EVIDENCE = path.join(
   ROOT,
   "docs",
   "testing",
-  "independent-consumer-evidence.json"
+  "cross-repository-consumer-evidence.json"
 );
 const RELEASE_CHANNEL_SCRIPT = path.join(ROOT, "scripts", "release-channel.mjs");
 const RELEASE_CHANNEL_TEST = path.join(ROOT, "scripts", "release-channel.test.mjs");
@@ -140,7 +140,7 @@ const securityPolicy = await readText(SECURITY_POLICY);
 const npmPublishingDoc = await readText(NPM_PUBLISHING_DOC);
 const releaseDoc = await readText(RELEASE_DOC);
 const registryConsumerEvidence = await readText(REGISTRY_CONSUMER_EVIDENCE);
-const independentConsumerEvidence = await readJson(INDEPENDENT_CONSUMER_EVIDENCE);
+const crossRepositoryConsumerEvidence = await readJson(CROSS_REPOSITORY_CONSUMER_EVIDENCE);
 const releaseChannelScript = await readText(RELEASE_CHANNEL_SCRIPT);
 const releaseChannelTest = await readText(RELEASE_CHANNEL_TEST);
 const registryReleaseScript = await readText(REGISTRY_RELEASE_SCRIPT);
@@ -192,7 +192,7 @@ checkRegistryRelease(registryReleaseScript, registryReleaseTest);
 checkRegistryConsumerEvidence(registryConsumerEvidence, packageJson);
 checkStableReleaseGate({
   packageJson,
-  evidence: independentConsumerEvidence,
+  evidence: crossRepositoryConsumerEvidence,
   script: stableReleaseGateScript,
   testSource: stableReleaseGateTest
 });
@@ -554,7 +554,7 @@ function checkRegistryConsumerWorkflow(workflow) {
 
 function checkRcConsumerReportTemplate(template) {
   expectIncludes(template, "name: Release Candidate Consumer Report", "RC report template name");
-  expectIncludes(template, "## Independence", "RC report independence section");
+  expectIncludes(template, "## Repository separation", "RC report repository section");
   expectIncludes(template, "Consumer commit or immutable revision", "RC report revision evidence");
   expectIncludes(template, "## Package and install path", "RC report install section");
   expectIncludes(template, "Package version", "RC report exact package version");
@@ -567,7 +567,8 @@ function checkRcConsumerReportTemplate(template) {
   expectIncludes(template, "## Integration exercised", "RC report integration section");
   expectIncludes(template, "## Result", "RC report result section");
   expectIncludes(template, "## Reproduction and evidence", "RC report reproduction section");
-  expectIncludes(template, "maintained independently", "RC report independence confirmation");
+  expectIncludes(template, "Separate repository", "RC report repository confirmation");
+  expectIncludes(template, "same-maintainer", "RC report ownership disclosure");
 }
 
 function checkApiSurfaceContract({
@@ -806,7 +807,7 @@ function checkRegistryConsumerEvidence(evidence, localPackage) {
   );
   expectIncludes(evidence, "SHA-256 for both public tarballs:", "registry evidence SHA-256");
   expectIncludes(evidence, "npm integrity:", "registry evidence npm integrity");
-  expectIncludes(evidence, "not evidence of adoption", "registry evidence independence boundary");
+  expectIncludes(evidence, "same-maintainer", "registry evidence ownership boundary");
   expectIncludes(
     evidence,
     "https://github.com/0disoft/openfeature-local-provider-audit/issues/5",
@@ -818,13 +819,13 @@ function checkStableReleaseGate({ packageJson, evidence, script, testSource }) {
   expectIncludes(script, "validateStableReleaseEvidence", "stable release evidence validator");
   expectIncludes(
     script,
-    "stable 1.x promotion requires an accepted independently maintained consumer report",
-    "stable release independent-consumer blocker"
+    "stable 1.x promotion requires accepted cross-repository consumer evidence",
+    "stable release cross-repository consumer blocker"
   );
   expectIncludes(testSource, 'packageVersion: "1.0.0"', "stable release 1.0.0 regression test");
   expectIncludes(
     testSource,
-    "blocks stable 1.0.0 while independent evidence is pending",
+    "blocks stable 1.0.0 while cross-repository evidence is pending",
     "stable release pending-evidence regression test"
   );
 

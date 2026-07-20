@@ -38,15 +38,14 @@ Owner: 0disoft
   paths and is linked to the current package version by the migration check.
 - The exact registry-installed release candidate passes ESM, CJS, TypeScript, CLI,
   watcher, audit, replay, and OpenFeature configuration-event consumer paths.
-- At least one independently maintained consumer records a normal registry-install result
-  for a published release candidate before stable `1.0.0` promotion.
-- External consumer evidence uses `.github/ISSUE_TEMPLATE/rc-consumer-report.md` or records
-  the same immutable revision, exact package install path, environment, exercised surfaces,
-  result, and maintainer relationship.
-- `docs/testing/independent-consumer-evidence.json` remains `pending` until a maintainer reviews
-  a genuine independent report. The `stable-release-gate` validation must reject stable `1.x`
-  while that record is pending or incomplete, including attempts to skip directly to a later
-  patch version.
+- At least one separate consumer repository records a normal registry-install result for a
+  published release candidate before stable `1.0.0` promotion.
+- Consumer evidence uses `.github/ISSUE_TEMPLATE/rc-consumer-report.md` or records the same
+  immutable revision, successful CI run, exact package install path, environment, exercised
+  surfaces, result, repository separation, and maintainer relationship.
+- `docs/testing/cross-repository-consumer-evidence.json` must contain a complete reviewed result.
+  The `stable-release-gate` validation rejects stable `1.x` while that record is pending or
+  incomplete, including attempts to skip directly to a later patch version.
 
 ## 1.0 Release Candidate Readiness
 
@@ -57,7 +56,7 @@ Owner: 0disoft
   explicitly preserve the compatibility-sensitive contracts.
 - `1.0.0-rc.N` resolves to npm dist-tag `next` and a prerelease-marked GitHub Release.
 - Publishing the candidate does not itself satisfy exact registry-artifact installation,
-  independent-consumer feedback, or stable-promotion gates.
+  cross-repository consumer evidence, or stable-promotion gates.
 
 ## Review Blockers
 
@@ -69,7 +68,7 @@ Owner: 0disoft
 - Release workflow permissions cannot create the GitHub Release or request npm OIDC.
 - A prerelease tag can replace npm `latest`.
 - A `1.0` candidate lacks package-version-linked migration guidance.
-- Stable `1.0.0` is promoted without exact registry-artifact and independent-consumer
+- Stable `1.0.0` is promoted without exact registry-artifact and cross-repository consumer
   evidence from the candidate series.
 
 ## Current RC Evidence
@@ -85,8 +84,9 @@ Owner: 0disoft
   [29648435330](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29648435330)
   passed all six `latest`/`next` jobs across Ubuntu, Windows, and macOS on Node.js 24
   while `next` resolved to `1.0.0-rc.1`. The rc.2 hosted matrix remains pending.
-- The repository-owned normal-registry consumer passed. Independent maintainer feedback
-  remains required before stable promotion and is tracked in
-  [GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).
-- The machine-readable independent-consumer record now targets `1.0.0-rc.2` and remains
-  `pending`; no stable `1.0.0` tag may pass the release workflow in this state.
+- Separate-repository dogfooding passed in `0disoft/service-catalog-generator` commit
+  `119b211f49e9a4824ab168fb4c92bce1a4655908`; CI, action-self-smoke, and CodeQL runs all
+  succeeded while the consumer selected real SCG report output through the published RC.
+- The machine-readable cross-repository record targets `1.0.0-rc.2`, records the
+  `same-maintainer` relationship, and is `accepted`; the consumer-evidence gate no longer
+  blocks stable promotion.

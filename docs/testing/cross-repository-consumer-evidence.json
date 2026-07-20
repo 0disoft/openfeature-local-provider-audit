@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "openfeature-local-provider.cross-repository-consumer-evidence/v1",
+  "status": "accepted",
+  "candidateVersion": "1.0.0-rc.2",
+  "acceptedReport": {
+    "issueUrl": "https://github.com/0disoft/openfeature-local-provider-audit/issues/5",
+    "consumerProject": "0disoft/service-catalog-generator",
+    "consumerRevision": "119b211f49e9a4824ab168fb4c92bce1a4655908",
+    "consumerCiUrl": "https://github.com/0disoft/service-catalog-generator/actions/runs/29716348265",
+    "packageSpec": "@0disoft/openfeature-local-provider@1.0.0-rc.2",
+    "normalRegistryInstall": true,
+    "separateRepository": true,
+    "maintainerRelationship": "same-maintainer",
+    "outcome": "passed",
+    "reviewedBy": "0disoft",
+    "reviewedAt": "2026-07-20T04:35:44Z"
+  }
+}
