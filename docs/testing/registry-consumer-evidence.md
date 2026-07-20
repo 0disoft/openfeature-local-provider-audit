@@ -1,21 +1,38 @@
 # Registry Consumer Evidence
 
-Status: Last published release-candidate evidence
+Status: Published stable and last release-candidate evidence
 Owner: 0disoft
 
-This page records the last published candidate rather than predicting evidence for an
-unpublished source version. The release workflow verifies each new candidate's registry
-bytes and channel after publication; this historical record is updated only from those
-public results.
+This page records the published stable release and the last published candidate. The release
+workflow verifies registry bytes and channels after publication; this record is updated only
+from those public results.
 
-## Candidate
+## Stable Release
+
+- Package: `@0disoft/openfeature-local-provider@1.0.0`.
+- npm channel: `latest`; npm `next` remained `1.0.0-rc.2`.
+- GitHub Release: [v1.0.0](https://github.com/0disoft/openfeature-local-provider-audit/releases/tag/v1.0.0),
+  published as a non-draft stable release on 2026-07-20.
+- Release workflow run:
+  [29720564101](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29720564101),
+  completed successfully.
+- npm and GitHub Release tarball size: 98,574 bytes each.
+- SHA-256 for both public tarballs:
+  `bbcbbb6ec60b55262800d82ebeb5bd4af1fd659fdd6ddc8c8a4ebe11344293c0`.
+- npm integrity:
+  `sha512-AxPAeIqnlKdRiiVQczJICwWLB82TnxSSSDv6bHQDF8TABnaRS67ZLn9vJ7AJqwrS3uJDccj3EINhkya1AZ6gwA==`.
+- Normal-registry `latest` smoke passed on Windows x64 with Node.js `v24.18.0`,
+  `@openfeature/server-sdk@1.22.0`, strict TypeScript `5.9.3`, and consumer-surface
+  TypeScript `6.0.3`.
+
+## Last Published Candidate
 
 - Package: `@0disoft/openfeature-local-provider@1.0.0-rc.2`.
 - npm channel: `next`; npm `latest` remained `0.16.0`.
 - GitHub Release: `v1.0.0-rc.2`, marked as a prerelease.
 - Release workflow run: `29712977031`, completed successfully on 2026-07-20.
 
-## Artifact Identity
+## Candidate Artifact Identity
 
 - npm tarball size: 98,580 bytes.
 - GitHub Release tarball size: 98,580 bytes.
@@ -24,7 +41,7 @@ public results.
 - npm integrity:
   `sha512-yDDYu2n4B3cX22b2JW73QCXvL3ad1F/6OksjMTkiytHDDfAr6Ru/81KGpjm44BkVL+NMhXjRQEUhlMFWPSQFiA==`.
 
-## Normal Registry Install
+## Candidate Normal Registry Install
 
 The repository-owned `registry-smoke` validation created a temporary consumer outside
 the workspace and installed the exact package version by name from the normal npm

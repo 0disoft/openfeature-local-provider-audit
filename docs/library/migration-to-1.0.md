@@ -6,13 +6,14 @@ Owner: 0disoft
 Current repository package version: `1.0.0`.
 Target release: `1.0.0`.
 
-Stable `1.0.0` is prepared from the verified `1.0.0-rc.2` contract without another public
-API change. The candidate's public npm and GitHub tarballs match, and that exact registry
-artifact passed both the package-repository clean consumer and the separate
+Stable `1.0.0` is published on npm `latest` and as a non-prerelease GitHub Release. It was
+promoted from the verified `1.0.0-rc.2` contract without another public API change. The
+candidate's public npm and GitHub tarballs match, and that exact registry artifact passed
+both the package-repository clean consumer and the separate
 `0disoft/service-catalog-generator` integration at an immutable commit. The
 cross-repository consumer gate is accepted with the `same-maintainer` relationship disclosed.
-The stable artifact remains unpublished until the `v1.0.0` tag workflow validates and
-publishes this source commit.
+The stable npm and GitHub tarballs also match byte-for-byte, and a clean registry consumer
+passed against npm `latest` after publication.
 
 ## Supported starting versions
 
@@ -169,5 +170,8 @@ compatibility note rather than a silent downgrade recommendation.
 - Cross-repository consumer result: `0disoft/service-catalog-generator` commit
   `119b211f49e9a4824ab168fb4c92bce1a4655908` passed CI run `29716348265` while consuming
   the exact published RC through the normal registry.
-- Stable `1.0.0` publication: pending the `v1.0.0` tag workflow for this prepared source
-  commit; the consumer-evidence gate is accepted.
+- Stable `1.0.0` publication: release workflow run `29720564101` completed successfully on
+  2026-07-20; npm `latest` and the stable GitHub Release contain matching 98,574-byte tarballs
+  with SHA-256 `bbcbbb6ec60b55262800d82ebeb5bd4af1fd659fdd6ddc8c8a4ebe11344293c0`.
+- Stable registry installation: npm `latest` resolved to `1.0.0` and the full normal-registry
+  consumer smoke passed.

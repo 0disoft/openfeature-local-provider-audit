@@ -77,7 +77,7 @@ Owner: 0disoft
   Release run
   [29712977031](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29712977031)
   completed successfully on 2026-07-20.
-- npm `next` resolves to `1.0.0-rc.2`; npm `latest` remains `0.16.0`.
+- npm `latest` resolves to stable `1.0.0`; npm `next` remains `1.0.0-rc.2`.
 - npm and GitHub Release tarballs are both 98,580 bytes with SHA-256
   `fbc56fe6b5501d0e690a30b22cf413444a3268c05d67d3ad271f1570d8e7a4d0`.
 - Hosted registry-consumer run
@@ -90,5 +90,8 @@ Owner: 0disoft
 - The machine-readable cross-repository record targets `1.0.0-rc.2`, records the
   `same-maintainer` relationship, and is `accepted`; the consumer-evidence gate no longer
   blocks stable promotion.
-- Package and API-surface version sources are prepared as `1.0.0`; npm `latest` and the
-  GitHub stable release remain unchanged until the `v1.0.0` tag workflow completes.
+- Stable release run
+  [29720564101](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29720564101)
+  completed successfully. npm and GitHub stable tarballs are both 98,574 bytes with SHA-256
+  `bbcbbb6ec60b55262800d82ebeb5bd4af1fd659fdd6ddc8c8a4ebe11344293c0`, and the
+  normal-registry `latest` consumer smoke passed.

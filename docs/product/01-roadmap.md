@@ -39,13 +39,15 @@ a feature flag platform.
 14. Validate `1.0.0-rc.2` from the normal npm registry in the separate
     `0disoft/service-catalog-generator` repository, using OpenFeature flags to select real
     report output and requiring successful hosted CI at an immutable consumer commit.
+15. Publish stable `1.0.0` to npm `latest` and a non-prerelease GitHub Release after the
+    accepted cross-repository gate, then verify matching public tarballs and a clean
+    normal-registry installation.
 
 ## Next Evaluation Areas
 
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
-- Promote stable `1.0.0` after the remaining release checklist is revalidated; the
-  cross-repository prerelease consumer gate is satisfied.
+- Observe post-1.0 adoption and compatibility reports before expanding the package boundary.
 
 ## Deferred
 
