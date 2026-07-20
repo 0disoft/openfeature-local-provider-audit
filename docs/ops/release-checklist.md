@@ -90,3 +90,5 @@ Owner: 0disoft
 - The machine-readable cross-repository record targets `1.0.0-rc.2`, records the
   `same-maintainer` relationship, and is `accepted`; the consumer-evidence gate no longer
   blocks stable promotion.
+- Package and API-surface version sources are prepared as `1.0.0`; npm `latest` and the
+  GitHub stable release remain unchanged until the `v1.0.0` tag workflow completes.

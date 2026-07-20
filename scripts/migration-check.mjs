@@ -6,7 +6,7 @@ export const REQUIRED_MIGRATION_LITERALS = Object.freeze([
   "## Supported starting versions",
   "## Upgrade from 0.15.x",
   "## Upgrade from 0.16.x",
-  "## Contracts unchanged for 1.0 RC",
+  "## Contracts frozen for 1.0",
   "## RC install and verification",
   "## Rollback",
   "## Evidence map",

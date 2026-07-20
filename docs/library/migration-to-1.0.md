@@ -1,23 +1,25 @@
 # Migration to 1.0
 
-Status: Planned candidate guidance
+Status: Stable guidance
 Owner: 0disoft
 
-Current repository package version: `1.0.0-rc.2`.
-Target candidate: `1.0.0-rc.2`.
+Current repository package version: `1.0.0`.
+Target release: `1.0.0`.
 
-The corrected `1.0.0-rc.2` candidate is published on npm `next` and as a GitHub
-prerelease. Its public npm and GitHub tarballs match, and that exact registry artifact
-passed both the package-repository clean consumer and the separate
+Stable `1.0.0` is prepared from the verified `1.0.0-rc.2` contract without another public
+API change. The candidate's public npm and GitHub tarballs match, and that exact registry
+artifact passed both the package-repository clean consumer and the separate
 `0disoft/service-catalog-generator` integration at an immutable commit. The
 cross-repository consumer gate is accepted with the `same-maintainer` relationship disclosed.
+The stable artifact remains unpublished until the `v1.0.0` tag workflow validates and
+publishes this source commit.
 
 ## Supported starting versions
 
 This guide owns two upgrade paths:
 
-- `0.15.x` to `1.0.0-rc.2`, including the additive `0.16.x` watcher and event surface.
-- `0.16.x` to `1.0.0-rc.2`, using `0.16.x` as the direct behavioral baseline.
+- `0.15.x` to `1.0.0`, including the additive `0.16.x` watcher and event surface.
+- `0.16.x` to `1.0.0`, using `0.16.x` as the direct behavioral baseline.
 
 Earlier `0.x` releases must first apply the compatibility notes for every intervening
 minor release. In particular, consumers coming from before `0.15.0` must review the
@@ -51,9 +53,10 @@ events retain their `0.15.x` runtime behavior.
 
 ## Upgrade from 0.16.x
 
-`0.16.x` is the direct behavioral baseline for `1.0.0-rc.2`. The candidate must not be
-published until any intentional difference from that baseline is listed here with its
-old behavior, new behavior, consumer action, replay impact, and rollback path.
+`0.16.x` is the direct behavioral baseline for `1.0.0`. The verified candidate series found
+no additional intentional difference beyond the replay correction listed here. Any later
+change from that baseline requires its old behavior, new behavior, consumer action, replay
+impact, and rollback path.
 
 The candidate has one compatibility-preserving replay correction: object-valued replay
 results now compare JSON object members independently of insertion order, including
@@ -64,13 +67,13 @@ to restore the old order-sensitive behavior while investigating an unexpected ha
 dependency.
 
 There is no approved rename, removal, default change, schema change, reason change,
-bucketing change, or audit-event field removal for the candidate. This statement freezes
+bucketing change, or audit-event field removal for stable `1.0.0`. This statement freezes
 intent; it does not replace API-surface comparison, packed-consumer tests, or
 registry-artifact verification.
 
-## Contracts unchanged for 1.0 RC
+## Contracts frozen for 1.0
 
-The candidate is expected to preserve all of these `0.16.x` contracts:
+Stable `1.0.0` preserves all of these `0.16.x` contracts:
 
 - Runtime and peer dependency: server-side Node.js 22 and 24, with
   `@openfeature/server-sdk` supplied as peer dependency `^1.22.0`.
@@ -156,7 +159,8 @@ compatibility note rather than a silent downgrade recommendation.
 ## Evidence status
 
 - Current source baseline: repository package version `0.16.0`.
-- Candidate source: repository package version `1.0.0-rc.2`.
+- Stable source: repository package version `1.0.0`, prepared from the verified
+  `1.0.0-rc.2` candidate contract.
 - Candidate publication: npm `next` and GitHub prerelease `v1.0.0-rc.2`; release workflow
   run `29712977031` completed successfully on 2026-07-20.
 - Exact registry-artifact installation for `1.0.0-rc.2`: passed on Windows x64 with
@@ -165,5 +169,5 @@ compatibility note rather than a silent downgrade recommendation.
 - Cross-repository consumer result: `0disoft/service-catalog-generator` commit
   `119b211f49e9a4824ab168fb4c92bce1a4655908` passed CI run `29716348265` while consuming
   the exact published RC through the normal registry.
-- Stable `1.0.0` promotion: no longer blocked by the consumer-evidence gate; the remaining
-  release checklist must still be revalidated before tagging.
+- Stable `1.0.0` publication: pending the `v1.0.0` tag workflow for this prepared source
+  commit; the consumer-evidence gate is accepted.
