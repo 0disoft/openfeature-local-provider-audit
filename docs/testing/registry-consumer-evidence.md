@@ -91,12 +91,40 @@ repository at commit `119b211f49e9a4824ab168fb4c92bce1a4655908`.
 - Maintainer relationship: `same-maintainer`. This is disclosed ownership, not an
   independent-maintainer claim.
 
+## Released Downstream Consumer
+
+The stable package is also a production runtime dependency of the separately released
+[`0disoft/mcp-security-proxy`](https://github.com/0disoft/mcp-security-proxy) CLI.
+
+- Adoption commit:
+  [`3814cea2e5539ee0efe2b3f573571fb7a3ea4d21`](https://github.com/0disoft/mcp-security-proxy/commit/3814cea2e5539ee0efe2b3f573571fb7a3ea4d21).
+- Released downstream artifact: `@0disoft/mcp-security-proxy-cli@0.2.0-alpha.4`, tagged
+  `v0.2.0-alpha.4` at commit `1fbcbe224fa494c059799b3e34b1ee4d80b7cb6d`.
+- Package dependency: `@0disoft/openfeature-local-provider@1.0.0`, resolved from the normal npm
+  registry and declared as an exact runtime dependency in the released CLI manifest.
+- Consumer behavior: a local snapshot hot-reloads `mcp.ops.metrics.enabled` and gates only optional
+  operations-metric writes. Invalid replacements keep the last valid value; policy, approvals,
+  audit writes, protocol guards, shutdown, and process containment remain outside the flag.
+- Release workflow run:
+  [29732523891](https://github.com/0disoft/mcp-security-proxy/actions/runs/29732523891),
+  completed successfully after publishing and verifying all five downstream packages.
+- Independent registry-smoke run:
+  [29732878686](https://github.com/0disoft/mcp-security-proxy/actions/runs/29732878686),
+  completed successfully against the exact published versions and provenance metadata.
+- Final downstream main CI run:
+  [29734336343](https://github.com/0disoft/mcp-security-proxy/actions/runs/29734336343),
+  completed successfully for the repository check and Linux/Windows process-tree smokes.
+- Maintainer relationship: `same-maintainer`. This is a second real released consumer repository,
+  not an independent-maintainer claim.
+
 ## Evidence Boundary
 
 The package repository's own harness proves exact artifact identity and broad package-surface
 compatibility. The SCG result adds actual use in a separate repository with its own lockfile,
-build, CLI behavior, tests, and hosted CI. Both repositories are maintained by `0disoft`, so the
-result proves cross-repository dogfooding but not organizational independence.
+build, CLI behavior, tests, and hosted CI. MCP Security Proxy adds an independently released
+downstream CLI whose runtime behavior consumes stable `1.0.0` and whose published packages passed
+exact-version registry verification. All three repositories are maintained by `0disoft`, so these
+results prove repeated cross-repository dogfooding but not organizational independence.
 
 ## Stable Promotion Enforcement
 

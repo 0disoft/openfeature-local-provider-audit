@@ -813,6 +813,26 @@ function checkRegistryConsumerEvidence(evidence, localPackage) {
     "https://github.com/0disoft/openfeature-local-provider-audit/issues/5",
     "registry evidence external-consumer issue"
   );
+  expectIncludes(
+    evidence,
+    "https://github.com/0disoft/mcp-security-proxy/commit/3814cea2e5539ee0efe2b3f573571fb7a3ea4d21",
+    "registry evidence released downstream adoption"
+  );
+  expectIncludes(
+    evidence,
+    "@0disoft/mcp-security-proxy-cli@0.2.0-alpha.4",
+    "registry evidence downstream release"
+  );
+  expectIncludes(
+    evidence,
+    "@0disoft/openfeature-local-provider@1.0.0",
+    "registry evidence downstream exact dependency"
+  );
+  expectIncludes(
+    evidence,
+    "https://github.com/0disoft/mcp-security-proxy/actions/runs/29732878686",
+    "registry evidence downstream registry smoke"
+  );
 }
 
 function checkStableReleaseGate({ packageJson, evidence, script, testSource }) {
