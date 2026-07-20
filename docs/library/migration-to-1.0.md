@@ -6,12 +6,10 @@ Owner: 0disoft
 Current repository package version: `1.0.0-rc.2`.
 Target candidate: `1.0.0-rc.2`.
 
-The corrected candidate source is prepared but not yet published. The last published
-candidate is `1.0.0-rc.1`; its public npm and GitHub tarballs match, and that exact
-registry artifact passed the repository-owned clean consumer. `1.0.0-rc.2` must repeat
-the publication and registry checks before it can become the external-consumer target.
-No independently maintained consumer has completed integration, so stable `1.0.0`
-promotion remains blocked.
+The corrected `1.0.0-rc.2` candidate is published on npm `next` and as a GitHub
+prerelease. Its public npm and GitHub tarballs match, and that exact registry artifact
+passed the repository-owned clean consumer. No independently maintained consumer has
+completed integration, so stable `1.0.0` promotion remains blocked.
 
 ## Supported starting versions
 
@@ -158,11 +156,10 @@ compatibility note rather than a silent downgrade recommendation.
 
 - Current source baseline: repository package version `0.16.0`.
 - Candidate source: repository package version `1.0.0-rc.2`.
-- Candidate publication: `1.0.0-rc.2` is not yet published. The last published candidate
-  remains npm `next` and GitHub prerelease `v1.0.0-rc.1`; release workflow run
-  `29646276937` completed successfully on 2026-07-18.
-- Exact registry-artifact installation for `1.0.0-rc.1`: passed on Windows x64 with Node.js `v24.18.0`;
-  npm and GitHub tarballs were both 98,118 bytes with SHA-256
-  `7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8`.
+- Candidate publication: npm `next` and GitHub prerelease `v1.0.0-rc.2`; release workflow
+  run `29712977031` completed successfully on 2026-07-20.
+- Exact registry-artifact installation for `1.0.0-rc.2`: passed on Windows x64 with
+  Node.js `v24.18.0`; npm and GitHub tarballs were both 98,580 bytes with SHA-256
+  `fbc56fe6b5501d0e690a30b22cf413444a3268c05d67d3ad271f1570d8e7a4d0`.
 - Independently maintained consumer result: not yet evidenced by this document.
 - Stable `1.0.0` promotion: blocked until the external-consumer gate is satisfied.

@@ -10,19 +10,19 @@ public results.
 
 ## Candidate
 
-- Package: `@0disoft/openfeature-local-provider@1.0.0-rc.1`.
+- Package: `@0disoft/openfeature-local-provider@1.0.0-rc.2`.
 - npm channel: `next`; npm `latest` remained `0.16.0`.
-- GitHub Release: `v1.0.0-rc.1`, marked as a prerelease.
-- Release workflow run: `29646276937`, completed successfully on 2026-07-18.
+- GitHub Release: `v1.0.0-rc.2`, marked as a prerelease.
+- Release workflow run: `29712977031`, completed successfully on 2026-07-20.
 
 ## Artifact Identity
 
-- npm tarball size: 98,118 bytes.
-- GitHub Release tarball size: 98,118 bytes.
+- npm tarball size: 98,580 bytes.
+- GitHub Release tarball size: 98,580 bytes.
 - SHA-256 for both public tarballs:
-  `7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8`.
+  `fbc56fe6b5501d0e690a30b22cf413444a3268c05d67d3ad271f1570d8e7a4d0`.
 - npm integrity:
-  `sha512-dgwhq+Q5yYBL5vv52WQtcfnCLJH9Gw6u3ZYjN9bA9QwPpXtfAtNKkBIlffJ9luSrUajlck2OUMugzxfp7tLZfQ==`.
+  `sha512-yDDYu2n4B3cX22b2JW73QCXvL3ad1F/6OksjMTkiytHDDfAr6Ru/81KGpjm44BkVL+NMhXjRQEUhlMFWPSQFiA==`.
 
 ## Normal Registry Install
 
@@ -49,6 +49,8 @@ registry. It did not use a workspace link, checkout `dist`, or a local tarball.
   `macos-15`.
 - Every job completed the clean dependency install and `Consume published package` step.
 - `latest` covered `0.16.0`; `next` covered `1.0.0-rc.1`.
+- This matrix predates `1.0.0-rc.2`; the next scheduled or manually dispatched matrix
+  remains pending and is not implied by the local rc.2 registry smoke.
 
 ## Evidence Boundary
 
