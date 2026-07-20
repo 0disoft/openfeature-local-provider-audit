@@ -3,20 +3,22 @@
 Status: Planned candidate guidance
 Owner: 0disoft
 
-Current repository package version: `1.0.0-rc.1`.
-Target candidate: `1.0.0-rc.1`.
+Current repository package version: `1.0.0-rc.2`.
+Target candidate: `1.0.0-rc.2`.
 
-The candidate source and publication are complete. Its public npm and GitHub tarballs
-match, and the exact registry artifact passed the repository-owned clean consumer. This
-does not claim that an independently maintained consumer has completed integration;
-that separate result must be recorded before stable `1.0.0` promotion.
+The corrected candidate source is prepared but not yet published. The last published
+candidate is `1.0.0-rc.1`; its public npm and GitHub tarballs match, and that exact
+registry artifact passed the repository-owned clean consumer. `1.0.0-rc.2` must repeat
+the publication and registry checks before it can become the external-consumer target.
+No independently maintained consumer has completed integration, so stable `1.0.0`
+promotion remains blocked.
 
 ## Supported starting versions
 
 This guide owns two upgrade paths:
 
-- `0.15.x` to `1.0.0-rc.1`, including the additive `0.16.x` watcher and event surface.
-- `0.16.x` to `1.0.0-rc.1`, using `0.16.x` as the direct behavioral baseline.
+- `0.15.x` to `1.0.0-rc.2`, including the additive `0.16.x` watcher and event surface.
+- `0.16.x` to `1.0.0-rc.2`, using `0.16.x` as the direct behavioral baseline.
 
 Earlier `0.x` releases must first apply the compatibility notes for every intervening
 minor release. In particular, consumers coming from before `0.15.0` must review the
@@ -50,14 +52,22 @@ events retain their `0.15.x` runtime behavior.
 
 ## Upgrade from 0.16.x
 
-`0.16.x` is the direct behavioral baseline for `1.0.0-rc.1`. The candidate must not be
+`0.16.x` is the direct behavioral baseline for `1.0.0-rc.2`. The candidate must not be
 published until any intentional difference from that baseline is listed here with its
 old behavior, new behavior, consumer action, replay impact, and rollback path.
 
-At the current repository version there is no approved rename, removal, default change,
-schema change, reason change, bucketing change, or audit-event field removal for the
-candidate. This statement freezes intent; it does not replace API-surface comparison,
-packed-consumer tests, or registry-artifact verification.
+The candidate has one compatibility-preserving replay correction: object-valued replay
+results now compare JSON object members independently of insertion order, including
+nested objects inside arrays. Array element order remains significant. Consumers need no
+action unless they intentionally relied on false `value` mismatches caused only by object
+key order. Replay fixtures with semantically equal objects now pass; pin `1.0.0-rc.1` only
+to restore the old order-sensitive behavior while investigating an unexpected harness
+dependency.
+
+There is no approved rename, removal, default change, schema change, reason change,
+bucketing change, or audit-event field removal for the candidate. This statement freezes
+intent; it does not replace API-surface comparison, packed-consumer tests, or
+registry-artifact verification.
 
 ## Contracts unchanged for 1.0 RC
 
@@ -80,7 +90,8 @@ The candidate is expected to preserve all of these `0.16.x` contracts:
   `INVALID_CONTEXT`, `OVERRIDE_PARSE_ERROR`, `PROVIDER_NOT_READY`, and
   `AUDIT_SINK_ERROR`.
 - Replay fixture v1: pure-evaluator comparison of value, variant, bucket, reason, source,
-  and optional error code; error-message copy remains outside the fixture contract.
+  and optional error code; JSON object member order is insignificant, array order remains
+  significant, and error-message copy remains outside the fixture contract.
 - Audit event v1: raw targeting keys, context values, override values, and evaluated flag
   values remain excluded. Context-key disclosure defaults to `count`; `names` is explicit
   opt-in and `none` omits names and count.
@@ -146,10 +157,11 @@ compatibility note rather than a silent downgrade recommendation.
 ## Evidence status
 
 - Current source baseline: repository package version `0.16.0`.
-- Candidate source: repository package version `1.0.0-rc.1`.
-- Candidate publication: npm `next` and GitHub prerelease `v1.0.0-rc.1`, release workflow
-  run `29646276937` completed successfully on 2026-07-18.
-- Exact registry-artifact installation: passed on Windows x64 with Node.js `v24.18.0`;
+- Candidate source: repository package version `1.0.0-rc.2`.
+- Candidate publication: `1.0.0-rc.2` is not yet published. The last published candidate
+  remains npm `next` and GitHub prerelease `v1.0.0-rc.1`; release workflow run
+  `29646276937` completed successfully on 2026-07-18.
+- Exact registry-artifact installation for `1.0.0-rc.1`: passed on Windows x64 with Node.js `v24.18.0`;
   npm and GitHub tarballs were both 98,118 bytes with SHA-256
   `7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8`.
 - Independently maintained consumer result: not yet evidenced by this document.

@@ -46,6 +46,10 @@ Owner: 0disoft
   cooperating processes use the same sink path.
 - Bind advisory lock release to the recorded owner token so a writer whose stale lock
   was replaced cannot remove the replacement owner's lock.
+- Treat automatic stale-lock takeover as recovery convenience, not fencing. The path-based stale
+  inspection and removal can race with lock replacement; strict multi-process audit integrity
+  requires stale takeover to remain disabled and abandoned-lock recovery to have one external
+  owner.
 - Keep audit file paths out of tenant, request, and untrusted environment control unless
   a wrapper validates and confines them first.
 - Create audit paths with private POSIX modes and reject unsafe final file types, link
@@ -66,5 +70,6 @@ Owner: 0disoft
   lock contract.
 - Advisory file locking is presented as a distributed lock or as protection against
   hostile writers that can modify the lock path.
+- Automatic stale-lock takeover is described as race-free or owner-fenced.
 - A writable parent directory or Windows path is described as safe merely because the
   final component was checked before open.

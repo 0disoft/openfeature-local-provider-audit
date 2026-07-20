@@ -6,7 +6,7 @@ import {
 } from "./stable-release-gate.mjs";
 
 const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
-const CANDIDATE_VERSION = "1.0.0-rc.1";
+const CANDIDATE_VERSION = "1.0.0-rc.2";
 
 test("allows the current prerelease while independent evidence is pending", () => {
   const result = validateStableReleaseEvidence({

@@ -29,6 +29,8 @@ exports of production audit logs.
 
 - `replayEvaluationFixture(fixture)` evaluates one fixture and returns pass/fail metadata.
 - Mismatches are reported by field and do not throw, so CI and custom harnesses can aggregate failures.
+- Object values compare as JSON objects independently of key insertion order, including nested
+  objects inside arrays. Array element order remains significant.
 - Error message text is intentionally excluded from fixture comparison to avoid overfitting tests to non-contract copy.
 
 ## Review Blockers

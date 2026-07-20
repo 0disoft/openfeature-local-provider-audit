@@ -74,6 +74,8 @@ Owner: 0disoft
 
 ## Current RC Evidence
 
+- Source `1.0.0-rc.2` is prepared with an insertion-order-independent replay object
+  comparison fix. Publication and public registry evidence are still pending.
 - `v1.0.0-rc.1` release run `29646276937` completed successfully on 2026-07-18.
 - npm `next` resolves to `1.0.0-rc.1`; npm `latest` remains `0.16.0`.
 - npm and GitHub Release tarballs are both 98,118 bytes with SHA-256
@@ -84,5 +86,5 @@ Owner: 0disoft
 - The repository-owned normal-registry consumer passed. Independent maintainer feedback
   remains required before stable promotion and is tracked in
   [GitHub issue #5](https://github.com/0disoft/openfeature-local-provider-audit/issues/5).
-- The machine-readable independent-consumer record is still `pending`; no stable `1.0.0` tag
-  may pass the release workflow in this state.
+- The machine-readable independent-consumer record now targets `1.0.0-rc.2` and remains
+  `pending`; no stable `1.0.0` tag may pass the release workflow in this state.

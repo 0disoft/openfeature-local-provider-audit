@@ -60,6 +60,108 @@ describe("replayEvaluationFixture", () => {
 
     expect(replayEvaluationFixture(fixture).passed).toBe(true);
   });
+
+  it("compares object values independently of key insertion order", () => {
+    const fixture: ReplayFixture = {
+      schemaVersion: 1,
+      name: "object-value-key-order",
+      snapshot: {
+        schemaVersion: 1,
+        flags: {
+          "checkout.object": {
+            type: "object",
+            variants: {
+              configured: {
+                alpha: 1,
+                nested: {
+                  first: true,
+                  second: false
+                },
+                items: [
+                  {
+                    left: "a",
+                    right: "b"
+                  }
+                ]
+              }
+            },
+            defaultVariant: "configured"
+          }
+        }
+      },
+      request: {
+        flagKey: "checkout.object",
+        defaultValue: {},
+        expectedType: "object"
+      },
+      expected: {
+        value: {
+          items: [
+            {
+              right: "b",
+              left: "a"
+            }
+          ],
+          nested: {
+            second: false,
+            first: true
+          },
+          alpha: 1
+        },
+        variant: "configured",
+        reason: EVALUATION_REASONS.STATIC,
+        source: EVALUATION_SOURCES.FILE
+      }
+    };
+
+    expect(replayEvaluationFixture(fixture)).toMatchObject({
+      passed: true,
+      mismatches: []
+    });
+  });
+
+  it("keeps array order significant for replay object values", () => {
+    const fixture: ReplayFixture = {
+      schemaVersion: 1,
+      name: "object-value-array-order",
+      snapshot: {
+        schemaVersion: 1,
+        flags: {
+          "checkout.object": {
+            type: "object",
+            variants: {
+              configured: {
+                items: ["first", "second"]
+              }
+            },
+            defaultVariant: "configured"
+          }
+        }
+      },
+      request: {
+        flagKey: "checkout.object",
+        defaultValue: {},
+        expectedType: "object"
+      },
+      expected: {
+        value: {
+          items: ["second", "first"]
+        },
+        variant: "configured",
+        reason: EVALUATION_REASONS.STATIC,
+        source: EVALUATION_SOURCES.FILE
+      }
+    };
+
+    expect(replayEvaluationFixture(fixture)).toMatchObject({
+      passed: false,
+      mismatches: [
+        {
+          field: "value"
+        }
+      ]
+    });
+  });
 });
 
 function getReplayFixture(index: number): ReplayFixture {

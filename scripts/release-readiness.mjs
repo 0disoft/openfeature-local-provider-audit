@@ -795,18 +795,17 @@ function checkRegistryRelease(script, testSource) {
 }
 
 function checkRegistryConsumerEvidence(evidence, localPackage) {
-  expectIncludes(
-    evidence,
-    `${localPackage.name}@${localPackage.version}`,
-    "registry evidence package"
-  );
+  expectIncludes(evidence, `Package: \`${localPackage.name}@`, "registry evidence package");
   expectIncludes(evidence, "registry-consumer-smoke-passed", "registry evidence result");
+  expectIncludes(evidence, "last published candidate", "registry evidence publication boundary");
+  expectIncludes(evidence, "npm tarball size:", "registry evidence npm tarball size");
   expectIncludes(
     evidence,
-    "7412cfedfd84f169c778e0881eb5a0c2bff1d325e091596e278bac08147cc9b8",
-    "registry evidence SHA-256"
+    "GitHub Release tarball size:",
+    "registry evidence release tarball size"
   );
-  expectIncludes(evidence, "98,118 bytes", "registry evidence tarball size");
+  expectIncludes(evidence, "SHA-256 for both public tarballs:", "registry evidence SHA-256");
+  expectIncludes(evidence, "npm integrity:", "registry evidence npm integrity");
   expectIncludes(evidence, "not evidence of adoption", "registry evidence independence boundary");
   expectIncludes(
     evidence,

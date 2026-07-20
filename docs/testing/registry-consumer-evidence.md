@@ -1,7 +1,12 @@
 # Registry Consumer Evidence
 
-Status: Current release-candidate evidence
+Status: Last published release-candidate evidence
 Owner: 0disoft
+
+This page records the last published candidate rather than predicting evidence for an
+unpublished source version. The release workflow verifies each new candidate's registry
+bytes and channel after publication; this historical record is updated only from those
+public results.
 
 ## Candidate
 
@@ -63,5 +68,6 @@ maintainer relationship, successful outcome, reviewer, and review timestamp.
 
 `pnpm run stable-release-gate` validates that record. Prereleases and existing `0.x`
 releases remain runnable with pending evidence, but stable `1.x` is rejected until the
-record is complete and accepted; changing the patch version cannot bypass the gate. This is an accidental-promotion guard, not a
-substitute for maintainer review or proof that the consumer is genuinely independent.
+record is complete and accepted; changing the patch version cannot bypass the gate. This
+is an accidental-promotion guard, not a substitute for maintainer review or proof that
+the consumer is genuinely independent.

@@ -91,6 +91,11 @@ raw user context by default.
 - Advisory locking is best-effort coordination for cooperating processes on a local
   filesystem. It is not a distributed lock or a fencing mechanism; an aggressive
   `staleLockMs` can still classify a live writer as stale.
+- Stale-lock takeover is path-based because Node.js has no cross-platform conditional unlink by
+  owner token. Release or replacement of the lock between stale inspection and removal can let a
+  replacement owner lose its advisory marker. Consumers that cannot tolerate overlapping writers
+  must leave automatic stale takeover disabled and recover abandoned locks under an external
+  single-owner procedure.
 
 ## Review Blockers
 

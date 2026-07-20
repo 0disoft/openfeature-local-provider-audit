@@ -81,5 +81,35 @@ function collectMismatches<T extends FlagValue>(
 }
 
 function jsonValuesEqual(left: JsonValue | undefined, right: JsonValue | undefined): boolean {
-  return JSON.stringify(left) === JSON.stringify(right);
+  return stableJsonStringify(left) === stableJsonStringify(right);
+}
+
+function stableJsonStringify(value: JsonValue | undefined): string | undefined {
+  return value === undefined ? undefined : JSON.stringify(sortJsonValue(value));
+}
+
+function sortJsonValue(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) {
+    return value.map((entryValue) => sortJsonValue(entryValue));
+  }
+
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([leftKey], [rightKey]) => compareCodeUnits(leftKey, rightKey))
+        .map(([key, entryValue]) => [key, sortJsonValue(entryValue)])
+    );
+  }
+
+  return value;
+}
+
+function compareCodeUnits(left: string, right: string): number {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
 }
