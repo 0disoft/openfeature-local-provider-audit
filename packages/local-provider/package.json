@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@openfeature/core": "1.11.0",
-    "@openfeature/server-sdk": "1.22.0"
+    "@openfeature/server-sdk": "1.23.0"
   },
   "keywords": [
     "openfeature",
