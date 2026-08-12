@@ -5,46 +5,44 @@ import { describe, expect, it } from "vitest";
 import { runCli, type CliIo } from "../../src/cli/run.js";
 
 describe("CLI runner", () => {
-  it.each([
-    { args: [] },
-    { args: ["help"] },
-    { args: ["--help"] },
-    { args: ["-h"] }
-  ])("prints top-level help for $args", async ({ args }) => {
-    const io = createIo(process.cwd());
+  it.each([{ args: [] }, { args: ["help"] }, { args: ["--help"] }, { args: ["-h"] }])(
+    "prints top-level help for $args",
+    async ({ args }) => {
+      const io = createIo(process.cwd());
 
-    const code = await runCli(args, io);
+      const code = await runCli(args, io);
 
-    expect(code).toBe(0);
-    expect(io.output()).toContain("openfeature-local-provider validate <file>");
-    expect(io.error()).toBe("");
-  });
+      expect(code).toBe(0);
+      expect(io.output()).toContain("openfeature-local-provider validate <file>");
+      expect(io.error()).toBe("");
+    }
+  );
 
-  it.each([
-    { args: ["--version"] },
-    { args: ["-v"] }
-  ])("prints the package version for $args", async ({ args }) => {
-    const io = createIo(process.cwd());
+  it.each([{ args: ["--version"] }, { args: ["-v"] }])(
+    "prints the package version for $args",
+    async ({ args }) => {
+      const io = createIo(process.cwd());
 
-    const code = await runCli(args, io);
+      const code = await runCli(args, io);
 
-    expect(code).toBe(0);
-    expect(io.output()).toBe("0.0.0-test\n");
-    expect(io.error()).toBe("");
-  });
+      expect(code).toBe(0);
+      expect(io.output()).toBe("0.0.0-test\n");
+      expect(io.error()).toBe("");
+    }
+  );
 
-  it.each([
-    { args: ["validate", "--help"] },
-    { args: ["validate", "-h"] }
-  ])("prints validate help for $args", async ({ args }) => {
-    const io = createIo(process.cwd());
+  it.each([{ args: ["validate", "--help"] }, { args: ["validate", "-h"] }])(
+    "prints validate help for $args",
+    async ({ args }) => {
+      const io = createIo(process.cwd());
 
-    const code = await runCli(args, io);
+      const code = await runCli(args, io);
 
-    expect(code).toBe(0);
-    expect(io.output()).toContain("--format auto|json|yaml");
-    expect(io.error()).toBe("");
-  });
+      expect(code).toBe(0);
+      expect(io.output()).toContain("--format auto|json|yaml");
+      expect(io.error()).toBe("");
+    }
+  );
 
   it("validates a JSON flag snapshot", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-cli-"));
