@@ -1,6 +1,7 @@
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { captureAuditPseudonym } from "./pseudonym.js";
 import { captureScheduleEvaluation } from "../evaluator/schedule.js";
+import { captureChainEvent } from "./chain-event.js";
 import { createHash, randomUUID } from "node:crypto";
 import type {
   AuditContextKeyMode,
@@ -69,7 +70,19 @@ export function createOverrideHash(overrides: EnvOverrideState | ReplayOverrideI
 }
 
 export function serializeAuditEvent(event: AuditEvent): string {
-  return `${JSON.stringify(event)}\n`;
+  const line = `${JSON.stringify(captureFileAuditEvent(event))}\n`;
+  if (Buffer.byteLength(line, "utf8") > MAX_FILE_AUDIT_RECORD_BYTES)
+    throw new TypeError("Audit event exceeds the 16 MiB record limit.");
+  return line;
+}
+
+const MAX_FILE_AUDIT_RECORD_BYTES = 16 * 1024 * 1024;
+export function captureFileAuditEvent(event: AuditEvent): AuditEvent {
+  try {
+    return captureChainEvent(event, MAX_FILE_AUDIT_RECORD_BYTES);
+  } catch {
+    throw new TypeError("Audit event contains invalid or unsupported fields.");
+  }
 }
 
 export function redactContext(

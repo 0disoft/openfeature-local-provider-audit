@@ -7,7 +7,7 @@ import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import type { AuditEvent, AuditSink, FileAuditSinkOptions } from "../public-types.js";
-import { serializeAuditEvent } from "./audit-event.js";
+import { captureFileAuditEvent, serializeAuditEvent } from "./audit-event.js";
 
 const AUDIT_FILE_MODE = 0o600;
 const AUDIT_DIRECTORY_MODE = 0o700;
@@ -20,9 +20,18 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   const shouldCreateDirectory = options.createDirectory !== false;
   const rotation = createRotationOptions(options);
   const lock = createLockOptions(options, auditPath);
-  return createQueuedAuditSink(options, (event) =>
+  const queued = createQueuedAuditSink(options, (event) =>
     writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
   );
+  return {
+    ...queued,
+    async write(event) {
+      return queued.write(captureFileAuditEvent(event));
+    },
+    async writeConfirmed(event) {
+      return queued.writeConfirmed?.(captureFileAuditEvent(event));
+    }
+  };
 }
 
 async function writeAuditEvent(

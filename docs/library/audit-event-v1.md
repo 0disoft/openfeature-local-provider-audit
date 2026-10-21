@@ -59,6 +59,11 @@ raw user context by default.
   `createLocalProvider({ auditRedaction })` accept the same context-key policy.
 - Raw context values and evaluated flag values are not serialized.
 - `serializeAuditEvent(event)` returns one JSON record followed by `\n`.
+- Serialization and ordinary file sinks validate the documented event/context
+  fields and reject unknown fields, accessors and custom toJSON methods without
+  invoking them. File sink write/writeConfirmed copy and freeze the event before
+  enqueue, so later caller mutations cannot alter the record. Records are capped
+  at 16 MiB (including the newline); context names are limited to 10,000 entries.
 - `createFileAuditSink(options)` appends JSON Lines records to a caller-provided path.
 - File audit sink paths are trusted local configuration. Do not pass tenant, end-user,
   request, or unvalidated environment input directly into `path`.

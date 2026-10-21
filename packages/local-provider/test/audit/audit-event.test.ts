@@ -28,6 +28,45 @@ import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
 
 describe("audit events", () => {
+  it("captures a file event before enqueue and rejects extra fields/getters without executing them", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-audit-capture-"));
+    try {
+      const path = join(directory, "audit.jsonl");
+      const sink = createFileAuditSink({ path });
+      for (const confirmed of [false, true]) {
+        const event = createTestAuditEvent(confirmed ? "confirmed" : "ordinary");
+        const writing = confirmed ? sink.writeConfirmed?.(event) : sink.write(event);
+        Object.assign(event, { eventId: "changed-after-call" });
+        Object.assign(event.context, { token: "synthetic-only" });
+        await writing;
+      }
+      await sink.flush?.();
+      const text = await readFile(path, "utf8");
+      expect(text).not.toContain("changed-after-call");
+      expect(text).not.toContain("synthetic-only");
+      expect(
+        text
+          .trim()
+          .split("\n")
+          .map((line) => JSON.parse(line).eventId)
+      ).toEqual(["ordinary", "confirmed"]);
+      let reads = 0;
+      const unsafe = Object.defineProperty(createTestAuditEvent("unsafe"), "toJSON", {
+        enumerable: true,
+        get() {
+          reads++;
+          return () => ({});
+        }
+      });
+      await expect(sink.write(unsafe)).rejects.toThrow("invalid or unsupported fields");
+      expect(() => serializeAuditEvent(unsafe)).toThrow("invalid or unsupported fields");
+      expect(reads).toBe(0);
+      expect(await readFile(path, "utf8")).toBe(text);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("creates redacted JSON Lines audit events without raw context or values", () => {
     const request = {
       flagKey: "checkout.rollout",
