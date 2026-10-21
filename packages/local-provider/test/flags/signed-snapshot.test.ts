@@ -262,6 +262,7 @@ describe("signed snapshots", () => {
       logger
     );
     expect(events[0]?.snapshotHash).toBe(result.provenance?.snapshotHash);
+    expect(events[0]?.provenance).toEqual(result.provenance);
     expect(JSON.stringify(events)).not.toContain("private-user");
     await refresher.refresh();
     const successful = provider.getStatus().successfulRefreshes;
@@ -288,7 +289,7 @@ describe("signed snapshots", () => {
       .fn<SnapshotSource["fetch"]>()
       .mockResolvedValueOnce({ status: "content", content: bytes(first), etag: '"one"' })
       .mockResolvedValueOnce({ status: "content", content: bytes(second), etag: '"two"' })
-      .mockResolvedValueOnce({ status: "notModified" });
+      .mockResolvedValueOnce({ status: "content", content: bytes(first), etag: '"one"' });
     const refresher = createSnapshotRefresher({
       provider,
       source: { fetch },
@@ -303,9 +304,9 @@ describe("signed snapshots", () => {
       }
     });
     await expect(refresher.refresh()).rejects.toThrow("during application");
-    expect(refresher.getProvenance()?.sequence).toBe(1);
+    expect(refresher.getProvenance()).toBeUndefined();
     await refresher.refresh();
-    expect(fetch.mock.calls[2]?.[0]?.etag).toBe('"one"');
+    expect(fetch.mock.calls[2]?.[0]?.etag).toBeUndefined();
     expect(refresher.getProvenance()?.sequence).toBe(1);
   });
 
@@ -321,5 +322,170 @@ describe("signed snapshots", () => {
     expect(() =>
       createSnapshotRefresher({ provider, source, verifier: verifier(), format: "yaml" })
     ).toThrow();
+  });
+});
+
+describe("atomic signed artifact provenance", () => {
+  function release(sequence: number, enabled = true) {
+    return verifier().verify(
+      bytes(signFlagSnapshot(signOptions({ sequence, snapshot: snapshot(enabled) })))
+    );
+  }
+
+  it("distinguishes identical snapshots, captures pending audit origin and clears unsigned origin", async () => {
+    const first = release(1),
+      second = release(2);
+    const events: AuditEvent[] = [];
+    let settle!: () => void;
+    const provider = createReloadableLocalProvider({
+      ...first,
+      env: {},
+      auditWriteMode: "blocking",
+      auditSink: {
+        write(event) {
+          events.push(event);
+          return new Promise<void>((resolve) => {
+            settle = resolve;
+          });
+        }
+      }
+    });
+    const changed = vi.fn();
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, changed);
+    const evaluation = provider.resolveBooleanEvaluation("feature", false, {}, logger);
+    provider.updateSnapshot(second.snapshot, second.provenance);
+    expect(provider.getStatus().provenance).toEqual(second.provenance);
+    expect(events[0]?.provenance).toEqual(first.provenance);
+    expect(first.provenance.snapshotHash).toBe(second.provenance.snapshotHash);
+    expect(first.provenance.artifactHash).not.toBe(second.provenance.artifactHash);
+    settle();
+    await evaluation;
+    const next = provider.resolveBooleanEvaluation("feature", false, {}, logger);
+    expect(events[1]?.provenance).toEqual(second.provenance);
+    settle();
+    await next;
+    provider.updateSnapshot(second.snapshot);
+    expect(provider.getStatus().provenance).toBeUndefined();
+    const unsigned = provider.resolveBooleanEvaluation("feature", false, {}, logger);
+    expect(events[2]?.provenance).toBeUndefined();
+    settle();
+    await unsigned;
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it("copies only validated data fields and preserves state on invalid origin", () => {
+    const first = release(1);
+    const metadata = { ...first.provenance, rawContext: "must-not-copy" };
+    const provider = createReloadableLocalProvider({
+      snapshot: first.snapshot,
+      provenance: metadata,
+      env: {}
+    });
+    const captured = provider.getStatus().provenance;
+    metadata.sequence = 99;
+    expect(captured?.sequence).toBe(1);
+    expect(Object.isFrozen(captured)).toBe(true);
+    expect(JSON.stringify(captured)).not.toContain("must-not-copy");
+    const getter = vi.fn(() => 1);
+    const accessor = { ...first.provenance };
+    Object.defineProperty(accessor, "sequence", { get: getter });
+    const invalid = [
+      accessor,
+      { ...first.provenance, sequence: -1 },
+      { ...first.provenance, artifactHash: "bad" },
+      { ...first.provenance, expiresAt: 0 },
+      { ...first.provenance, keyId: "bad/key" },
+      { ...first.provenance, audience: "bad space" }
+    ];
+    for (const provenance of invalid)
+      expect(() => provider.updateSnapshot(first.snapshot, provenance)).toThrow(
+        "Snapshot provenance is invalid."
+      );
+    expect(getter).not.toHaveBeenCalled();
+    expect(provider.getStatus().provenance).toBe(captured);
+    expect(provider.getStatus().failedRefreshes).toBe(invalid.length);
+    expect(() => provider.updateSnapshot(snapshot(false), captured)).toThrow(
+      "Snapshot provenance is invalid."
+    );
+    expect(() =>
+      createReloadableLocalProvider({ snapshot: snapshot(false), provenance: first.provenance })
+    ).toThrow();
+  });
+
+  it("publishes provenance before configuration callbacks and rejects equal-hash reentrant clearing", async () => {
+    const provider = createReloadableLocalProvider({ snapshot: snapshot(false), env: {} });
+    let observed: number | undefined;
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, () => {
+      observed = provider.getStatus().provenance?.sequence;
+      provider.updateSnapshot(provider.getSnapshot());
+    });
+    const refresher = createSnapshotRefresher({
+      provider,
+      verifier: verifier(),
+      source: {
+        async fetch() {
+          return { status: "content", content: bytes(signFlagSnapshot(signOptions())) };
+        }
+      }
+    });
+    await expect(refresher.refresh()).rejects.toThrow("during application");
+    expect(observed).toBe(1);
+    expect(provider.getStatus().provenance).toBeUndefined();
+    expect(refresher.getProvenance()).toBeUndefined();
+    refresher.close();
+  });
+
+  it("retains initial signed continuity after an unsigned equal-hash update", async () => {
+    const first = release(3);
+    const provider = createReloadableLocalProvider({ ...first, env: {} });
+    const refresher = createSnapshotRefresher({
+      provider,
+      verifier: verifier(),
+      source: {
+        async fetch() {
+          return {
+            status: "content",
+            content: bytes(signFlagSnapshot(signOptions({ sequence: 2 })))
+          };
+        }
+      }
+    });
+    provider.updateSnapshot(first.snapshot);
+    await expect(refresher.refresh()).rejects.toThrow("Signed snapshot verification failed.");
+    expect(provider.getStatus().provenance).toBeUndefined();
+    expect(refresher.getProvenance()).toBeUndefined();
+    refresher.close();
+  });
+
+  it("uses initial provider provenance as a replay floor and detects same-hash changes during fetch", async () => {
+    const first = release(3);
+    const provider = createReloadableLocalProvider({ ...first, env: {} });
+    let complete!: (result: Awaited<ReturnType<SnapshotSource["fetch"]>>) => void;
+    const fetch = vi
+      .fn<SnapshotSource["fetch"]>()
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            complete = resolve;
+          })
+      )
+      .mockResolvedValue({
+        status: "content",
+        content: bytes(signFlagSnapshot(signOptions({ sequence: 2 })))
+      });
+    const refresher = createSnapshotRefresher({
+      provider,
+      source: { fetch },
+      verifier: verifier()
+    });
+    const pending = refresher.refresh();
+    await Promise.resolve();
+    const newer = release(4);
+    provider.updateSnapshot(newer.snapshot, newer.provenance);
+    complete({ status: "content", content: bytes(signFlagSnapshot(signOptions({ sequence: 5 }))) });
+    await expect(pending).rejects.toThrow("during refresh");
+    await expect(refresher.refresh()).rejects.toThrow("Signed snapshot verification failed.");
+    expect(provider.getStatus().provenance?.sequence).toBe(4);
+    refresher.close();
   });
 });

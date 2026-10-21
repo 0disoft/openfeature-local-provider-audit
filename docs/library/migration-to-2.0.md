@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.8` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.9` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -52,6 +52,13 @@ audience/freshness policy. No JOSE or other runtime dependency is added. See
 replay state. Persistent restart recovery is still a separate pending slice.
 The protected algorithm identifier is fully specified `Ed25519` under RFC 9864;
 the deprecated polymorphic `EdDSA` identifier is not accepted by this new profile.
+
+Alpha.9 adds optional provenance to initial provider options, provider status,
+audit events and audit event options, and an optional second `updateSnapshot`
+argument. Existing one-argument calls remain valid and clear signed origin, even
+for equal contents. Custom reloadable providers used by signed refreshers must
+atomically expose the supplied provenance; otherwise refresh fails closed. These
+fields validate metadata shape/hash, not signatures. Follow `signed-snapshots.md`.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

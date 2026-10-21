@@ -14,6 +14,7 @@ import {
 import { createEnvOverrides } from "../env/env-overrides.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
+import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { validateFlagSnapshot } from "../flags/validate-snapshot.js";
 import type {
   AuditSink,
@@ -32,7 +33,8 @@ import type {
   ProviderMetrics,
   ProviderMetricsSession,
   RefreshFailureKind,
-  ReloadableLocalProvider
+  ReloadableLocalProvider,
+  SignedSnapshotMetadata
 } from "../public-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
@@ -74,7 +76,8 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     resolveAuditPolicy(options),
     resolveAuditContextKeyMode(options.auditRedaction),
     options.staleAfterMs,
-    options.metrics
+    options.metrics,
+    options.provenance
   );
 }
 
@@ -94,6 +97,7 @@ function captureEnv(env: EnvSource): EnvSource {
 type OverrideOptions = CreateEnvOverridesOptions & { readonly env: EnvSource };
 
 interface ProviderState {
+  readonly provenance: SignedSnapshotMetadata | undefined;
   readonly snapshot: FlagSnapshot;
   readonly snapshotHash: string;
   readonly overrides: EnvOverrideState;
@@ -117,10 +121,11 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     private readonly auditPolicy: AuditPolicy,
     private readonly auditContextKeyMode: AuditContextKeyMode,
     staleAfterMs: number | undefined,
-    metrics: ProviderMetrics | undefined
+    metrics: ProviderMetrics | undefined,
+    provenance: SignedSnapshotMetadata | undefined
   ) {
     this.operational = new OperationalState(staleAfterMs);
-    this.state = this.createState(snapshot);
+    this.state = this.createState(snapshot, provenance);
     this.metadata = { name };
     try {
       this.metricsSession = metrics?.bindStatus(() => this.getStatus(), this.auditSink);
@@ -135,24 +140,30 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   }
 
   getStatus(): ProviderStatus {
-    return this.operational.read(this.state.snapshotHash, this.closed, this.auditSink);
+    return this.operational.read(
+      this.state.snapshotHash,
+      this.closed,
+      this.auditSink,
+      this.state.provenance
+    );
   }
 
   reportRefreshFailure(kind: RefreshFailureKind): void {
     this.operational.refreshFailed(kind);
   }
 
-  updateSnapshot(snapshot: FlagSnapshot): void {
+  updateSnapshot(snapshot: FlagSnapshot, provenance?: SignedSnapshotMetadata): void {
     const previousState = this.state;
     let nextState: ProviderState;
     try {
-      nextState = this.createState(snapshot);
+      nextState = this.createState(snapshot, provenance);
     } catch (error) {
       this.operational.refreshFailed("validation");
       throw error;
     }
     this.operational.refreshed(nextState.snapshotHash !== previousState.snapshotHash);
     if (nextState.snapshotHash === previousState.snapshotHash) {
+      this.state = { ...previousState, provenance: nextState.provenance };
       return;
     }
 
@@ -326,6 +337,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
         providerName: this.metadata.name,
         snapshot: state.snapshot,
         snapshotHash: state.snapshotHash,
+        ...(state.provenance !== undefined ? { provenance: state.provenance } : {}),
         ...(state.overrideHash !== undefined ? { overrideHash: state.overrideHash } : {}),
         request,
         result,
@@ -358,13 +370,15 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     }
   }
 
-  private createState(snapshot: FlagSnapshot): ProviderState {
+  private createState(snapshot: FlagSnapshot, provenance?: SignedSnapshotMetadata): ProviderState {
     const validatedSnapshot = validateFlagSnapshot(snapshot);
     const overrides = createEnvOverrides(validatedSnapshot, this.overrideOptions);
+    const snapshotHash = createSnapshotHash(validatedSnapshot);
 
     return {
       snapshot: validatedSnapshot,
-      snapshotHash: createSnapshotHash(validatedSnapshot),
+      snapshotHash,
+      provenance: captureSnapshotProvenance(provenance, snapshotHash),
       overrides,
       flagHashes: createFlagHashes(validatedSnapshot),
       ...(hasOverrideState(overrides) ? { overrideHash: createOverrideHash(overrides) } : {})

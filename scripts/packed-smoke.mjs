@@ -546,8 +546,21 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     });
     const signedResult = await signedRefresher.refresh();
     if (signedResult.provenance?.sequence !== 1 ||
+        offlineProvider.getStatus().provenance?.artifactHash !== signedResult.provenance.artifactHash ||
         signedRefresher.getProvenance()?.snapshotHash !== offlineProvider.getStatus().snapshotHash) {
       throw new Error(moduleKind + " signed snapshot/provenance contract failed");
+    }
+    const signedAudit = api.createAuditEvent({
+      providerName: "packed", snapshot: jsonSnapshot, provenance: signedResult.provenance,
+      request: { flagKey: "checkout.enabled", defaultValue: false, expectedType: "boolean" },
+      result: api.evaluateFlag(jsonSnapshot, { flagKey: "checkout.enabled", defaultValue: false, expectedType: "boolean" })
+    });
+    if (signedAudit.provenance?.artifactHash !== signedResult.provenance?.artifactHash) {
+      throw new Error(moduleKind + " audit artifact linkage failed");
+    }
+    offlineProvider.updateSnapshot(jsonSnapshot);
+    if (offlineProvider.getStatus().provenance !== undefined || signedRefresher.getProvenance() !== undefined) {
+      throw new Error(moduleKind + " unsigned update retained signed origin");
     }
     signedRefresher.close();
   }
@@ -694,6 +707,20 @@ const confirmedOptions: LocalProviderOptions = {
   snapshot, auditSink: confirmedSink, auditFailurePolicy: failurePolicy, auditTimeoutMs: 250
 };
 const timedOutWrites: number = auditStatus.timedOutWrites;
+const origin: SignedSnapshotMetadata | undefined = status.provenance;
+const originOptions: LocalProviderOptions = { snapshot, ...(origin ? { provenance: origin } : {}) };
+declare const reloadable: ReloadableLocalProvider;
+reloadable.updateSnapshot(snapshot, origin);
+declare const audited: AuditEvent;
+const auditOrigin: SignedSnapshotMetadata | undefined = audited.provenance;
+const auditOptions: CreateAuditEventOptions = {
+  providerName, snapshot, request,
+  result: { flagKey: "checkout.enabled", value: true, reason: "STATIC", source: "file", flagMetadata: {} },
+  ...(origin ? { provenance: origin } : {})
+};
+void originOptions;
+void auditOrigin;
+void auditOptions;
 void confirmedOptions;
 void timedOutWrites;
 const sourceRequest: SnapshotSourceRequest = { etag: '"typed"' };

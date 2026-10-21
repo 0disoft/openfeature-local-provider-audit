@@ -34,12 +34,18 @@ raw user context by default.
 - `ruleId` (optional, selected schema v2 targeting rule; non-sensitive IDs only)
 - `errorCode`
 - `snapshotHash`
+- `provenance` (optional exact signed-artifact metadata in the 2.0 prerelease)
 - `overrideHash`
 - `context`
 
 ## Implemented Behavior
 
 - `snapshotHash` is SHA-256 over stable JSON for the local snapshot.
+- Optional `provenance` captures the evaluation-time signed artifact hash, snapshot
+  hash, sequence, key ID, audience and issuance/expiry. Only documented metadata
+  fields are copied and frozen; raw keys, context and artifacts are excluded.
+  Unsigned provider updates clear it even when the snapshot hash is unchanged.
+  Direct caller metadata is not signature proof; see `signed-snapshots.md`.
 - `overrideHash` is SHA-256 over stable JSON for explicit override input when provided.
 - Stable JSON orders object keys with locale-independent code unit comparison.
 - Provider-created audit events use hashes cached on provider state so evaluation does

@@ -128,6 +128,7 @@ export interface EvaluationExplanation {
 
 export interface LocalProviderOptions {
   readonly snapshot: FlagSnapshot;
+  readonly provenance?: SignedSnapshotMetadata;
   readonly name?: string;
   readonly overridesJson?: string;
   readonly maxOverridesJsonBytes?: number;
@@ -204,6 +205,7 @@ export interface ProviderAuditStatus {
 
 export interface ProviderStatus {
   readonly snapshotHash: string;
+  readonly provenance?: SignedSnapshotMetadata;
   readonly closed: boolean;
   readonly lastSuccessfulRefreshAt: number;
   readonly lastChangedAt: number;
@@ -223,7 +225,7 @@ export interface ObservableLocalProvider extends Provider {
 
 export interface ReloadableLocalProvider extends ObservableLocalProvider {
   getSnapshot(): FlagSnapshot;
-  updateSnapshot(snapshot: FlagSnapshot): void;
+  updateSnapshot(snapshot: FlagSnapshot, provenance?: SignedSnapshotMetadata): void;
 }
 
 export interface SnapshotSourceRequest {
@@ -395,6 +397,7 @@ export interface ReplayMismatch {
 }
 
 export interface AuditEvent {
+  readonly provenance?: SignedSnapshotMetadata;
   readonly schemaVersion: 1;
   readonly eventId: string;
   readonly timestamp: string;
@@ -420,6 +423,7 @@ export interface RedactedAuditContext {
 }
 
 export interface CreateAuditEventOptions {
+  readonly provenance?: SignedSnapshotMetadata;
   readonly providerName: string;
   readonly snapshot: FlagSnapshot;
   readonly snapshotHash?: string;

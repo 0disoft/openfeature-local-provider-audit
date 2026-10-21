@@ -1,3 +1,4 @@
+import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { createHash, randomUUID } from "node:crypto";
 import type {
   AuditContextKeyMode,
@@ -13,7 +14,10 @@ import type {
 } from "../public-types.js";
 
 export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
+  const snapshotHash = options.snapshotHash ?? createSnapshotHash(options.snapshot);
+  const provenance = captureSnapshotProvenance(options.provenance, snapshotHash);
   return {
+    ...(provenance !== undefined ? { provenance } : {}),
     schemaVersion: 1,
     eventId: options.eventId ?? randomUUID(),
     timestamp: options.timestamp ?? new Date().toISOString(),
@@ -25,7 +29,7 @@ export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
     ...(options.result.variant !== undefined ? { variant: options.result.variant } : {}),
     ...(options.result.ruleId !== undefined ? { ruleId: options.result.ruleId } : {}),
     ...(options.result.errorCode !== undefined ? { errorCode: options.result.errorCode } : {}),
-    snapshotHash: options.snapshotHash ?? createSnapshotHash(options.snapshot),
+    snapshotHash,
     ...resolveOverrideHash(options),
     context: redactRequestContext(options)
   };

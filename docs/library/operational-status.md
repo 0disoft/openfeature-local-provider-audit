@@ -63,3 +63,8 @@ and are not write failures. Counters are JavaScript numbers, not durable account
 
 Alpha.5 adds `timedOutWrites`, counting evaluation waits whose configured deadline
 expired, independently of write settlement. See `audit-failure-policy.md`.
+
+Signed snapshots expose optional frozen `provenance` with the exact artifact hash,
+sequence, public key ID, audience and lifetime. It is captured with the active
+snapshot and cleared by unsigned updates even when contents do not change. It
+describes accepted origin, not current signature freshness; see `signed-snapshots.md`.

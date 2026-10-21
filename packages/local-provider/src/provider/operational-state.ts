@@ -2,7 +2,8 @@ import type {
   AuditSink,
   FileAuditSinkStats,
   ProviderStatus,
-  RefreshFailureKind
+  RefreshFailureKind,
+  SignedSnapshotMetadata
 } from "../public-types.js";
 
 const FAILURE_KINDS = new Set<RefreshFailureKind>([
@@ -70,10 +71,16 @@ export class OperationalState {
     this.timedOutWrites++;
   }
 
-  read(snapshotHash: string, closed: boolean, sink: AuditSink | undefined): ProviderStatus {
+  read(
+    snapshotHash: string,
+    closed: boolean,
+    sink: AuditSink | undefined,
+    provenance?: SignedSnapshotMetadata
+  ): ProviderStatus {
     const sinkStats = readSinkStats(sink);
     return Object.freeze({
       snapshotHash,
+      ...(provenance !== undefined ? { provenance } : {}),
       closed,
       lastSuccessfulRefreshAt: this.lastSuccessfulRefreshAt,
       lastChangedAt: this.lastChangedAt,

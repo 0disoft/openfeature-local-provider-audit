@@ -108,13 +108,34 @@ and the desired older flag contents. Replaying an older signed release is not ro
 Durable replay floors, restart recovery and history selection remain the next P2
 slice; process-local state does not claim cross-restart protection.
 
+## Evaluation audit linkage
+
 Provenance contains key ID, audience, sequence, issuance/expiry, semantic
 `snapshotHash` and SHA-256 `artifactHash` of the normalized compact token.
-It contains no key material or evaluation context. `snapshotHash` joins provenance
-to existing audit events; hashes alone still do not retain the source snapshot.
-`getProvenance()` returns it only while the active provider hash matches the
-committed signed snapshot. It describes historical acceptance, not current freshness
-or proof that no separate caller replaced an equal-hash snapshot.
+It contains no key material or evaluation context. Signed refresh applies the snapshot
+and its provenance together. `ProviderStatus.provenance` and each evaluation's
+`AuditEvent.provenance` identify the exact signed artifact, even when two releases
+have identical flag contents. Pending asynchronous audit writes retain the origin
+captured when evaluation began. Hashes do not retain the artifact or snapshot.
+
+`LocalProviderOptions.provenance`, `updateSnapshot(snapshot, provenance?)` and
+`CreateAuditEventOptions.provenance` accept caller-asserted metadata. They validate
+own data fields, identifiers, safe-integer times/sequence and matching snapshot hash,
+then copy/freeze only the seven documented fields. They do **not** verify signatures:
+pass the result of a trusted verifier. In-process callers already control the snapshot.
+Do not treat arbitrary metadata as cryptographic proof; verify retained artifacts.
+Unsigned updates clear provenance, including updates with identical contents.
+Provenance-only changes renew freshness without emitting configuration-change events.
+No extra metrics labels, network calls or per-evaluation signature checks are added.
+
+A signed refresher seeds continuity from initial provider provenance and retains its
+private accepted floor across unsigned updates. An active higher sequence also sets
+the verification floor. Changes to active artifact identity during fetch or application
+reject the refresh, including equal-hash replacement. `getProvenance()` and ETag reuse
+require both active snapshot and artifact identity to match the controller's commit.
+Provenance describes historical acceptance, not current freshness or durable restart
+protection. A newly constructed controller cannot recover a floor that was never
+persisted or supplied; that remains the next slice.
 
 Verification errors are generic `LocalProviderError(SCHEMA_ERROR)` without a raw
 token, key, claim value or nested cause. The publisher helper may throw input

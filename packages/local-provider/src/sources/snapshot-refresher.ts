@@ -31,13 +31,17 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
   let closed = false;
   let active: AbortController | undefined;
   let inFlight: Promise<SnapshotRefreshResult> | undefined;
-  let provenance: SignedSnapshotMetadata | undefined;
+  let provenance: SignedSnapshotMetadata | undefined =
+    verifier === undefined ? undefined : provider.getStatus().provenance;
   let committedArtifact: Uint8Array | undefined;
 
   async function performRefresh(): Promise<SnapshotRefreshResult> {
     if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
-    const before = provider.getStatus().snapshotHash;
-    const conditionalEtag = committedHash === before ? etag : undefined;
+    const beforeStatus = provider.getStatus();
+    const before = beforeStatus.snapshotHash;
+    const beforeArtifact = beforeStatus.provenance?.artifactHash;
+    const conditionalEtag =
+      committedHash === before && provenance?.artifactHash === beforeArtifact ? etag : undefined;
     active = new AbortController();
     try {
       let response: SnapshotSourceResponse;
@@ -51,7 +55,8 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         throw unavailable("Snapshot source could not be refreshed.");
       }
       if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
-      if (provider.getStatus().snapshotHash !== before) {
+      const current = provider.getStatus();
+      if (current.snapshotHash !== before || current.provenance?.artifactHash !== beforeArtifact) {
         provider.reportRefreshFailure("load");
         throw unavailable("Snapshot changed during refresh; retry explicitly.");
       }
@@ -75,7 +80,12 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         try {
           const signedBytes = artifact ?? committedArtifact;
           if (signedBytes === undefined) throw new Error("No signed artifact.");
-          verified = verifier.verify(signedBytes, provenance);
+          const previous =
+            beforeStatus.provenance !== undefined &&
+            (provenance === undefined || beforeStatus.provenance.sequence > provenance.sequence)
+              ? beforeStatus.provenance
+              : provenance;
+          verified = verifier.verify(signedBytes, previous);
           snapshot = verified.snapshot;
         } catch {
           provider.reportRefreshFailure("signature");
@@ -97,9 +107,13 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       // Provider validation failures are already counted there. Commit the validator
       // only after application succeeds; failures leave both snapshot and ETag intact.
       const expectedHash = createSnapshotHash(snapshot);
-      provider.updateSnapshot(snapshot);
-      const snapshotHash = provider.getStatus().snapshotHash;
-      if (snapshotHash !== expectedHash) {
+      provider.updateSnapshot(snapshot, verified?.provenance);
+      const applied = provider.getStatus();
+      const snapshotHash = applied.snapshotHash;
+      if (
+        snapshotHash !== expectedHash ||
+        applied.provenance?.artifactHash !== verified?.provenance.artifactHash
+      ) {
         provider.reportRefreshFailure("load");
         throw unavailable("Snapshot changed during application; retry explicitly.");
       }
@@ -121,7 +135,11 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
 
   return {
     getProvenance() {
-      return provider.getStatus().snapshotHash === committedHash ? provenance : undefined;
+      const status = provider.getStatus();
+      return status.snapshotHash === committedHash &&
+        status.provenance?.artifactHash === provenance?.artifactHash
+        ? provenance
+        : undefined;
     },
     refresh() {
       if (inFlight !== undefined) return inFlight;

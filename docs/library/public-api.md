@@ -69,6 +69,9 @@ see `https-snapshots.md`. Provider resolution remains local.
 Optional signed delivery adds `signFlagSnapshot`, `createSnapshotVerifier`,
 `SignFlagSnapshotOptions`, `SnapshotVerificationOptions`, `SignedSnapshotMetadata`,
 `VerifiedFlagSnapshot` and `SnapshotVerifier`; see `signed-snapshots.md`.
+Optional initial/update provenance is captured atomically in provider status and
+evaluation audit events. Metadata alone is caller-asserted; signature verification
+is separate. Unsigned updates clear provenance, including equal-hash updates.
 
 The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
 `TargetingCondition`, and `TargetingRule`, snapshot version `1 | 2`, optional

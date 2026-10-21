@@ -167,6 +167,38 @@ Public API, migration, SDK, ADR 0014 and threat-model contracts name
 Hosted Linux/macOS verification remains deferred because no push is authorized.
 
 Remaining, in order: persistent verified last-good recovery, durable replay floor,
-bounded history and explicit rollback, with exact signed-artifact audit linkage;
-GitOps recipe; audit chain/checkpoint verification. Process-local provenance must
+bounded history and explicit rollback; GitOps recipe; audit chain/checkpoint
+verification. Exact signed-artifact linkage is completed in the following slice. Process-local provenance must
 not be claimed as restart protection. Preserve this remaining scope in later slices.
+
+
+### Exact signed-artifact evaluation linkage completed locally
+
+Alpha.9 captures optional validated, whitelisted, frozen provenance atomically with
+provider state and each evaluation audit event. Re-signed identical configurations
+retain distinct artifact identities; asynchronous audit settlement keeps its original
+release. Unsigned equal-hash updates clear provenance. Provenance-only changes do
+not emit flag-change events or add telemetry labels/signature work to evaluation.
+Metadata supplied directly by callers is asserted origin, not signature proof.
+
+Signed refresh seeds continuity from initial provider provenance, checks active
+higher sequence and detects artifact replacement during fetch/application, including
+equal-hash replacement. ETag/provenance publication requires matching active artifact
+identity. Invalid metadata preserves the prior provider state and records failure.
+The contract source is `signed-snapshots.md`, with matching audit/status/API/SDK and
+migration docs. The staged version is unpublished `2.0.0-alpha.9`.
+
+`check`, `contract`, format, lint and diff whitespace checks passed. Windows
+Node 24.14.0 and 22.23.3 each passed 321 package tests with 5 existing platform
+skips. Coverage: 94.97% statements, 93.06% branches, 99.28% functions, 95.71% lines.
+The reviewed API remains 87 exports / 24 runtime values with additive optional
+fields and update argument. The 161,365-byte alpha.9 tarball passed ESM/CJS
+artifact audit/status/unsigned-clearing checks and TypeScript 5.9.3 full-library /
+7.0.2 consumer-surface checks, including typed provenance options and events.
+No dependency, DB, runner or repository hygiene policy changed. Linux/macOS hosted
+verification and publication remain deferred because push is not authorized.
+
+Remaining scope is unchanged: persistent verified last-good recovery, durable replay
+floor, bounded history and explicit higher-sequence rollback; GitOps recipe; audit
+hash chain, verifier and trusted external checkpoints with explicit rotation,
+concurrent-writer and crash boundaries. No restart protection is claimed yet.
