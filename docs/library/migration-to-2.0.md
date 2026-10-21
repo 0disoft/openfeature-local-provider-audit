@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.5` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.6` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -23,6 +23,15 @@ when opting into `returnDefault`; ordinary `write` keeps its `Promise<void>` typ
 and overflow policy. Custom operational status implementations add the
 `timedOutWrites` counter. See `audit-failure-policy.md` before selecting a safe
 caller default or assuming any durability/business-enforcement guarantee.
+
+Alpha.6 adds optional `metrics` and `createOpenTelemetryMetrics(meter)`; omit it
+to retain uninstrumented operation. The structural `OpenTelemetryMeter` type keeps
+telemetry packages out of consumer dependencies and declarations. Only development
+tests install the real Apache-2.0 API 1 / metrics SDK 2 within stable major ranges.
+The lockfile selects published versions past the repository's release-age policy;
+fresh API 1.10 / SDK 3 were not allowed through an exception. No collector/exporter,
+global SDK, timer or OpenTelemetry runtime dependency is installed by the adapter.
+See `opentelemetry-metrics.md` for collection, labels and lifecycle.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

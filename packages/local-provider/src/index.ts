@@ -12,6 +12,7 @@ export { createLocalProvider, createReloadableLocalProvider } from "./provider/l
 export { replayEvaluationFixture } from "./replay/replay-fixture.js";
 export { createAuditEvent, redactContext, serializeAuditEvent } from "./audit/audit-event.js";
 export { createFileAuditSink } from "./audit/audit-sink.js";
+export { createOpenTelemetryMetrics } from "./metrics/opentelemetry.js";
 export {
   LOCAL_PROVIDER_ERROR_CODES,
   type LocalProviderErrorCode
@@ -51,6 +52,10 @@ export type {
   JsonObject,
   JsonValue,
   LocalProviderOptions,
+  OpenTelemetryMeter,
+  ProviderEvaluationMetric,
+  ProviderMetrics,
+  ProviderMetricsSession,
   ObservableLocalProvider,
   ProviderStatus,
   ProviderAuditStatus,

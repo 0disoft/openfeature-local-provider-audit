@@ -137,6 +137,55 @@ export interface LocalProviderOptions {
   readonly auditTimeoutMs?: number;
   readonly auditRedaction?: AuditRedactionOptions;
   readonly staleAfterMs?: number;
+  readonly metrics?: ProviderMetrics;
+}
+
+export interface ProviderEvaluationMetric {
+  readonly requestedType: FlagType;
+  readonly reason: EvaluationReason;
+  readonly source: EvaluationSource;
+  readonly errorCode?: LocalProviderErrorCode;
+  readonly durationMs: number;
+}
+
+export interface ProviderMetricsSession {
+  recordEvaluation(metric: ProviderEvaluationMetric): void;
+  close(): void;
+}
+
+export interface ProviderMetrics {
+  bindStatus(readStatus: () => ProviderStatus, sink?: AuditSink): ProviderMetricsSession;
+}
+
+// Structural subset: consumers without telemetry need no optional module declarations.
+export interface OpenTelemetryMeter {
+  createCounter(
+    name: string,
+    options?: { unit?: string; description?: string }
+  ): {
+    add(value: number, attributes?: Readonly<Record<string, string>>): void;
+  };
+  createHistogram(
+    name: string,
+    options?: { unit?: string; description?: string }
+  ): {
+    record(value: number, attributes?: Readonly<Record<string, string>>): void;
+  };
+  createObservableGauge(
+    name: string,
+    options?: { unit?: string; description?: string }
+  ): {
+    addCallback(
+      callback: (result: {
+        observe(value: number, attributes?: Readonly<Record<string, string>>): void;
+      }) => void
+    ): void;
+    removeCallback(
+      callback: (result: {
+        observe(value: number, attributes?: Readonly<Record<string, string>>): void;
+      }) => void
+    ): void;
+  };
 }
 
 export type RefreshFailureKind = "load" | "fetch" | "validation" | "signature" | "persist";

@@ -42,6 +42,11 @@ Provider factories also expose privacy-safe operational status in the 2.0
 prerelease. Snapshot refresh status is separate from SDK lifecycle events;
 see `docs/library/operational-status.md`.
 
+Optional `metrics: createOpenTelemetryMetrics(meter)` uses a caller-owned Meter
+without SDK/exporter installation or global registration. Labels exclude flag keys,
+context and values; close unregisters status observation. See
+`docs/library/opentelemetry-metrics.md`.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

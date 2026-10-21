@@ -29,6 +29,8 @@ import type {
   LocalProviderOptions,
   ObservableLocalProvider,
   ProviderStatus,
+  ProviderMetrics,
+  ProviderMetricsSession,
   RefreshFailureKind,
   ReloadableLocalProvider
 } from "../public-types.js";
@@ -71,7 +73,8 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     options.auditSink,
     resolveAuditPolicy(options),
     resolveAuditContextKeyMode(options.auditRedaction),
-    options.staleAfterMs
+    options.staleAfterMs,
+    options.metrics
   );
 }
 
@@ -104,6 +107,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   private state: ProviderState;
   private closed = false;
   private readonly operational: OperationalState;
+  private readonly metricsSession: ProviderMetricsSession | undefined;
 
   constructor(
     snapshot: FlagSnapshot,
@@ -112,11 +116,18 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     private readonly auditSink: AuditSink | undefined,
     private readonly auditPolicy: AuditPolicy,
     private readonly auditContextKeyMode: AuditContextKeyMode,
-    staleAfterMs: number | undefined
+    staleAfterMs: number | undefined,
+    metrics: ProviderMetrics | undefined
   ) {
     this.operational = new OperationalState(staleAfterMs);
     this.state = this.createState(snapshot);
     this.metadata = { name };
+    try {
+      this.metricsSession = metrics?.bindStatus(() => this.getStatus(), this.auditSink);
+    } catch {
+      // Diagnostics failures do not prevent provider registration.
+      this.metricsSession = undefined;
+    }
   }
 
   getSnapshot(): FlagSnapshot {
@@ -159,6 +170,11 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       await this.auditSink?.flush?.();
     } finally {
       this.events.removeAllHandlers();
+      try {
+        this.metricsSession?.close();
+      } catch {
+        // Preserve the original flush result.
+      }
     }
   }
 
@@ -205,6 +221,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     context: EvaluationContext,
     logger: Logger
   ): Promise<ResolutionDetails<T>> {
+    const startedAt = this.metricsSession === undefined ? undefined : performance.now();
     const state = this.state;
     const request = this.createEvaluationRequest(
       flagKey,
@@ -234,6 +251,19 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       }
     }
 
+    if (startedAt !== undefined) {
+      try {
+        this.metricsSession?.recordEvaluation({
+          requestedType: expectedType,
+          reason: result.reason,
+          source: result.source,
+          ...(result.errorCode !== undefined ? { errorCode: result.errorCode } : {}),
+          durationMs: Math.max(0, performance.now() - startedAt)
+        });
+      } catch {
+        // Metrics are optional and must not change the resolution.
+      }
+    }
     return toOpenFeatureResolution(result) as ResolutionDetails<T>;
   }
 

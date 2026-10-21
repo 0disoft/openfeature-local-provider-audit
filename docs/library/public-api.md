@@ -60,6 +60,9 @@ The audit policy adds `AuditFailurePolicy`, optional
 `LocalProviderOptions.auditFailurePolicy` / `auditTimeoutMs`, optional
 `AuditSink.writeConfirmed` and `ProviderAuditStatus.timedOutWrites`.
 See `audit-failure-policy.md` for the default-preserving opt-in contract.
+Optional metrics add `createOpenTelemetryMetrics`, `OpenTelemetryMeter`,
+`ProviderMetrics`, `ProviderMetricsSession`, `ProviderEvaluationMetric` and
+`LocalProviderOptions.metrics`; see `opentelemetry-metrics.md`.
 
 The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
 `TargetingCondition`, and `TargetingRule`, snapshot version `1 | 2`, optional
@@ -83,6 +86,7 @@ The package-root runtime value surface is exactly:
 - `createEnvOverrides`, `evaluateFlag`, and `explainEvaluation`.
 - `replayEvaluationFixture`.
 - `createAuditEvent`, `serializeAuditEvent`, `redactContext`, and `createFileAuditSink`.
+- `createOpenTelemetryMetrics`.
 
 The package-root type surface is exactly:
 
@@ -103,6 +107,8 @@ The package-root type surface is exactly:
   `AuditRedactionOptions`, `AuditSink`, `AuditWriteMode`, `CreateAuditEventOptions`,
   `FileAuditSinkOptions`, `FileAuditSinkStats`, and `RedactedAuditContext`.
 - `AuditFailurePolicy`.
+- `OpenTelemetryMeter`, `ProviderMetrics`, `ProviderMetricsSession`, and
+  `ProviderEvaluationMetric`.
 - `ReplayExpectedResult`, `ReplayFixture`, `ReplayMismatch`, `ReplayOverrideInput`,
   and `ReplayResult`.
 

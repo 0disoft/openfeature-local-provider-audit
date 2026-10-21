@@ -84,5 +84,31 @@ status, confirmation options and timeout counters. No dependency, DB, runner,
 repository hygiene policy or remote state changed. Hosted Linux/macOS evidence
 remains deferred; no push is authorized.
 
-Remaining, in order: OpenTelemetry adapter; HTTPS delivery; signatures and
-persistent recovery; GitOps recipe; audit chain/checkpoint verification.
+### OpenTelemetry adapter completed locally
+
+Alpha.6 adds the optional caller-owned Meter adapter and bounded, privacy-safe
+evaluation counter/error counter/duration histogram plus operational gauge.
+Status collection deduplicates shared sink identity, observes asynchronous changes
+without new evaluations and unregisters the callback after the last provider closes.
+The pure evaluator and uninstrumented provider do not acquire telemetry clock reads,
+timers, exporters, global registration or network work.
+
+`check`, `contract`, format, lint and dependency audit passed. Audit: zero
+advisories. Windows Node 24.14.0 and 22.23.3 each passed 266 package tests with 5
+existing platform skips. Coverage: 94.27% statements, 91.80% branches,
+99.18% functions, 94.78% lines. Real API 1.9.1 / SDK 2.12.0 Meter assignability
+and manual-reader collection prove privacy, errors, histogram, shared-sink
+deduplication and callback lifecycle. Faulty telemetry cannot change results or
+replace a flush error; audit timeouts measure the final error and blocking duration.
+
+The 131,629-byte alpha.6 tarball passed ESM/CJS metrics recording/cleanup and
+existing runtime/CLI checks with TypeScript 5.9.3 full-library and 7.0.2 consumer
+surface checks. The API baseline has 71 exports, 20 runtime values. Telemetry
+dependencies are development-only and retain stable major ranges in declaration
+and lockfile. Fresh API 1.10 / SDK 3 failed the release-age check, so the selected
+aged versions passed without any policy exception or workspace policy change.
+No DB, runner, runtime dependency or remote state changed. Hosted Linux/macOS
+verification remains deferred because no push is authorized.
+
+Remaining, in order: HTTPS delivery; signatures and persistent recovery; GitOps
+recipe; audit chain/checkpoint verification.

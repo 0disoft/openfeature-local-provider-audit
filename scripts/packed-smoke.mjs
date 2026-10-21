@@ -12,6 +12,10 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "OpenTelemetryMeter",
+  "ProviderMetrics",
+  "ProviderMetricsSession",
+  "ProviderEvaluationMetric",
   "AuditFailurePolicy",
   "ObservableLocalProvider",
   "ProviderStatus",
@@ -24,6 +28,10 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "OpenTelemetryMeter",
+  "ProviderMetrics",
+  "ProviderMetricsSession",
+  "ProviderEvaluationMetric",
   "AuditFailurePolicy",
   "ObservableLocalProvider",
   "ProviderStatus",
@@ -352,7 +360,7 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
       "createLocalProvider",
       "createReloadableLocalProvider",
       "evaluateFlag",
-      ...(targeting ? ["explainEvaluation"] : []),
+      ...(targeting ? ["explainEvaluation", "createOpenTelemetryMetrics"] : []),
       "isLocalProviderError",
       "loadFlagSnapshotFile",
       "parseJsonFlagSnapshot",
@@ -361,7 +369,7 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
       "replayEvaluationFixture",
       "serializeAuditEvent",
       "watchFlagSnapshotFile"
-    ],
+    ].sort(),
     null,
     2
   )};
@@ -434,9 +442,22 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
         recovered.snapshotHash !== initial.snapshotHash || !Object.isFrozen(recovered.audit)) {
       throw new Error(moduleKind + " operational status contract failed");
     }
+    const measurements = [];
+    const callbacks = new Set();
+    const metrics = api.createOpenTelemetryMetrics({
+      createCounter(name) { return { add(value, attributes) { measurements.push({ name, value, attributes }); } }; },
+      createHistogram(name) { return { record(value, attributes) { measurements.push({ name, value, attributes }); } }; },
+      createObservableGauge(name) {
+        return {
+          addCallback(callback) { callbacks.add(callback); },
+          removeCallback(callback) { callbacks.delete(callback); }
+        };
+      }
+    });
     const strictAuditProvider = api.createLocalProvider({
       snapshot: jsonSnapshot,
       env: {},
+      metrics,
       auditFailurePolicy: "returnDefault",
       auditSink: {
         async write() { throw new Error("Unconfirmed write must not be selected"); },
@@ -451,6 +472,13 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
         strictAuditProvider.getStatus().audit.failedWrites !== 1) {
       throw new Error(moduleKind + " audit failure policy contract failed");
     }
+    if (callbacks.size !== 1 || !measurements.some((metric) =>
+        metric.name.endsWith(".evaluations") && metric.attributes.reason === "ERROR" &&
+        metric.attributes.error_code === "AUDIT_SINK_ERROR")) {
+      throw new Error(moduleKind + " optional metrics contract failed");
+    }
+    await strictAuditProvider.onClose();
+    if (callbacks.size !== 0) throw new Error(moduleKind + " metrics cleanup failed");
   }
   let flagsChanged = [];
   reloadableProvider.events?.addHandler(ProviderEvents.ConfigurationChanged, (details) => {

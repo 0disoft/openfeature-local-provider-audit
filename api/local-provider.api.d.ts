@@ -172,6 +172,59 @@ interface LocalProviderOptions {
   readonly auditTimeoutMs?: number;
   readonly auditRedaction?: AuditRedactionOptions;
   readonly staleAfterMs?: number;
+  readonly metrics?: ProviderMetrics;
+}
+interface ProviderEvaluationMetric {
+  readonly requestedType: FlagType;
+  readonly reason: EvaluationReason;
+  readonly source: EvaluationSource;
+  readonly errorCode?: LocalProviderErrorCode;
+  readonly durationMs: number;
+}
+interface ProviderMetricsSession {
+  recordEvaluation(metric: ProviderEvaluationMetric): void;
+  close(): void;
+}
+interface ProviderMetrics {
+  bindStatus(readStatus: () => ProviderStatus, sink?: AuditSink): ProviderMetricsSession;
+}
+interface OpenTelemetryMeter {
+  createCounter(
+    name: string,
+    options?: {
+      unit?: string;
+      description?: string;
+    }
+  ): {
+    add(value: number, attributes?: Readonly<Record<string, string>>): void;
+  };
+  createHistogram(
+    name: string,
+    options?: {
+      unit?: string;
+      description?: string;
+    }
+  ): {
+    record(value: number, attributes?: Readonly<Record<string, string>>): void;
+  };
+  createObservableGauge(
+    name: string,
+    options?: {
+      unit?: string;
+      description?: string;
+    }
+  ): {
+    addCallback(
+      callback: (result: {
+        observe(value: number, attributes?: Readonly<Record<string, string>>): void;
+      }) => void
+    ): void;
+    removeCallback(
+      callback: (result: {
+        observe(value: number, attributes?: Readonly<Record<string, string>>): void;
+      }) => void
+    ): void;
+  };
 }
 type RefreshFailureKind = "load" | "fetch" | "validation" | "signature" | "persist";
 interface ProviderAuditStatus {
@@ -390,6 +443,10 @@ export declare function redactContext(
 //#region src/audit/audit-sink.d.ts
 export declare function createFileAuditSink(options: FileAuditSinkOptions): AuditSink;
 //#endregion
+//#region src/metrics/opentelemetry.d.ts
+/** Uses a caller-owned Meter; never installs an SDK, exporter, timer or global provider. */
+export declare function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderMetrics;
+//#endregion
 export type {
   AuditContextKeyMode,
   AuditEvent,
@@ -422,8 +479,12 @@ export type {
   LocalProviderErrorCode,
   LocalProviderOptions,
   ObservableLocalProvider,
+  OpenTelemetryMeter,
   PercentageRolloutRule,
   ProviderAuditStatus,
+  ProviderEvaluationMetric,
+  ProviderMetrics,
+  ProviderMetricsSession,
   ProviderStatus,
   RedactedAuditContext,
   RefreshFailureKind,

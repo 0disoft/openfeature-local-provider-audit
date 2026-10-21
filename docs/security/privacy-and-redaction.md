@@ -47,6 +47,10 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
 - Provider warnings include the original error object for operator diagnosis. Logger
   destinations must remain operator-controlled because filesystem errors may include
   trusted local paths.
+- Optional metrics project only bounded type/reason/source/error categories and
+  duration plus aggregate operational counts. User context, flag keys, variants,
+  hashes and exception messages are excluded. Caller-owned telemetry resource
+  metadata and exporters remain outside this projection.
 
 ## Review Blockers
 
