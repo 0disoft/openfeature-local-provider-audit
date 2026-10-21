@@ -59,6 +59,9 @@ raw user context by default.
   `createLocalProvider({ auditRedaction })` accept the same context-key policy.
 - Raw context values and evaluated flag values are not serialized.
 - `serializeAuditEvent(event)` returns one JSON record followed by `\n`.
+- Pre-0.13 and manually constructed contexts may omit `keyMode` and retain key names
+  per ADR 0009. Serialization, file sinks and chain verification preserve these fields
+  without inserting a mode. Explicit `count` and `none` still require empty `keys`.
 - Serialization and ordinary file sinks validate the documented event/context
   fields and reject unknown fields, accessors and custom toJSON methods without
   invoking them. File sink write/writeConfirmed copy and freeze the event before

@@ -28,6 +28,17 @@ const start = createAuditChainCheckpoint("service/production");
 const digest = (text: string) => createHash("sha256").update(text, "utf8").digest("hex");
 
 describe("audit chain", () => {
+  it("verifies legacy contexts without rewriting their hashed fields", () => {
+    const input = {
+      ...event(),
+      context: { targetingKeyPresent: false, keys: ["region"], redacted: true as const }
+    };
+    const record = createChainedAuditEvent(input, start);
+    expect(record.event.context).toEqual(input.context);
+    expect(Object.hasOwn(record.event.context, "keyMode")).toBe(false);
+    expect(verifyAuditChain([JSON.parse(JSON.stringify(record))], { start }).records).toBe(1);
+  });
+
   it("matches independent domain-separated native SHA-256 and manually ordered canonical bytes", () => {
     expect(start.hash).toBe(digest("openfeature-local-audit-genesis/v1\0service/production"));
     const input = event(),

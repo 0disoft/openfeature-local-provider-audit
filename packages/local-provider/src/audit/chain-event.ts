@@ -78,7 +78,7 @@ export function captureChainEvent(input: unknown, maxBytes: number): AuditEvent 
       !["names", "count", "none"].includes(context.keyMode as string)) ||
     !Array.isArray(context.keys) ||
     context.keys.length > 10_000 ||
-    (context.keyMode !== "names" && context.keys.length !== 0) ||
+    (context.keyMode !== undefined && context.keyMode !== "names" && context.keys.length !== 0) ||
     (context.keyMode === "count" && !isSequence(context.keyCount)) ||
     (context.keyCount !== undefined &&
       (context.keyMode !== "count" || !isSequence(context.keyCount)))

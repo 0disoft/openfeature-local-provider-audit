@@ -28,6 +28,35 @@ import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
 
 describe("audit events", () => {
+  it("preserves legacy key names without inserting a mode while enforcing explicit privacy modes", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-audit-legacy-"));
+    try {
+      const path = join(directory, "audit.jsonl");
+      const sink = createFileAuditSink({ path });
+      const event = {
+        ...createTestAuditEvent("legacy"),
+        context: { targetingKeyPresent: false, keys: ["region"], redacted: true as const }
+      };
+      const line = `${JSON.stringify(event)}\n`;
+      expect(serializeAuditEvent(event)).toBe(line);
+      await sink.write(event);
+      await sink.writeConfirmed?.(event);
+      await sink.flush?.();
+      expect(await readFile(path, "utf8")).toBe(line.repeat(2));
+      for (const keyMode of ["count", "none"] as const) {
+        const invalid = {
+          ...event,
+          context: { ...event.context, keyMode, ...(keyMode === "count" ? { keyCount: 1 } : {}) }
+        };
+        expect(() => serializeAuditEvent(invalid)).toThrow("invalid or unsupported fields");
+        await expect(sink.write(invalid)).rejects.toThrow("invalid or unsupported fields");
+      }
+      expect(await readFile(path, "utf8")).toBe(line.repeat(2));
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("captures a file event before enqueue and rejects extra fields/getters without executing them", async () => {
     const directory = await mkdtemp(join(tmpdir(), "openfeature-audit-capture-"));
     try {
