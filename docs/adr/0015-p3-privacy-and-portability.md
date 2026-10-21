@@ -1,11 +1,16 @@
 # ADR 0015: P3 privacy, delivery and portability
 
-Status: Accepted for implementation. Owner: 0disoft.
+Status: Implemented locally; acceptance amended 2026-10-22 KST. Owner: 0disoft.
 
 The user authorized prioritized P3 implementation after P2 acceptance. The scope
 and evidence boundaries are `docs/product/08-privacy-and-portability.md`. Prioritize
 HMAC pseudonyms, scheduled rollout, object storage delivery and runtime portability,
-then independent adoption evidence. All work remains sequential on local main.
+then reproducible usage/performance/compatibility material. All work remains
+sequential on local main. The owner explicitly excluded actual independent
+adoption evidence and recording from P3 acceptance on 2026-10-22. That condition
+is no longer a blocker; independent adoption remains unverified. This amendment
+does not change the separate historical v1 registry-consumer release gate or
+authorize outreach, publishing, push or deployment.
 
 HMAC correlation is explicit and off by default. Use native HMAC-SHA-256 with a
 copied caller-owned key of 32..128 bytes, a nonpersonal key ID and scope, and a

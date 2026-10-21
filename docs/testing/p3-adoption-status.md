@@ -1,6 +1,7 @@
 # P3 adoption and performance evidence
 
-Status: examples and local reproducible evidence prepared; independent adoption pending.
+Status: P3 local acceptance complete; independent adoption evidence/recording excluded
+by the owner's 2026-10-22 KST decision. External adoption remains unverified.
 
 The core-basic example is a private maintainer-owned consumer, not an external
 adopter. The existing stable consumer report in
@@ -24,7 +25,7 @@ next=1.0.0-rc.2; local alpha.18 was not published.
 | Operational/security composition | Existing executable node-basic signed GitOps recipe; S3/HMAC/chain contracts |
 | Runtime compatibility | core-runtime-acceptance.md and real four-runtime receipt, scoped to Windows x64 core |
 | Reproducible performance | This local Node run and p3-performance-evidence.json |
-| Actual independent use and owner consent | Missing; requires an external record, not another local test |
+| Actual independent use and owner consent | Excluded from P3 acceptance by owner decision; not verified or claimed |
 
 ## Measured Node performance
 
@@ -59,7 +60,10 @@ its queue is deliberately sized to avoid saturation. Use the separate audit-queu
 benchmark for stalls. Production storage/network/scheduling and other hosts can
 change the results. Reproduce commands are in the [adoption guide](../sdk/adoption-guide.md).
 
-P3 stays open until a real consenting independent owner supplies verifiable usage.
-Do not weaken the requirement or reinterpret the maintainer's own smoke as adoption.
-No outreach, publication or deployment is authorized. Review an incoming report
-using the template and boundaries in the adoption guide when one becomes available.
+The owner excluded actual independent-adoption evidence and recording from P3 on
+2026-10-22 KST. The completed examples and reproducible evidence satisfy the amended
+material requirement; they do not establish external adoption. See the
+[P3 completion audit](../product/08-privacy-and-portability.md) for all five accepted
+requirements and their implementation/validation evidence. No evidence collection,
+outreach, publication or deployment is part of this task. Existing v1 release gates
+retain their original scope.

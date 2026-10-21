@@ -1,6 +1,12 @@
 # P3 privacy, delivery and portability
 
-Owner: 0disoft. Status: accepted for sequential local implementation.
+Owner: 0disoft. Status: completed locally; acceptance amended 2026-10-22 KST.
+
+The owner excluded independent users' actual adoption evidence and recording from
+P3 acceptance on 2026-10-22. External adoption remains unverified; it is not a
+completion condition or an adoption claim. Earlier dated progress entries below
+preserve the original scope/history; this amendment supersedes their external
+adoption blockers. Push, publication, deployment and outreach remain unauthorized.
 
 Continue the completed P2 work on the existing main. Each finished slice gets its
 own local verification and commit. No branches/worktrees, push, tag, deployment,
@@ -31,10 +37,11 @@ unfinished work and resume it first next time.
    actual browser/Bun/Deno/Workers execution before claiming support. Keep existing
    Node/OpenFeature API and ESM/CJS consumers compatible. Do not equate a successful
    bundle with runtime compatibility.
-5. Independent adoption: prepare usable examples and reproducible performance/
-   compatibility evidence. Actual external adoption requires a consenting external
-   user and verifiable usage; same-maintainer smoke tests do not satisfy this item.
-   Do not create adoption claims, contact others or publish without authorization.
+5. Reproducible usage material: prepare usable examples and performance/compatibility
+   evidence. Actual independent adoption evidence and recording are excluded by
+   the owner's 2026-10-22 decision. Maintainer examples do not establish external
+   adoption. Do not create adoption claims, contact others or publish without
+   authorization.
 
 ## Progress and next action
 
@@ -296,3 +303,25 @@ condition is real independent use with owner consent and inspectable evidence.
 Review incoming evidence using the guide; do not replace this condition with
 another local smoke, contact third parties, publish or deploy to obtain it.
 No push, tag, remote write or deployment was performed.
+
+### P3 acceptance completed after owner scope amendment (2026-10-22 KST)
+
+The owner explicitly skipped the remaining independent-adoption evidence/recording
+condition. The collection template is removed from the usage guide; the historical
+v1 registry-consumer gate is unchanged. No external adoption claim is made.
+
+| Accepted requirement | Implementation and inspected evidence |
+| --- | --- |
+| Opt-in bounded private HMAC pseudonyms | 008153c; audit-pseudonyms contract, native digest/rotation/input/privacy/chain/SDK tests |
+| Bounded deterministic scheduled rollout and offline simulation | 59122fc; scheduled-rollout contract, stage/clock/priority/cohort/CLI/audit/replay tests |
+| Bounded caller-owned S3/R2 retrieval and signed durable composition | bae60ff; s3-snapshots contract, actual SDK loopback protocol/cancellation/recovery tests |
+| Deliberate portable core with preserved Node consumers | 5e0f235 and 69c1651; reviewed root/core API baselines, packed ESM/CJS/strict types, four actual runtime receipt |
+| Usable examples and reproducible performance/compatibility material | c0cb783; unchanged example executed in an actual packed consumer, adoption guide and ten-case raw benchmark report |
+
+The completion audit inspected code/tests and prior validation output: 379 package
+tests passed (6 existing platform skips), and actual alpha.18 packed consumers
+passed. Current core bytes match the four-runtime receipt hash; runtime sources
+match the benchmark source commit. Evidence remains scoped to the recorded host,
+versions and workload. This documentation-only amendment does not rerun runtime
+tests, change public APIs/DB/dependencies/runners/hygiene, or imply a public v2
+release, hosted production validation or independent adoption.

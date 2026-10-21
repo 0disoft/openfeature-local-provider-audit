@@ -51,7 +51,11 @@ durable recovery, GitOps and audit integrity under ADR 0014. See
 `06-maintenance-and-targeting.md`, `07-operations-and-integrity.md` and
 `../testing/p2-acceptance.md` for evidence and publication boundaries.
 These local milestones do not constitute a public 2.0 release or hosted CI results.
-Independent adoption and the explicitly deferred P3 extensions remain future work.
+P3 local HMAC pseudonyms, scheduled rollout, S3/R2 delivery, portable core runtime
+acceptance and reproducible usage material are complete; see
+[the P3 completion record](08-privacy-and-portability.md). On 2026-10-22 the owner
+excluded independent adoption evidence/recording from P3 acceptance. External
+adoption remains unverified and is not claimed by these local milestones.
 
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.

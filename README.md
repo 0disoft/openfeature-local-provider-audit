@@ -87,9 +87,11 @@ The [GitOps recipe](docs/library/gitops-snapshots.md) composes signing, durable
 HTTPS refresh, restart recovery and rollback. Run its local HTTPS/OpenFeature proof
 with `corepack pnpm run smoke:gitops`; it performs no external publication.
 
-P3 begins with [opt-in HMAC audit pseudonyms](docs/library/audit-pseudonyms.md).
+P3 includes [opt-in HMAC audit pseudonyms](docs/library/audit-pseudonyms.md).
 Default events stay uncorrelated. The [P3 plan](docs/product/08-privacy-and-portability.md)
-tracks object storage, runtime portability and independent adoption. The checkout
+records completed local object storage, runtime portability and reproducible usage
+material. Independent adoption evidence is excluded from P3 acceptance by the
+owner's 2026-10-22 decision and remains unverified. The checkout
 also supports [scheduled local rollout](docs/library/scheduled-rollout.md) with
 explicit offline time and caller-owned provider clocks, without background timers.
 

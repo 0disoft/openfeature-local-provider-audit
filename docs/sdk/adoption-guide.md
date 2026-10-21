@@ -1,6 +1,8 @@
 # Choose and try the provider
 
-Status: local P3 adoption material; independent adoption remains unverified.
+Status: local P3 usage material complete; independent adoption evidence/recording
+excluded from P3 acceptance by owner decision on 2026-10-22 KST. Actual external
+adoption remains unverified.
 
 | Need | Entry / next step |
 | --- | --- |
@@ -89,32 +91,13 @@ no hosted deployment or recurring workflow is part of these commands.
 Node run and limitations. Repeat on the consuming app's host, workload and storage;
 these are not production SLOs, competitor comparisons or cross-runtime speed claims.
 
-## Record a real independent use
+## Evidence boundaries
 
 Do not count this repository's examples, temporary smoke consumers, downloads,
 stars or another same-maintainer repository as an independent adopter. Existing
-stable v1 cross-repository evidence stays valid for its original release gate;
-P3's independent-use requirement is a different, still-unmet condition.
-
-A consenting external owner may provide this report through an authorized channel;
-this work does not contact anyone or post an issue. Public links or a consented,
-redacted private record can establish usage. Never include credentials or subjects.
-A local preview tarball can establish preview use when its exact hash is recorded;
-it does not establish a public npm release or satisfy v1's normal-registry gate.
-
-```text
-Consumer/project and immutable revision:
-Owner relationship: independent / same-maintainer (state accurately)
-Owner confirmation of actual use and permission to record this report:
-Installed package version, install source and exact tarball SHA-256 if preview:
-OS/architecture, runtime, SDK/compiler/build tool versions:
-Actual integration path and user-facing behavior exercised:
-Exact commands and observed results (including failures/workarounds):
-Reproduction code or consented redacted artifact / CI-log links:
-Production duration/load, if measured (otherwise leave unverified):
-```
-
-Acceptance needs both real usage evidence and accurate owner/consent disclosure.
-An independently owned manifest alone is a candidate, not proof of exercised
-behavior. The maintainer must review the real record; never synthesize a passing
-report to close the requirement. See [current status](../testing/p3-adoption-status.md).
+stable v1 cross-repository evidence stays valid for its original release gate.
+The owner excluded P3 independent-use evidence and recording on 2026-10-22; no
+external report or consent collection is required to finish P3. This change does
+not establish real adoption, authorize outreach/publication, or change the v1
+normal-registry release gate. A local preview is not a public npm release.
+See [current status](../testing/p3-adoption-status.md).
