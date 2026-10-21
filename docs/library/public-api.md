@@ -57,6 +57,9 @@ The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
 `FlagDefinition.rules` / `disabledVariant`, `EvaluationResult.ruleId`, and reasons
 `TARGETING_MATCH` / `DISABLED`. See `flag-file-schema-v2.md` and `migration-to-2.0.md`.
 V1 runtime behavior remains supported; exhaustive type consumers must migrate.
+It also adds `explainEvaluation`, `EvaluationExplanation`, and `RuleExplanation`;
+see `local-inspection.md`. Optional `ruleId` is added to audit/replay records only
+when the v2 evaluator selected a rule.
 
 The package-root runtime value surface is exactly:
 

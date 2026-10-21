@@ -29,6 +29,7 @@ raw user context by default.
 - `reason`
 - `source`
 - `variant`
+- `ruleId` (optional, selected schema v2 targeting rule; non-sensitive IDs only)
 - `errorCode`
 - `snapshotHash`
 - `overrideHash`

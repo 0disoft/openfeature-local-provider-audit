@@ -11,7 +11,15 @@ import type {
   ReplayResult
 } from "../public-types.js";
 
-const REPLAY_FIELDS = ["value", "variant", "bucket", "reason", "source", "errorCode"] as const;
+const REPLAY_FIELDS = [
+  "value",
+  "variant",
+  "ruleId",
+  "bucket",
+  "reason",
+  "source",
+  "errorCode"
+] as const;
 
 export function replayEvaluationFixture<T extends FlagValue>(
   fixture: ReplayFixture<T>
@@ -56,6 +64,7 @@ function toReplayExpectedResult<T extends FlagValue>(
     reason: result.reason,
     source: result.source,
     ...(result.variant !== undefined ? { variant: result.variant } : {}),
+    ...(result.ruleId !== undefined ? { ruleId: result.ruleId } : {}),
     ...(result.bucket !== undefined ? { bucket: result.bucket } : {}),
     ...(result.errorCode !== undefined ? { errorCode: result.errorCode } : {})
   };

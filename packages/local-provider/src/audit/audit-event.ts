@@ -23,18 +23,11 @@ export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
     reason: options.result.reason,
     source: options.result.source,
     ...(options.result.variant !== undefined ? { variant: options.result.variant } : {}),
+    ...(options.result.ruleId !== undefined ? { ruleId: options.result.ruleId } : {}),
     ...(options.result.errorCode !== undefined ? { errorCode: options.result.errorCode } : {}),
     snapshotHash: options.snapshotHash ?? createSnapshotHash(options.snapshot),
     ...resolveOverrideHash(options),
-    context: redactContext(
-      {
-        ...options.request.context,
-        ...(options.request.targetingKey !== undefined
-          ? { targetingKey: options.request.targetingKey }
-          : {})
-      },
-      options.redaction
-    )
+    context: redactRequestContext(options)
   };
 }
 
@@ -72,12 +65,37 @@ export function redactContext(
   const contextKeys = Object.keys(context).sort(compareCodeUnits);
 
   return {
-    targetingKeyPresent:
-      typeof context.targetingKey === "string" && context.targetingKey.length > 0,
+    targetingKeyPresent: targetingKeyPresent(context),
     keyMode,
     keys: keyMode === "names" ? contextKeys : [],
     ...(keyMode === "count" ? { keyCount: contextKeys.length } : {}),
     redacted: true
+  };
+}
+
+function targetingKeyPresent(context: EvaluationContext): boolean {
+  const descriptor = Object.getOwnPropertyDescriptor(context, "targetingKey");
+  return (
+    descriptor !== undefined &&
+    "value" in descriptor &&
+    typeof descriptor.value === "string" &&
+    descriptor.value.length > 0
+  );
+}
+
+function redactRequestContext(options: CreateAuditEventOptions): RedactedAuditContext {
+  const context = options.request.context ?? {};
+  const redacted = redactContext(context, options.redaction);
+  const explicitKey = options.request.targetingKey;
+  if (explicitKey === undefined) return redacted;
+  const extraKey = Object.hasOwn(context, "targetingKey") ? 0 : 1;
+  return {
+    ...redacted,
+    targetingKeyPresent: explicitKey.length > 0,
+    ...(redacted.keyMode === "count" ? { keyCount: (redacted.keyCount ?? 0) + extraKey } : {}),
+    ...(redacted.keyMode === "names" && extraKey
+      ? { keys: [...redacted.keys, "targetingKey"].sort(compareCodeUnits) }
+      : {})
   };
 }
 

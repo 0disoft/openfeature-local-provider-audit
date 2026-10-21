@@ -7,6 +7,7 @@ export { parseYamlFlagSnapshot } from "./flags/parse-yaml-snapshot.js";
 export { loadFlagSnapshotFile, watchFlagSnapshotFile } from "./flags/snapshot-file.js";
 export { createEnvOverrides } from "./env/env-overrides.js";
 export { evaluateFlag } from "./evaluator/evaluate.js";
+export { explainEvaluation } from "./evaluator/explain.js";
 export { createLocalProvider, createReloadableLocalProvider } from "./provider/local-provider.js";
 export { replayEvaluationFixture } from "./replay/replay-fixture.js";
 export { createAuditEvent, redactContext, serializeAuditEvent } from "./audit/audit-event.js";
@@ -22,6 +23,8 @@ export {
   type EvaluationSource
 } from "./reasons.js";
 export type {
+  EvaluationExplanation,
+  RuleExplanation,
   ConditionScalar,
   TargetingCondition,
   TargetingRule,

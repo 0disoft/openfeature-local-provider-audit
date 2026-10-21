@@ -144,6 +144,22 @@ interface EvaluationResult<T extends FlagValue = FlagValue> {
   readonly errorMessage?: string;
   readonly flagMetadata: Readonly<Record<string, string | number | boolean>>;
 }
+interface RuleExplanation {
+  readonly ruleId: string;
+  readonly matched: boolean;
+}
+interface EvaluationExplanation {
+  readonly flagKey: string;
+  readonly reason: EvaluationReason;
+  readonly source: EvaluationSource;
+  readonly snapshotHash: string;
+  readonly overrideHash?: string;
+  readonly variant?: string;
+  readonly ruleId?: string;
+  readonly bucket?: number;
+  readonly errorCode?: LocalProviderErrorCode;
+  readonly rules: readonly RuleExplanation[];
+}
 interface LocalProviderOptions {
   readonly snapshot: FlagSnapshot;
   readonly name?: string;
@@ -209,6 +225,7 @@ interface ReplayOverrideInput {
 interface ReplayExpectedResult<T extends FlagValue = FlagValue> {
   readonly value: T;
   readonly variant?: string;
+  readonly ruleId?: string;
   readonly bucket?: number;
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;
@@ -236,6 +253,7 @@ interface AuditEvent {
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;
   readonly variant?: string;
+  readonly ruleId?: string;
   readonly errorCode?: LocalProviderErrorCode;
   readonly snapshotHash: string;
   readonly overrideHash?: string;
@@ -311,6 +329,12 @@ export declare function evaluateFlag<T extends FlagValue>(
   request: EvaluationRequest<T>
 ): EvaluationResult<T>;
 //#endregion
+//#region src/evaluator/explain.d.ts
+export declare function explainEvaluation<T extends FlagValue>(
+  snapshot: FlagSnapshot,
+  request: EvaluationRequest<T>
+): EvaluationExplanation;
+//#endregion
 //#region src/provider/local-provider.d.ts
 export declare function createLocalProvider(options: LocalProviderOptions): Provider;
 export declare function createReloadableLocalProvider(
@@ -346,6 +370,7 @@ export type {
   EnvOverrideState,
   EnvSource,
   EvaluationContext,
+  EvaluationExplanation,
   EvaluationReason,
   EvaluationRequest,
   EvaluationResult,
@@ -370,6 +395,7 @@ export type {
   ReplayMismatch,
   ReplayOverrideInput,
   ReplayResult,
+  RuleExplanation,
   SnapshotFileFormat,
   TargetingCondition,
   TargetingRule,

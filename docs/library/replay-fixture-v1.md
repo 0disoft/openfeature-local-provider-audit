@@ -24,6 +24,8 @@ exports of production audit logs.
 - `overrides`: optional explicit override input with `overridesJson` or injectable `env`.
 - `request`: evaluator request including flag key, default value, expected type, and optional targeting key.
 - `expected`: expected value, variant, bucket, reason, source, and optional error code.
+- Schema v2 snapshots may be used inside replay v1. Include expected `ruleId` when
+  a targeting rule is selected; rule identity is compared even when values agree.
 
 ## Public API
 

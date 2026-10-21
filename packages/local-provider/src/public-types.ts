@@ -107,6 +107,24 @@ export interface EvaluationResult<T extends FlagValue = FlagValue> {
   readonly flagMetadata: Readonly<Record<string, string | number | boolean>>;
 }
 
+export interface RuleExplanation {
+  readonly ruleId: string;
+  readonly matched: boolean;
+}
+
+export interface EvaluationExplanation {
+  readonly flagKey: string;
+  readonly reason: EvaluationReason;
+  readonly source: EvaluationSource;
+  readonly snapshotHash: string;
+  readonly overrideHash?: string;
+  readonly variant?: string;
+  readonly ruleId?: string;
+  readonly bucket?: number;
+  readonly errorCode?: LocalProviderErrorCode;
+  readonly rules: readonly RuleExplanation[];
+}
+
 export interface LocalProviderOptions {
   readonly snapshot: FlagSnapshot;
   readonly name?: string;
@@ -186,6 +204,7 @@ export interface ReplayOverrideInput {
 export interface ReplayExpectedResult<T extends FlagValue = FlagValue> {
   readonly value: T;
   readonly variant?: string;
+  readonly ruleId?: string;
   readonly bucket?: number;
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;
@@ -216,6 +235,7 @@ export interface AuditEvent {
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;
   readonly variant?: string;
+  readonly ruleId?: string;
   readonly errorCode?: LocalProviderErrorCode;
   readonly snapshotHash: string;
   readonly overrideHash?: string;
