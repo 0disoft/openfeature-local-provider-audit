@@ -28,3 +28,12 @@ network service.
 - The change makes flag evaluation nondeterministic for the same snapshot and targeting key.
 - The change weakens validation or skips required evidence.
 - The change relies on generated, cache, or build output as source truth.
+
+## Package Manager Bootstrap
+
+Use the `packageManager` version selected by Corepack. The repository currently pins
+pnpm 12; `corepack pnpm install --frozen-lockfile` and `corepack pnpm run check` use
+that exact executable. CI runs `corepack enable` before its ordinary pnpm commands.
+If an older global pnpm on Windows cannot find the new native executable, use the
+explicit `corepack pnpm` prefix for project commands. Updating this repository does
+not require changing the machine's global pnpm installation.

@@ -117,3 +117,23 @@ runtime engines, and published runtime dependencies are unchanged.
 
 Rollback: restore `vitest` and `@vitest/coverage-v8` to the prior reviewed `^4.1.12`
 range and restore their lockfile together, then rerun typecheck and coverage.
+
+## pnpm 12 Upgrade
+
+The project pins `pnpm@12.14.0`; see the
+[pnpm 12 release notes](https://github.com/pnpm/pnpm/releases/tag/v12.0.0).
+pnpm 12 validates workspace setting names and records
+its package-manager resolution alongside application dependencies in the lockfile.
+The workspace uses supported settings and public-registry dependencies; no hosted Git
+dependency transport migration is needed. Commit all pnpm-generated lockfile documents
+together. Frozen installs, package scripts, tarball packing, and temporary-consumer
+installs must pass before accepting this major.
+
+CI continues to enable Corepack and use the repository pin. On a Windows machine where
+an older global pnpm launcher fails to bootstrap the new native executable, use
+`corepack pnpm` directly; do not change global installation settings as part of this
+repository upgrade. Nested project scripts inherit pnpm's selected executable.
+
+Rollback: restore `packageManager` to `pnpm@11.28.6`, the matching release-readiness
+expectation, and the preceding lockfile together. Restore the prior dependency tree
+with `corepack pnpm install --frozen-lockfile` before running validations again.
