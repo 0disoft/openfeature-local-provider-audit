@@ -52,6 +52,11 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+P3 adds `createHmacAuditPseudonymizer`, `AuditPseudonym`, `AuditPseudonymizer` and
+`HmacAuditPseudonymizerOptions`. Provider option `auditPseudonymizer` and event
+option `pseudonymizer` opt into optional `AuditEvent.pseudonym`; defaults stay
+uncorrelated. See `audit-pseudonyms.md` for secret ownership and chain compatibility.
+
 The P2 prerelease adds `ObservableLocalProvider`, `ProviderStatus`,
 `ProviderAuditStatus` and `RefreshFailureKind`. Both factories expose
 `getStatus()` and `reportRefreshFailure(kind)`; `LocalProviderOptions.staleAfterMs`
@@ -92,6 +97,7 @@ local request files and privacy-safe JSON output; their complete contract is in
 
 The package-root runtime value surface is exactly:
 
+- `createHmacAuditPseudonymizer`.
 - `LocalProviderError` and `isLocalProviderError`.
 - `LOCAL_PROVIDER_ERROR_CODES`, `EVALUATION_REASONS`, and `EVALUATION_SOURCES`.
 - `createLocalProvider` and `createReloadableLocalProvider`.
@@ -103,6 +109,9 @@ The package-root runtime value surface is exactly:
 - `createOpenTelemetryMetrics`.
 - `createHttpsSnapshotSource` and `createSnapshotRefresher`.
 - `signFlagSnapshot` and `createSnapshotVerifier`.
+- `createFileSnapshotStore` and `createChainedFileAuditSink`.
+- `createAuditChainCheckpoint`, `createChainedAuditEvent`, `verifyAuditChainRecord`
+  and `verifyAuditChain`.
 
 The package-root type surface is exactly:
 
@@ -123,6 +132,12 @@ The package-root type surface is exactly:
   `AuditRedactionOptions`, `AuditSink`, `AuditWriteMode`, `CreateAuditEventOptions`,
   `FileAuditSinkOptions`, `FileAuditSinkStats`, and `RedactedAuditContext`.
 - `AuditFailurePolicy`.
+- `AuditPseudonym`, `AuditPseudonymizer`, `HmacAuditPseudonymizerOptions`.
+- `AuditChainCheckpoint`, `ChainedAuditEvent`, `AuditChainOptions`,
+  `VerifyAuditChainOptions`, `AuditChainVerification`, `ChainedFileAuditSinkOptions`,
+  `AuditChainFileCheckpoint`, and `ChainedFileAuditSink`.
+- `FileSnapshotStoreOptions`, `SnapshotRecovery`, `SignedSnapshotStore`, and
+  `SnapshotUpdateTransaction`.
 - `OpenTelemetryMeter`, `ProviderMetrics`, `ProviderMetricsSession`, and
   `ProviderEvaluationMetric`.
 - `SnapshotSource`, `SnapshotSourceRequest`, `SnapshotSourceResponse`,

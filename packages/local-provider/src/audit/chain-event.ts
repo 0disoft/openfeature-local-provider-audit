@@ -1,6 +1,7 @@
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
+import { captureAuditPseudonym } from "./pseudonym.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import type { AuditEvent, SignedSnapshotMetadata } from "../public-types.js";
 
@@ -16,7 +17,7 @@ const REQUIRED = [
   "snapshotHash",
   "context"
 ];
-const OPTIONAL = ["variant", "ruleId", "errorCode", "overrideHash", "provenance"];
+const OPTIONAL = ["variant", "ruleId", "errorCode", "overrideHash", "provenance", "pseudonym"];
 
 export function captureChainEvent(input: unknown, maxBytes: number): AuditEvent {
   const event = dataRecord(input, [...REQUIRED, ...OPTIONAL], REQUIRED);
@@ -41,6 +42,7 @@ export function captureChainEvent(input: unknown, maxBytes: number): AuditEvent 
   )
     throw invalidChain();
   if (event.overrideHash !== undefined && !isHash(event.overrideHash)) throw invalidChain();
+  if (event.pseudonym !== undefined) event.pseudonym = captureAuditPseudonym(event.pseudonym);
   if (event.provenance !== undefined)
     event.provenance = captureSnapshotProvenance(
       dataRecord(event.provenance, [

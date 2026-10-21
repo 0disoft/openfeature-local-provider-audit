@@ -18,6 +18,10 @@ Checkpoint matching is false when no expected head was required.
 
 ## Bytes and schema
 
+Alpha.15 optionally captures `event.pseudonym` under `audit-pseudonyms.md`. All four
+fields are frozen and hash-covered. Old records without it retain their canonical
+bytes. Older alpha verifiers reject the new field; upgrade alongside opt-in writers.
+
 Genesis is lowercase hex SHA-256 over UTF-8
 `"openfeature-local-audit-genesis/v1\u0000" + chainId`.
 Record hash is SHA-256 over UTF-8

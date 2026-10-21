@@ -16,6 +16,12 @@ keeping application code on the standard OpenFeature evaluation API.
 
 ## Required Decisions
 
+The unpublished P3 checkout adds optional `auditPseudonymizer` on both provider
+factories and `pseudonymizer` on event creation. Construct it through
+`createHmacAuditPseudonymizer` with a real caller-owned secret, nonpersonal keyId
+and isolated scope. Output contains only the optional four-field pseudonym;
+default events remain uncorrelated. See `docs/library/audit-pseudonyms.md`.
+
 - SDK ownership boundary: provider setup examples, local config examples, audit examples, and replay fixture helpers.
 - SDK public contract: examples must use documented exports only.
 - SDK audit contract: examples may pass `auditSink` to `createLocalProvider`, but must not

@@ -77,7 +77,7 @@ Local evaluation also exists in other providers, including flagd. See the
 for current gaps and local issue/PR disposition. Independent external adoption has
 not yet been established; published consumer evidence identifies same-maintainer use.
 
-The working tree stages `2.0.0-alpha.14`; npm `latest` is still `1.0.0`. New v2
+The working tree stages `2.0.0-alpha.15`; npm `latest` is still `1.0.0`. New v2
 features require building this checkout and are not available from the stable install
 command above. See [v2 targeting](docs/library/flag-file-schema-v2.md),
 [inspection CLI](docs/library/local-inspection.md), and
@@ -86,6 +86,10 @@ command above. See [v2 targeting](docs/library/flag-file-schema-v2.md),
 The [GitOps recipe](docs/library/gitops-snapshots.md) composes signing, durable
 HTTPS refresh, restart recovery and rollback. Run its local HTTPS/OpenFeature proof
 with `corepack pnpm run smoke:gitops`; it performs no external publication.
+
+P3 begins with [opt-in HMAC audit pseudonyms](docs/library/audit-pseudonyms.md).
+Default events stay uncorrelated. The [P3 plan](docs/product/08-privacy-and-portability.md)
+tracks scheduled rollout, object storage, runtime portability and independent adoption.
 
 ## Runtime And Package Policy
 

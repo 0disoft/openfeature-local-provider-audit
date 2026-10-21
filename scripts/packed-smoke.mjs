@@ -12,6 +12,9 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "AuditPseudonym",
+  "AuditPseudonymizer",
+  "HmacAuditPseudonymizerOptions",
   "FileSnapshotStoreOptions",
   "SnapshotRecovery",
   "SignedSnapshotStore",
@@ -52,6 +55,9 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "AuditPseudonym",
+  "AuditPseudonymizer",
+  "HmacAuditPseudonymizerOptions",
   "FileSnapshotStoreOptions",
   "SnapshotRecovery",
   "SignedSnapshotStore",
@@ -421,7 +427,8 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "createChainedAuditEvent",
             "verifyAuditChainRecord",
             "verifyAuditChain",
-            "createChainedFileAuditSink"
+            "createChainedFileAuditSink",
+            "createHmacAuditPseudonymizer"
           ]
         : []),
       "isLocalProviderError",
@@ -671,13 +678,19 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
   });
   if (${targeting}) {
     const anchor = api.createAuditChainCheckpoint("packed");
-    const chained = api.createChainedAuditEvent(auditEvent, anchor);
+    const pseudonymizer = api.createHmacAuditPseudonymizer({ key: require("node:crypto").randomBytes(32), keyId: "packed-key", scope: "packed" });
+    const pseudonymous = api.createAuditEvent({ providerName: "packed-consumer", snapshot: jsonSnapshot,
+      request: { ...request, targetingKey: "private-subject" }, result, pseudonymizer });
+    if (pseudonymous.pseudonym.hash !== pseudonymizer.pseudonymize("private-subject").hash || JSON.stringify(pseudonymous).includes("private-subject")) {
+      throw new Error(moduleKind + " audit pseudonym contract failed");
+    }
+    const chained = api.createChainedAuditEvent(pseudonymous, anchor);
     const head = api.verifyAuditChainRecord(chained, anchor);
     if (!api.verifyAuditChain([chained], { start: anchor, expectedHead: head }).checkpointMatched) {
       throw new Error(moduleKind + " audit chain verification failed");
     }
     const chainedSink = api.createChainedFileAuditSink({ directory: auditPath + ".chain-store", chainId: "packed-store", maxSegmentBytes: 1, maxSegments: 2 });
-    await chainedSink.write(auditEvent); await chainedSink.writeConfirmed(auditEvent); await chainedSink.write(auditEvent);
+    await chainedSink.write(pseudonymous); await chainedSink.writeConfirmed(pseudonymous); await chainedSink.write(pseudonymous);
     const fileCheckpoint = await chainedSink.getCheckpoint();
     if (fileCheckpoint.start.sequence !== 1 || fileCheckpoint.head.sequence !== 3 || fileCheckpoint.files.length !== 2) {
       throw new Error(moduleKind + " chained file checkpoint failed");
@@ -806,6 +819,10 @@ if (reloadable.prepareSnapshot !== undefined) {
   transaction.cancel();
 }
 declare const chainCheckpoint: AuditChainCheckpoint;
+declare const pseudonymizer: AuditPseudonymizer;
+const pseudonym: AuditPseudonym | undefined = pseudonymizer.pseudonymize("subject");
+const pseudonymOptions: HmacAuditPseudonymizerOptions = { key: new Uint8Array(32), keyId: "typed", scope: "typed" };
+void pseudonym; void pseudonymOptions;
 declare const chainRecord: ChainedAuditEvent;
 const chainOptions: AuditChainOptions = { maxRecordBytes: 1024 };
 const verifyOptions: VerifyAuditChainOptions = { ...chainOptions, start: chainCheckpoint, expectedHead: chainCheckpoint, maxRecords: 1 };

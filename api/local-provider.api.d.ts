@@ -173,6 +173,7 @@ interface LocalProviderOptions {
   readonly auditFailurePolicy?: AuditFailurePolicy;
   readonly auditTimeoutMs?: number;
   readonly auditRedaction?: AuditRedactionOptions;
+  readonly auditPseudonymizer?: AuditPseudonymizer;
   readonly staleAfterMs?: number;
   readonly metrics?: ProviderMetrics;
 }
@@ -433,7 +434,22 @@ interface ReplayMismatch {
   readonly expected: JsonValue | undefined;
   readonly actual: JsonValue | undefined;
 }
+interface AuditPseudonym {
+  readonly schemaVersion: 1;
+  readonly keyId: string;
+  readonly scope: string;
+  readonly hash: string;
+}
+interface AuditPseudonymizer {
+  pseudonymize(subject: string): AuditPseudonym | undefined;
+}
+interface HmacAuditPseudonymizerOptions {
+  readonly key: Uint8Array;
+  readonly keyId: string;
+  readonly scope: string;
+}
 interface AuditEvent {
+  readonly pseudonym?: AuditPseudonym;
   readonly provenance?: SignedSnapshotMetadata;
   readonly schemaVersion: 1;
   readonly eventId: string;
@@ -458,6 +474,7 @@ interface RedactedAuditContext {
   readonly redacted: true;
 }
 interface CreateAuditEventOptions {
+  readonly pseudonymizer?: AuditPseudonymizer;
   readonly provenance?: SignedSnapshotMetadata;
   readonly providerName: string;
   readonly snapshot: FlagSnapshot;
@@ -615,6 +632,11 @@ export declare function createChainedFileAuditSink(
   options: ChainedFileAuditSinkOptions
 ): ChainedFileAuditSink;
 //#endregion
+//#region src/audit/pseudonym.d.ts
+export declare function createHmacAuditPseudonymizer(
+  options: HmacAuditPseudonymizerOptions
+): AuditPseudonymizer;
+//#endregion
 //#region src/audit/audit-sink.d.ts
 export declare function createFileAuditSink(options: FileAuditSinkOptions): AuditSink;
 //#endregion
@@ -651,6 +673,8 @@ export type {
   AuditContextKeyMode,
   AuditEvent,
   AuditFailurePolicy,
+  AuditPseudonym,
+  AuditPseudonymizer,
   AuditQueueOverflowPolicy,
   AuditRedactionOptions,
   AuditSink,
@@ -677,6 +701,7 @@ export type {
   FlagSnapshotFileWatcher,
   FlagType,
   FlagValue,
+  HmacAuditPseudonymizerOptions,
   HttpsSnapshotSourceOptions,
   JsonObject,
   JsonValue,

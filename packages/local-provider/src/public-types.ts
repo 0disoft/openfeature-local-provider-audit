@@ -138,6 +138,7 @@ export interface LocalProviderOptions {
   readonly auditFailurePolicy?: AuditFailurePolicy;
   readonly auditTimeoutMs?: number;
   readonly auditRedaction?: AuditRedactionOptions;
+  readonly auditPseudonymizer?: AuditPseudonymizer;
   readonly staleAfterMs?: number;
   readonly metrics?: ProviderMetrics;
 }
@@ -426,7 +427,25 @@ export interface ReplayMismatch {
   readonly actual: JsonValue | undefined;
 }
 
+export interface AuditPseudonym {
+  readonly schemaVersion: 1;
+  readonly keyId: string;
+  readonly scope: string;
+  readonly hash: string;
+}
+
+export interface AuditPseudonymizer {
+  pseudonymize(subject: string): AuditPseudonym | undefined;
+}
+
+export interface HmacAuditPseudonymizerOptions {
+  readonly key: Uint8Array;
+  readonly keyId: string;
+  readonly scope: string;
+}
+
 export interface AuditEvent {
+  readonly pseudonym?: AuditPseudonym;
   readonly provenance?: SignedSnapshotMetadata;
   readonly schemaVersion: 1;
   readonly eventId: string;
@@ -453,6 +472,7 @@ export interface RedactedAuditContext {
 }
 
 export interface CreateAuditEventOptions {
+  readonly pseudonymizer?: AuditPseudonymizer;
   readonly provenance?: SignedSnapshotMetadata;
   readonly providerName: string;
   readonly snapshot: FlagSnapshot;

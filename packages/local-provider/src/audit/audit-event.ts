@@ -1,4 +1,5 @@
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
+import { captureAuditPseudonym } from "./pseudonym.js";
 import { createHash, randomUUID } from "node:crypto";
 import type {
   AuditContextKeyMode,
@@ -16,7 +17,13 @@ import type {
 export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
   const snapshotHash = options.snapshotHash ?? createSnapshotHash(options.snapshot);
   const provenance = captureSnapshotProvenance(options.provenance, snapshotHash);
+  const subject = options.request.targetingKey;
+  const pseudonym =
+    subject === undefined || subject === ""
+      ? undefined
+      : options.pseudonymizer?.pseudonymize(subject);
   return {
+    ...(pseudonym !== undefined ? { pseudonym: captureAuditPseudonym(pseudonym) } : {}),
     ...(provenance !== undefined ? { provenance } : {}),
     schemaVersion: 1,
     eventId: options.eventId ?? randomUUID(),

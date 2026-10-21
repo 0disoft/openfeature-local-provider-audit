@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.14` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.15` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -96,6 +96,13 @@ fsynced records and full retained checkpoint verification define the opt-in cont
 Complete unacknowledged records can be adopted after interruption; partial data
 fails closed. See `audit-chain.md` for recovery, external checkpoint trust and
 filesystem durability. Existing plain sink queue behavior is shared unchanged.
+
+Alpha.15 adds optional HMAC audit correlation through `createHmacAuditPseudonymizer`,
+three contract types, `LocalProviderOptions.auditPseudonymizer`, event options
+`pseudonymizer` and `AuditEvent.pseudonym`. Defaults stay uncorrelated and existing
+chain bytes remain unchanged. When opting in, upgrade chain verification with the
+writer: old alpha verifiers reject unknown pseudonym fields. See
+`audit-pseudonyms.md` for key/scope isolation, rotation, Unicode limits and privacy.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

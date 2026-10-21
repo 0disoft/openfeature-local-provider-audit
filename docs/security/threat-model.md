@@ -1,6 +1,13 @@
 # Threat Model
 
 Status: Draft
+
+P3 HMAC correlation is opt-in under `docs/library/audit-pseudonyms.md`. It captures
+caller-owned secrets and domain-separates explicit subject/key ID/scope, while
+default events remain uncorrelated. Pseudonyms are linkable sensitive data; key
+compromise permits guessed-subject matching. Key IDs/scopes are public labels,
+not a place for identities. Operators own key provisioning, rotation, isolation,
+log access and retention; this is not anonymity or authentication of log history.
 Owner: 0disoft
 
 ## Trust Boundaries

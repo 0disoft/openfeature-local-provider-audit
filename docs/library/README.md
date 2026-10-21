@@ -26,6 +26,7 @@ formatting, and replay fixture helpers.
 - Snapshot delivery and recovery: https-snapshots.md, signed-snapshots.md, snapshot-recovery.md
 - GitOps composition: gitops-snapshots.md
 - Audit integrity and trust: audit-chain.md
+- Opt-in HMAC subject correlation: audit-pseudonyms.md
 - P2 acceptance evidence: docs/testing/p2-acceptance.md
 
 ## Required Decisions

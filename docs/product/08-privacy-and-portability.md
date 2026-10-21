@@ -42,3 +42,34 @@ P2 baseline: ebd6f18, unpublished 2.0.0-alpha.14. Initial worktree clean on main
 First implementation: HMAC helper and audit/provider/chain integration, migration,
 privacy contract, focused failure/privacy tests and real packed ESM/CJS consumers.
 All five priorities above remain tracked until their own acceptance is established.
+
+### HMAC pseudonyms completed locally (2026-10-22 KST)
+
+Planning/ADR commit: 323df30. Alpha.15 implements native domain-separated HMAC,
+copied 32..128-byte secrets, isolated key IDs/scopes, bounded well-formed UTF-8
+subjects and immutable metadata. Both providers/direct event creation opt in;
+default or missing-subject records remain unchanged. Strict chain capture preserves
+the four metadata fields without raw subjects/getters and authenticates them.
+Snapshot/replay/metrics behavior and default audit policy remain unchanged.
+
+Authoritative contract: `docs/library/audit-pseudonyms.md`, matching API/SDK,
+migration, audit-chain, audit-event and threat-model docs. Tests prove native digest
+bytes, copied key/config, scope/key rotation separation, input bounds/Unicode,
+private output, unsafe custom metadata, old/default records, chain tampering and
+real OpenFeature SDK + confirmed chain storage + existing failure policy.
+
+`check`, `contract`, format, lint and diff whitespace checks passed. Windows Node
+24.14.0 and 22.23.3 each passed 364 package tests with 6 existing platform skips.
+Coverage: 93.95% statements / 92.02% branches / 99.44% functions / 95.55% lines.
+The actual 222,089-byte alpha.15 tarball passed ESM/CJS HMAC/chain/runtime/CLI checks
+and TypeScript 5.9.3 full-library / 7.0.2 consumer-surface checks; the latter retains
+the documented upstream SDK skipLibCheck boundary. Reviewed API: 109 exports,
+31 runtime values. No dependency, DB, runner/workflow or hygiene policy changed.
+Hosted Linux/macOS remain unverified because no push is authorized.
+
+Remaining P3, in order: scheduled rollout contract and implementation; bounded
+S3/R2 delivery; runtime separation with actual runtime execution; independent
+adoption material/evidence. Start the schedule contract next; define time input,
+stable percentage stages, emergency/override precedence and replay semantics before
+editing evaluation. External adoption itself remains unverified and cannot be
+claimed by local smoke tests. No push, deployment or external messages performed.

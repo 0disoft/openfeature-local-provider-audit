@@ -19,6 +19,7 @@ import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { validateFlagSnapshot } from "../flags/validate-snapshot.js";
 import type {
   AuditSink,
+  AuditPseudonymizer,
   AuditContextKeyMode,
   CreateEnvOverridesOptions,
   EnvOverrideState,
@@ -56,6 +57,11 @@ export function createReloadableLocalProvider(
 }
 
 function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeatureProvider {
+  if (
+    options.auditPseudonymizer !== undefined &&
+    typeof options.auditPseudonymizer.pseudonymize !== "function"
+  )
+    throw new TypeError("auditPseudonymizer must expose pseudonymize.");
   const overrideBaseOptions = {
     env: captureEnv(options.env ?? process.env),
     ...(options.maxOverridesJsonBytes !== undefined
@@ -79,7 +85,8 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     resolveAuditContextKeyMode(options.auditRedaction),
     options.staleAfterMs,
     options.metrics,
-    options.provenance
+    options.provenance,
+    options.auditPseudonymizer
   );
 }
 
@@ -125,7 +132,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     private readonly auditContextKeyMode: AuditContextKeyMode,
     staleAfterMs: number | undefined,
     metrics: ProviderMetrics | undefined,
-    provenance: SignedSnapshotMetadata | undefined
+    provenance: SignedSnapshotMetadata | undefined,
+    private readonly auditPseudonymizer: AuditPseudonymizer | undefined
   ) {
     this.operational = new OperationalState(staleAfterMs);
     this.state = this.createState(snapshot, provenance);
@@ -381,6 +389,9 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     let failed = false;
     try {
       const event = createAuditEvent({
+        ...(this.auditPseudonymizer !== undefined
+          ? { pseudonymizer: this.auditPseudonymizer }
+          : {}),
         providerName: this.metadata.name,
         snapshot: state.snapshot,
         snapshotHash: state.snapshotHash,
