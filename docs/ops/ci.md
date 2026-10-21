@@ -104,3 +104,16 @@ runtime major. The example and library tooling use Node 24 types consistently.
 The Corepack `packageManager` field remains an exact pnpm release because it selects
 the package-manager executable. GitHub Actions remain full immutable SHAs. Both are
 reviewed updates rather than permanent application-dependency version freezes.
+
+## Vitest 5 Upgrade
+
+Vitest and `@vitest/coverage-v8` now use the reviewed `^5.0.5` major together. The
+[Vitest 5 migration guide](https://vitest.dev/guide/migration/) requires Node 22.12+
+and Vite 6.4+; current Node 22/24 CI and the patched Vite 8 toolchain meet those
+requirements. Tests create mocks per case, do not use inline projects or custom
+coverage-provider APIs, and pass with the new mock-clearing defaults. Coverage
+thresholds remain unchanged. This is a development-tool upgrade; the provider API,
+runtime engines, and published runtime dependencies are unchanged.
+
+Rollback: restore `vitest` and `@vitest/coverage-v8` to the prior reviewed `^4.1.12`
+range and restore their lockfile together, then rerun typecheck and coverage.
