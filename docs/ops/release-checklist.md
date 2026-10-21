@@ -71,7 +71,7 @@ Owner: 0disoft
 - Stable `1.0.0` is promoted without exact registry-artifact and cross-repository consumer
   evidence from the candidate series.
 
-## Current RC Evidence
+## Stable And Historical Candidate Evidence
 
 - `v1.0.0-rc.2` includes the insertion-order-independent replay object comparison fix.
   Release run
@@ -80,10 +80,18 @@ Owner: 0disoft
 - npm `latest` resolves to stable `1.0.0`; npm `next` remains `1.0.0-rc.2`.
 - npm and GitHub Release tarballs are both 98,580 bytes with SHA-256
   `fbc56fe6b5501d0e690a30b22cf413444a3268c05d67d3ad271f1570d8e7a4d0`.
-- Hosted registry-consumer run
-  [29648435330](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29648435330)
-  passed all six `latest`/`next` jobs across Ubuntu, Windows, and macOS on Node.js 24
-  while `next` resolved to `1.0.0-rc.1`. The rc.2 hosted matrix remains pending.
+- Latest verified hosted registry-consumer run
+  [38544144608](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/38544144608)
+  passed all six `latest`/`next` jobs on 2026-10-14 UTC at main commit
+  `607ec27fc4c310307fc98ff21ea841e7dc46be2c`. Ubuntu and Windows ran Node `v24.21.0`;
+  macOS 15 ran `v24.20.0`. Channels resolved to stable `1.0.0` and historical `1.0.0-rc.2`.
+- Latest verified OpenFeature peer compatibility run
+  [39225365436](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/39225365436)
+  passed on 2026-10-19 UTC at the same main SHA on Linux/Node `v24.21.0`.
+- Run [29648435330](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29648435330)
+  is historical rc.1 evidence from 2026-07-18; the later rc.2 hosted result is complete.
+  Detailed channels and tool versions are in
+  [registry-consumer-evidence.md](../testing/registry-consumer-evidence.md).
 - Separate-repository dogfooding passed in `0disoft/service-catalog-generator` commit
   `119b211f49e9a4824ab168fb4c92bce1a4655908`; CI, action-self-smoke, and CodeQL runs all
   succeeded while the consumer selected real SCG report output through the published RC.

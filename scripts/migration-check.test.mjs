@@ -30,6 +30,19 @@ test("keeps the 0.x migration baseline while validating RC source metadata", () 
   );
 });
 
+test("stable evidence distinguishes the historical 0.x baseline from the current version", () => {
+  const guide = createCompleteGuide("1.0.0");
+  assert.deepEqual(validateMigrationGuide({ packageVersion: "1.0.0", guide }), []);
+  const misleading = guide.replace(
+    "Historical pre-1.0 migration baseline",
+    "Current source baseline"
+  );
+  assert.match(
+    validateMigrationGuide({ packageVersion: "1.0.0", guide: misleading }).join("\n"),
+    /Historical pre-1.0/
+  );
+});
+
 test("rejects a missing source-version migration path", () => {
   const guide = createCompleteGuide("0.16.0").replace("## Upgrade from 0.15.x", "");
   assert.match(
@@ -83,7 +96,7 @@ test("reads package metadata and the migration guide from one repository root", 
 function createCompleteGuide(version) {
   return [
     `Current repository package version: \`${version}\`.`,
-    `- Current source baseline: repository package version \`${MIGRATION_SOURCE_BASELINE}\`.`,
+    `- Historical pre-1.0 migration baseline: repository package version \`${MIGRATION_SOURCE_BASELINE}\`.`,
     ...REQUIRED_MIGRATION_LITERALS
   ].join("\n");
 }

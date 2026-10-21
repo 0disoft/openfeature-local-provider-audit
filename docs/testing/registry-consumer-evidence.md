@@ -1,6 +1,6 @@
 # Registry Consumer Evidence
 
-Status: Published stable and last release-candidate evidence
+Status: Published stable, historical candidate, and verified hosted evidence
 Owner: 0disoft
 
 This page records the published stable release and the last published candidate. The release
@@ -25,12 +25,16 @@ from those public results.
   `@openfeature/server-sdk@1.22.0`, strict TypeScript `5.9.3`, and consumer-surface
   TypeScript `6.0.3`.
 
-## Last Published Candidate
+## Last Published Candidate (Historical)
 
 - Package: `@0disoft/openfeature-local-provider@1.0.0-rc.2`.
-- npm channel: `next`; npm `latest` remained `0.16.0`.
+- At candidate publication: npm channel `next`; npm `latest` still resolved to `0.16.0`.
+- Current verified tags on 2026-10-21: `latest=1.0.0`, `next=1.0.0-rc.2`; the
+  candidate is superseded by stable and is not an active next-release series.
 - GitHub Release: `v1.0.0-rc.2`, marked as a prerelease.
-- Release workflow run: `29712977031`, completed successfully on 2026-07-20.
+- Release workflow run: [29712977031](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29712977031),
+  completed successfully on 2026-07-20. The candidate size, digest, and integrity below
+  identify the artifact from that release, not a current checkout build.
 
 ## Candidate Artifact Identity
 
@@ -57,7 +61,41 @@ registry. It did not use a workspace link, checkout `dist`, or a local tarball.
   priority, replay, watcher reload, configuration-change events, audit redaction, audit
   sink flush, and shutdown.
 
-## Hosted Registry Matrix
+## Latest Verified Hosted Registry Matrix
+
+- Workflow run: [38544144608](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/38544144608).
+- Tested main commit: `607ec27fc4c310307fc98ff21ea841e7dc46be2c`.
+- Date/result: 2026-10-14 UTC; all six jobs succeeded, including clean installs and
+  `Consume published package`, with `registry-consumer-smoke-passed` in every log.
+- Channels: `latest` resolved to `@0disoft/openfeature-local-provider@1.0.0`;
+  `next` resolved to `@0disoft/openfeature-local-provider@1.0.0-rc.2`.
+- Platforms and actual Node versions recorded in the runtime result:
+
+| Runner | Platform | Node.js | Channels |
+| --- | --- | --- | --- |
+| ubuntu-latest | linux-x64 | v24.21.0 | latest, next |
+| windows-latest | win32-x64 | v24.21.0 | latest, next |
+| macos-15 | darwin-arm64 | v24.20.0 | latest, next |
+
+Every job used OpenFeature server SDK `1.22.0`, strict TypeScript `5.9.3`, and
+consumer-surface TypeScript `6.0.3`. These are historical hosted tool versions; the
+local TypeScript 7 migration does not retroactively change the run's evidence.
+This matrix includes rc.2; its hosted result is complete. The stale `next` tag is
+historical candidate coverage, not evidence of an active candidate series.
+
+## Latest Verified OpenFeature Peer Compatibility
+
+- Workflow run: [39225365436](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/39225365436).
+- Tested main commit: `607ec27fc4c310307fc98ff21ea841e7dc46be2c`.
+- Date/result: 2026-10-19 UTC; the Linux latest-compatible-peer job succeeded on
+  Node.js `v24.21.0`, using `OPENFEATURE_SERVER_SDK_VERSION=peer` and packed smoke.
+- The log records TypeScript `5.9.3` full-library and `6.0.3` consumer-surface checks.
+  The harness did not print the exact peer version resolved inside its temporary
+  consumer, so this record does not infer one from the repository lockfile.
+- This verifies the previous main toolchain. New local commits and the Node 26
+  Linux canary still require hosted execution after an explicitly requested push.
+
+## Historical rc.1 Hosted Registry Matrix
 
 - Workflow run: [29648435330](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29648435330).
 - Tested commit: `ba4220d6195aa0e40ae823f3cfe82c1d8dfa7e94`.
@@ -66,8 +104,8 @@ registry. It did not use a workspace link, checkout `dist`, or a local tarball.
   `macos-15`.
 - Every job completed the clean dependency install and `Consume published package` step.
 - `latest` covered `0.16.0`; `next` covered `1.0.0-rc.1`.
-- This matrix predates `1.0.0-rc.2`; the next scheduled or manually dispatched matrix
-  remains pending and is not implied by the local rc.2 registry smoke.
+- This 2026-07-18 matrix predates `1.0.0-rc.2`. It remains historical evidence;
+  the completed rc.2 and stable hosted matrix is recorded above.
 
 ## Cross-Repository Consumer
 
@@ -143,5 +181,5 @@ installation, immutable revision, hosted CI, and ownership disclosure are all en
 
 The channel planner tests `latest` on all three platforms and adds `next` only when it
 is a newer prerelease. With `latest=1.0.0` and `next=1.0.0-rc.2`, the scheduled matrix
-contains three stable jobs. Historical six-job results below predate this optimization.
+contains three stable jobs. Historical six-job results above predate this optimization.
 Manual dispatch can still test `1.0.0-rc.2` or another exact version/channel explicitly.

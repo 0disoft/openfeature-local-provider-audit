@@ -159,7 +159,7 @@ compatibility note rather than a silent downgrade recommendation.
 
 ## Evidence status
 
-- Current source baseline: repository package version `0.16.0`.
+- Historical pre-1.0 migration baseline: repository package version `0.16.0`.
 - Stable source: repository package version `1.0.0`, prepared from the verified
   `1.0.0-rc.2` candidate contract.
 - Candidate publication: npm `next` and GitHub prerelease `v1.0.0-rc.2`; release workflow
@@ -175,3 +175,17 @@ compatibility note rather than a silent downgrade recommendation.
   with SHA-256 `bbcbbb6ec60b55262800d82ebeb5bd4af1fd659fdd6ddc8c8a4ebe11344293c0`.
 - Stable registry installation: npm `latest` resolved to `1.0.0` and the full normal-registry
   consumer smoke passed.
+
+- Latest verified hosted registry run
+  [38544144608](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/38544144608)
+  passed on 2026-10-14 UTC at main commit `607ec27fc4c310307fc98ff21ea841e7dc46be2c`.
+  All six Ubuntu/Windows/macOS Node 24 jobs passed with `latest=1.0.0` and
+  `next=1.0.0-rc.2`. The candidate is superseded; stable `1.0.0` remains current.
+- Latest verified peer compatibility run
+  [39225365436](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/39225365436)
+  passed on 2026-10-19 UTC at the same main commit. Detailed platform/tool versions
+  and historical rc.1 evidence are in the registry-consumer evidence page.
+- The TypeScript 7 toolchain migration preserves package-root types and runtime behavior;
+  see [ADR 0012](../adr/0012-typescript-7-toolchain.md). New hosted matrix results are
+  not implied by local validation. No package release or dist-tag change accompanies
+  this documentation reconciliation.
