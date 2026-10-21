@@ -32,7 +32,8 @@
     "test:migration-tools": "node --test scripts/migration-check.test.mjs",
     "test:release-tools": "node --test scripts/registry-consumer-plan.test.mjs scripts/release-channel.test.mjs scripts/registry-release.test.mjs scripts/stable-release-gate.test.mjs",
     "test:coverage": "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools",
-    "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && pnpm --filter @0disoft/openfeature-local-provider build && tsc -p examples/node-basic/tsconfig.json --noEmit"
+    "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && pnpm --filter @0disoft/openfeature-local-provider build && tsc -p examples/node-basic/tsconfig.json --noEmit",
+    "smoke:gitops": "pnpm run build && pnpm --filter openfeature-local-provider-node-basic-example run smoke:gitops"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",

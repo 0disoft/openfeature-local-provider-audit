@@ -43,6 +43,9 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - stable-release-gate: `pnpm run stable-release-gate`
 - registry-smoke: `pnpm run registry-smoke`
 - smoke: `pnpm run build` and `pnpm run pack:check`
+- GitOps recipe smoke (targeted, optional): `pnpm run smoke:gitops`; creates and removes
+  ephemeral loopback TLS/key/recovery/audit artifacts and requires OpenSSL. It does
+  not provision a service or add a hosted workflow.
 - docs: `pnpm run release-readiness`
 - check: `pnpm run check`
 

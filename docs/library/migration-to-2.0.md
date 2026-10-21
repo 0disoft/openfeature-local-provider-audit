@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.11` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.12` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -76,6 +76,11 @@ Store acceptance precedes activation and is not undone by close or later applica
 callbacks. Failed preparation never persists; failed/ambiguous storage never activates
 and a subsequent refresh reloads the floor. Post-storage expiry also blocks activation.
 See `snapshot-recovery.md`; the existing no-store behavior is preserved.
+
+Alpha.12 adds an executable SDK GitOps recipe and targeted `smoke:gitops` runner.
+Package-root exports and existing consumer behavior are unchanged. See
+`gitops-snapshots.md` for publisher ownership, first-start/recovery policy, history
+rollback, public-key rotation and the local-only delivery proof.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

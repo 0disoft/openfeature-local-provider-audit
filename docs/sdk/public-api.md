@@ -63,6 +63,14 @@ floor even when using safe bootstrap contents. See `docs/library/snapshot-recove
 optional `store` persists before atomic provider activation and keeps evaluations on
 the previous state during I/O. Custom providers need the transaction capability.
 
+The executable GitOps SDK composition lives in `examples/node-basic/src/gitops.ts`.
+It signs validated local JSON/YAML, recovers a trusted journal with explicit
+first-start authorization, composes signed durable HTTPS refresh and creates
+higher-sequence rollback artifacts from authenticated history. These are example
+helpers, not new package exports. `smoke:gitops` runs real loopback TLS/OpenFeature
+checks without external upload or an added CI workflow. See
+`docs/library/gitops-snapshots.md` for release and shutdown ownership.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

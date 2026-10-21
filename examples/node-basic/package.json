@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx src/index.ts"
+    "start": "tsx src/index.ts",
+    "smoke:gitops": "tsx src/gitops-smoke.ts"
   },
   "dependencies": {
     "@0disoft/openfeature-local-provider": "workspace:*",

@@ -188,6 +188,9 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
   returns exit code `0` on success, `1` on snapshot validation failure, and `2` on usage
   error.
 
+The GitOps recipe in `gitops-snapshots.md` composes existing public APIs; its
+executable SDK helpers do not add package-root exports or background scheduling.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

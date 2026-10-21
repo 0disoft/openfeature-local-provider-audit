@@ -110,4 +110,5 @@ Freshness is checked again after acknowledgment; storage delay cannot activate a
 expired artifact. Its already accepted floor remains durable even if this final
 check fails. A signed 304 is reverified and acknowledged before renewing freshness.
 No automatic scheduler, evaluation-time I/O or background worker is added.
-The remaining delivery slices are the GitOps recipe and audit integrity tools.
+The executable GitOps recipe is in `gitops-snapshots.md`; audit integrity tools
+remain a separate delivery slice.

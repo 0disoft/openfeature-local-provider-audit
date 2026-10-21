@@ -243,7 +243,7 @@ with rotation, concurrent-writer and crash boundaries. Preserve the full P2 scop
 
 ### Durable refresh and provider activation completed locally
 
-Alpha.11 adds optional signed-refresher `store` integration and the optional
+Commit f66ddda / alpha.11 adds optional signed-refresher `store` integration and the optional
 provider `prepareSnapshot` / `SnapshotUpdateTransaction` capability. Each refresh
 reloads authenticated durable continuity before fetching. Preparation validates and
 reserves provider mutation while evaluations/audit keep the old snapshot/origin.
@@ -283,3 +283,40 @@ refresher/history APIs; audit hash chain, verification tool and trusted external
 checkpoints with explicit rotation, concurrent-writer and crash boundaries. Final
 completion must audit the whole P2 acceptance list, not only these latest slices.
 No push, tag, release or remote workflow is authorized. P3 remains separate.
+
+
+### Executable GitOps recipe completed locally
+
+Alpha.12 adds `docs/library/gitops-snapshots.md` and executable SDK composition in
+`examples/node-basic/src/gitops.ts`: native JSON/YAML validation/signing, explicit
+first-installation authorization, public-key-only durable HTTPS consumer recovery,
+and higher-sequence rollback from authenticated retained history. The recipe keeps
+Git review, publisher sequence/signing, existing-origin atomic promotion and
+application shutdown/storage ownership explicit. No origin, secret store, CI
+workflow or external uploader is provisioned. Publisher Git/artifact manifests are
+caller-owned evidence and are not misrepresented as signature-bound Git claims.
+
+The opt-in configured `smoke:gitops` command executes the actual composition through
+real ephemeral Ed25519 keys, loopback TLS/OpenFeature SDK, filesystem recovery and
+redacted file audit. Windows Node 24.14.0 and 22.23.3 both proved releases 1/2/3,
+one ETag 304, restored rollback contents, fresh-instance recovery without a fetch,
+two rejected stale/corrupt updates, ten evaluations without network and 15 audit
+records linked to accepted origins. Signing/TLS keys and artifacts are temporary;
+cleanup closes the SDK/server and removes them even if earlier cleanup fails.
+OpenSSL key generation is bounded and no private fixtures or credentials are tracked.
+
+`check`, `contract`, targeted recipe smoke, typecheck, format, lint and diff whitespace
+checks passed. The package suite on Windows Node 24 passed 345 tests with 6 existing
+platform skips; coverage remains 94.37% statements / 92.52% branches / 99.34% functions /
+95.35% lines. The 176,775-byte alpha.12 tarball passed ESM/CJS runtime/CLI and
+TypeScript 5.9.3 full-library / 7.0.2 consumer-surface checks. The reviewed root API
+remains unchanged at 92 exports / 25 runtime values. Runner change: one optional
+local smoke intent, not another hosted workflow. No DB, dependency, repository
+hygiene policy or remote state changed. Hosted Linux/macOS and production-origin
+upload/promotion remain unverified; no remote publication is authorized.
+
+Remaining P2: audit hash chain, verification tooling and trusted external checkpoints,
+with explicit rotation, concurrent-writer and crash boundaries; then requirement-by-
+requirement completion audit of every P2 slice. A valid unanchored hash chain cannot
+prove authenticity, absence of whole-file rewrite or tail truncation. Retain that
+boundary and keep the deferred P3 work separate. No push, tag or release.
