@@ -52,6 +52,21 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 - User segment databases or experiment analytics.
 - Browser, Bun, Deno, HTTP API, database, Kubernetes, or Terraform runtime support.
 
+## Choosing This Provider
+
+Use it for Node.js applications that want caller-owned configuration, deterministic
+local evaluation, and audit records that omit raw user identifiers and values by
+default. Evaluation performs no network requests. The caller still owns access
+control, secure configuration delivery, audit retention, and shutdown/flush handling.
+Snapshot hashes identify content; they do not authenticate its author or encrypt
+low-entropy configuration. File locks are advisory, and audit failures do not reject
+feature evaluation by default.
+
+Local evaluation also exists in other providers, including flagd. See the
+[maintenance and targeting delivery plan](docs/product/06-maintenance-and-targeting.md)
+for current gaps and local issue/PR disposition. Independent external adoption has
+not yet been established; published consumer evidence identifies same-maintainer use.
+
 ## Runtime And Package Policy
 
 - Package: `@0disoft/openfeature-local-provider`.

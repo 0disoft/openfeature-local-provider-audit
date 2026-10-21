@@ -9,6 +9,7 @@
     "node": ">=22 <25"
   },
   "scripts": {
+    "benchmark:evaluation": "pnpm run build && node --expose-gc scripts/evaluation-benchmark.mjs",
     "api:check": "pnpm run build && node scripts/api-surface.mjs --check",
     "benchmark:audit-queue": "pnpm run build && node --expose-gc scripts/audit-queue-benchmark.mjs",
     "benchmark:audit-queue:plan": "node scripts/audit-queue-benchmark-plan.mjs",

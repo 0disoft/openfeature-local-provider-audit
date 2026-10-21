@@ -40,6 +40,16 @@ unless an explicit reload mode is documented.
 
 ## Audit Queue Benchmark
 
+`corepack pnpm run benchmark:evaluation --iterations 2000 --output .git/evaluation-baseline.json`
+measures static and percentage evaluation at 1/1,000 flags, provider resolution with
+audit off/non-blocking/blocking, observed memory deltas, flush time, and atomic-file
+replacement propagation. It checks that the updated value becomes observable, fails
+on provider warnings, and closes the watcher. Percentiles describe sequential per-call
+wall-time samples; memory deltas are not peaks. The synthetic inputs contain no real
+users. Results depend on host and storage and are not latency promises or CI gates.
+No extra hosted jobs are added. Retain the JSON with the measured commit/toolchain;
+use the separate queue benchmark below for deliberately saturated/stalled sinks.
+
 Run `pnpm run benchmark:audit-queue` to compare a fast file sink with unbounded,
 bounded-reject, and bounded-drop-newest queues under a deliberate advisory-lock stall.
 The harness reports enqueue and drain time, peak pending writes, sampled heap growth,
