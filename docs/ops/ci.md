@@ -90,3 +90,17 @@ The package build uses tsdown and the native TypeScript 7 declaration generator 
 used only by the public API comparator. The consumer-surface fixture uses TypeScript 7;
 the separate strict TypeScript 5.9.3 fixture still checks the full dependency graph.
 See `docs/adr/0012-typescript-7-toolchain.md` for rollback and native package review.
+
+## Dependency Updates
+
+Dependency declarations accept stable updates within their reviewed major (with caret
+ranges; pre-1.0 tools stay within their reviewed minor). The frozen pnpm lockfile owns
+CI/build reproducibility. Packed consumers use the actual installed compiler and Node
+type versions from that lockfile, not an independently resolved floating compiler.
+Keep Vitest and its coverage provider on the same release. Review major upgrades with
+compatibility checks; do not promote Node type definitions beyond the supported
+runtime major. The example and library tooling use Node 24 types consistently.
+
+The Corepack `packageManager` field remains an exact pnpm release because it selects
+the package-manager executable. GitHub Actions remain full immutable SHAs. Both are
+reviewed updates rather than permanent application-dependency version freezes.

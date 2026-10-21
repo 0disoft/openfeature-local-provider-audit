@@ -4,7 +4,7 @@
   "private": true,
   "license": "Apache-2.0",
   "type": "module",
-  "packageManager": "pnpm@11.7.0",
+  "packageManager": "pnpm@11.28.6",
   "engines": {
     "node": ">=22 <25"
   },
@@ -34,13 +34,13 @@
     "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && pnpm --filter @0disoft/openfeature-local-provider build && tsc -p examples/node-basic/tsconfig.json --noEmit"
   },
   "devDependencies": {
-    "@arethetypeswrong/cli": "0.18.5",
-    "@biomejs/biome": "2.5.15",
-    "@types/node": "24.19.2",
-    "@vitest/coverage-v8": "4.1.12",
-    "publint": "0.3.25",
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "^2.5.15",
+    "@types/node": "^24.19.2",
+    "@vitest/coverage-v8": "^4.1.12",
+    "publint": "^0.3.25",
     "typescript": "^7.0.2",
-    "vitest": "4.1.12",
+    "vitest": "^4.1.12",
     "tsdown": "^0.23.1",
     "typescript-api": "npm:typescript@^6.0.3"
   }

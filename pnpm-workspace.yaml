@@ -2,6 +2,9 @@ packages:
   - "packages/*"
   - "examples/*"
 overrides:
-  esbuild: 0.28.2
+  esbuild: ^0.28.2
+  # Security floors until all tooling resolves patched versions without overrides.
+  vite: ^8.1.6
+  source-map-js: ^1.2.2
 allowBuilds:
   esbuild: true

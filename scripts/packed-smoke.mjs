@@ -66,11 +66,11 @@ try {
   );
   const rootPackageJson = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
   const openFeatureServerSdkSpec = resolveOpenFeatureServerSdkSpec(packageJson);
-  const nodeTypesSpec = requirePinnedDependency(rootPackageJson, "@types/node");
-  requirePinnedDependency(rootPackageJson, "typescript");
-  const latestTypescriptSpec = JSON.parse(
-    await readFile(path.join(ROOT, "node_modules", "typescript", "package.json"), "utf8")
-  ).version;
+  const nodeTypesSpec = await requireInstalledDependencyVersion(rootPackageJson, "@types/node");
+  const latestTypescriptSpec = await requireInstalledDependencyVersion(
+    rootPackageJson,
+    "typescript"
+  );
   const installTarget = await resolveInstallTarget(
     packDirectory,
     packageJson,
@@ -464,12 +464,15 @@ void publicTypeSurface;
 `;
 }
 
-function requirePinnedDependency(rootPackageJson, name) {
+async function requireInstalledDependencyVersion(rootPackageJson, name) {
   const spec = rootPackageJson.devDependencies?.[name];
   if (typeof spec !== "string" || spec.length === 0) {
-    throw new Error(`Packed smoke could not resolve the pinned ${name} version.`);
+    throw new Error(`Packed smoke could not resolve the ${name} dependency.`);
   }
-  return spec;
+  const metadata = JSON.parse(
+    await readFile(path.join(ROOT, "node_modules", name, "package.json"), "utf8")
+  );
+  return metadata.version;
 }
 
 function resolveOpenFeatureServerSdkSpec(packageJson) {

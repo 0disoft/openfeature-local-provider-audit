@@ -8,10 +8,10 @@
   },
   "dependencies": {
     "@0disoft/openfeature-local-provider": "workspace:*",
-    "@openfeature/server-sdk": "1.23.0"
+    "@openfeature/server-sdk": "^1.23.0"
   },
   "devDependencies": {
-    "@types/node": "24.19.2",
-    "tsx": "4.23.15"
+    "@types/node": "^24.19.2",
+    "tsx": "^4.23.15"
   }
 }
