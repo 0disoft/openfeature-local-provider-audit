@@ -36,6 +36,9 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 ## What It Owns
 
 - JSON and YAML flag snapshot parsing with schema v1 validation.
+- Opt-in schema v2 conditional targeting, conditional percentage rollout and emergency
+  variant selection (unpublished 2.0 development version).
+- Redacted evaluation explanations and local simulation/comparison CLI commands.
 - Local CLI validation for JSON/YAML flag snapshots.
 - Typed OpenFeature evaluation for boolean, string, number, and object values.
 - Explicit per-flag environment overrides.
@@ -66,6 +69,12 @@ Local evaluation also exists in other providers, including flagd. See the
 [maintenance and targeting delivery plan](docs/product/06-maintenance-and-targeting.md)
 for current gaps and local issue/PR disposition. Independent external adoption has
 not yet been established; published consumer evidence identifies same-maintainer use.
+
+The working tree stages `2.0.0-alpha.3`; npm `latest` is still `1.0.0`. New v2
+features require building this checkout and are not available from the stable install
+command above. See [v2 targeting](docs/library/flag-file-schema-v2.md),
+[inspection CLI](docs/library/local-inspection.md), and
+[migration](docs/library/migration-to-2.0.md).
 
 ## Runtime And Package Policy
 

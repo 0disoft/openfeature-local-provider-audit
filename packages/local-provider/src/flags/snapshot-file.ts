@@ -207,7 +207,7 @@ export async function watchFlagSnapshotFile(
   };
 }
 
-async function readFileWithinLimit(
+export async function readFileWithinLimit(
   path: string | URL,
   maxBytes: number,
   encoding: BufferEncoding

@@ -231,13 +231,16 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     context: EvaluationContext,
     state: ProviderState
   ): EvaluationRequest<T> {
+    const descriptor = Object.getOwnPropertyDescriptor(context, "targetingKey");
+    const targetingKey =
+      descriptor !== undefined && "value" in descriptor ? descriptor.value : undefined;
     return {
       flagKey,
       defaultValue,
       expectedType,
       overrides: state.overrides,
       context,
-      ...(typeof context.targetingKey === "string" ? { targetingKey: context.targetingKey } : {})
+      ...(typeof targetingKey === "string" ? { targetingKey } : {})
     } as EvaluationRequest<T>;
   }
 

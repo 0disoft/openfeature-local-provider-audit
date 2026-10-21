@@ -60,6 +60,9 @@ V1 runtime behavior remains supported; exhaustive type consumers must migrate.
 It also adds `explainEvaluation`, `EvaluationExplanation`, and `RuleExplanation`;
 see `local-inspection.md`. Optional `ruleId` is added to audit/replay records only
 when the v2 evaluator selected a rule.
+The package CLI adds `evaluate` / `explain`, `simulate`, and `compare` with bounded
+local request files and privacy-safe JSON output; their complete contract is in
+`local-inspection.md`. No new root simulation export is introduced.
 
 The package-root runtime value surface is exactly:
 

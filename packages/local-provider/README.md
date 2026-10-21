@@ -97,7 +97,7 @@ flags:
 await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
 ```
 
-YAML input must parse into the same schema v1 snapshot contract used by JSON input.
+YAML input must parse into the same snapshot contract used by JSON input.
 Snapshot objects, flag definitions, and rollout rules reject unknown fields; flag names,
 variant names, and metadata keys remain caller-defined.
 
@@ -111,6 +111,64 @@ npx -p @0disoft/openfeature-local-provider openfeature-local-provider validate .
 The CLI is read-only. It validates local JSON/YAML snapshots, prints a small summary,
 and exits with `0` for success, `1` for snapshot validation failure, or `2` for usage
 errors.
+
+## Conditional Targeting (Schema V2)
+
+The unpublished 2.0 development version also accepts the following JSON/YAML shape.
+Stable 1.0 readers reject v2. Existing v1 snapshots retain their old behavior.
+
+```json
+{
+  "schemaVersion": 2,
+  "flags": {
+    "checkout.enabled": {
+      "type": "boolean",
+      "defaultVariant": "off",
+      "variants": { "on": true, "off": false },
+      "rules": [{
+        "id": "pilot-tenants",
+        "when": { "all": [
+          { "attribute": ["tenant"], "op": "in", "value": ["pilot", "beta"] },
+          { "attribute": ["appVersion"], "op": "semverGte", "value": "2.0.0" }
+        ] },
+        "rollout": [{ "variant": "on", "percentage": 25, "seed": "checkout-v1" }]
+      }]
+    }
+  }
+}
+```
+
+Pass `tenant`, `appVersion`, and `targetingKey` through the OpenFeature evaluation
+context. The first matching rule wins. Missing/wrong-type attributes do not match;
+matched rollout without a non-empty targeting key returns caller default with
+`INVALID_CONTEXT`. Unallocated buckets use the flag default instead of another rule.
+Keep flag key, seed, and interval start stable when expanding a percentage.
+
+Set `disabledVariant: "off"` on a v2 flag to force that variant ahead of environment
+overrides and targeting, including malformed overrides. Removing it restores normal
+priority. Updates become effective after successful snapshot application; watcher and
+delivery delays still apply. Feature flags do not replace authorization checks.
+
+`explainEvaluation(snapshot, request)` returns visited rule IDs/match outcomes and
+selection metadata without values or raw context. Rule IDs, flag and variant names
+must themselves be non-sensitive. Snapshot hashes identify content, not authorship.
+
+```sh
+openfeature-local-provider evaluate flags.json --request request.json
+openfeature-local-provider simulate flags.json --requests requests.json
+openfeature-local-provider compare before.json after.json --requests requests.json
+```
+
+A request file contains `{ "flagKey": "checkout.enabled", "expectedType": "boolean",
+"defaultValue": false, "targetingKey": "synthetic", "context": { "tenant": "pilot",
+"appVersion": "2.1.0" } }`. Simulation/comparison uses an array of such requests.
+Commands are local and read-only, use only explicit overrides, and never read process
+environment implicitly. Evaluation emits a redacted explanation; simulation/comparison
+emits aggregate counts and changed-value/decision counts without individual values.
+Inputs are bounded to 10 MiB per file, 10,000 requests, 32 levels and 100,000 JSON nodes.
+Exit codes are 0 for success, 1 for input/evaluation errors, and 2 for usage errors.
+Differences alone do not fail comparison. Detailed schema, migration and inspection
+contracts are in the repository's `docs/library/` directory.
 
 ## File Loading And Reload
 

@@ -45,6 +45,11 @@ a feature flag platform.
 
 ## Next Evaluation Areas
 
+The active local 2.0 development work is bounded conditional targeting, emergency
+variant selection, redacted explanations, and offline simulation/comparison under
+ADR 0013. See `06-maintenance-and-targeting.md` for completion and publication boundaries.
+Independent adoption work runs alongside this; cross-runtime expansion remains deferred.
+
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.
 - Observe post-1.0 adoption and compatibility reports before expanding the package boundary.

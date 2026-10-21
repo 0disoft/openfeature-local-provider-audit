@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { loadFlagSnapshotFile, resolveSnapshotFileFormat } from "../flags/snapshot-file.js";
 import type { SnapshotFileFormat } from "../public-types.js";
+import { INSPECTION_HELP, runInspection } from "./inspection.js";
 
 export interface CliIo {
   readonly cwd: string;
@@ -26,6 +27,10 @@ export async function runCli(args: readonly string[], io: CliIo): Promise<number
   if (command === "--version" || command === "-v") {
     io.stdout(`${io.packageVersion ?? "unknown"}\n`);
     return 0;
+  }
+
+  if (["evaluate", "explain", "simulate", "compare"].includes(command)) {
+    return runInspection(command, rest, io);
   }
 
   if (command !== "validate") {
@@ -160,6 +165,11 @@ function helpText(): string {
 
 Commands:
   validate  Load and validate a local JSON or YAML flag snapshot.
+  evaluate  Explain a local evaluation without raw values (alias: explain).
+  simulate  Aggregate a local request set.
+  compare   Compare the same requests against two snapshots.
+
+${INSPECTION_HELP}
 `;
 }
 

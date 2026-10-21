@@ -11,6 +11,13 @@ const ROOT = process.cwd();
 const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
+const V2_TYPE_EXPORTS = new Set([
+  "ConditionScalar",
+  "TargetingCondition",
+  "TargetingRule",
+  "EvaluationExplanation",
+  "RuleExplanation"
+]);
 const PUBLIC_TYPE_EXPORTS = [
   "EvaluationExplanation",
   "RuleExplanation",
@@ -136,7 +143,7 @@ flags:
   );
   await writeFile(
     path.join(consumerDirectory, "runtime-contract.cjs"),
-    createRuntimeContractSource(),
+    createRuntimeContractSource(Number(installTarget.version.split(".")[0]) >= 2),
     "utf8"
   );
   await writeFile(
@@ -164,12 +171,12 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
   );
   await writeFile(
     path.join(consumerDirectory, "typed-smoke.mts"),
-    createTypedConsumerSource("esm"),
+    createTypedConsumerSource("esm", Number(installTarget.version.split(".")[0]) >= 2),
     "utf8"
   );
   await writeFile(
     path.join(consumerDirectory, "typed-smoke.cts"),
-    createTypedConsumerSource("cjs"),
+    createTypedConsumerSource("cjs", Number(installTarget.version.split(".")[0]) >= 2),
     "utf8"
   );
   await writeFile(
@@ -233,6 +240,63 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
     throw new Error(`CLI packed smoke returned an unexpected result: ${stdout}`);
   }
 
+  if (Number(installTarget.version.split(".")[0]) >= 2) {
+    const targeted = {
+      schemaVersion: 2,
+      flags: {
+        enabled: {
+          type: "boolean",
+          defaultVariant: "off",
+          variants: { on: true, off: false },
+          rules: [
+            {
+              id: "pilot",
+              when: { attribute: ["tenant"], op: "eq", value: "pilot" },
+              variant: "on"
+            }
+          ]
+        }
+      }
+    };
+    const stopped = {
+      schemaVersion: 2,
+      flags: { enabled: { ...targeted.flags.enabled, disabledVariant: "off" } }
+    };
+    const request = {
+      flagKey: "enabled",
+      expectedType: "boolean",
+      defaultValue: false,
+      context: { tenant: "pilot", private: "must-not-appear" }
+    };
+    for (const [file, value] of Object.entries({
+      "targeted.json": targeted,
+      "stopped.json": stopped,
+      "request.json": request,
+      "requests.json": [request, request]
+    })) {
+      await writeFile(path.join(consumerDirectory, file), JSON.stringify(value));
+    }
+    for (const [command, args] of [
+      ["evaluate", ["targeted.json", "--request", "request.json"]],
+      ["simulate", ["targeted.json", "--requests", "requests.json"]],
+      ["compare", ["targeted.json", "stopped.json", "--requests", "requests.json"]]
+    ]) {
+      const { stdout } = await run(
+        "pnpm",
+        ["exec", "openfeature-local-provider", command, ...args],
+        consumerDirectory
+      );
+      const result = JSON.parse(stdout);
+      if (
+        stdout.includes("must-not-appear") ||
+        (command === "evaluate" && (result.ruleId !== "pilot" || result.value !== undefined)) ||
+        (command === "simulate" && (result.total !== 2 || result.groups[0]?.count !== 2)) ||
+        (command === "compare" && result.changedValues !== 2)
+      )
+        throw new Error(`Packed ${command} contract failed`);
+    }
+  }
+
   if (installTarget.source === "registry") {
     console.log(
       JSON.stringify(
@@ -263,7 +327,7 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
   await rm(tempDirectory, { recursive: true, force: true });
 }
 
-function createRuntimeContractSource() {
+function createRuntimeContractSource(targeting) {
   return `const { readFile } = require("node:fs/promises");
 
 const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
@@ -278,7 +342,7 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
       "createLocalProvider",
       "createReloadableLocalProvider",
       "evaluateFlag",
-      "explainEvaluation",
+      ...(targeting ? ["explainEvaluation"] : []),
       "isLocalProviderError",
       "loadFlagSnapshotFile",
       "parseJsonFlagSnapshot",
@@ -296,6 +360,16 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
   const actualExports = Object.keys(api).sort();
   if (JSON.stringify(actualExports) !== JSON.stringify(EXPECTED_RUNTIME_EXPORTS)) {
     throw new Error(moduleKind + " runtime exports drifted: " + JSON.stringify(actualExports));
+  }
+
+  if (${targeting}) {
+    const snapshot = api.parseJsonFlagSnapshot(JSON.stringify({ schemaVersion: 2, flags: { targeted: { type: "boolean", defaultVariant: "off", variants: { on: true, off: false }, rules: [{ id: "pilot", when: { attribute: ["appVersion"], op: "semverGte", value: "2.0.0" }, variant: "on" }] } } }));
+    const request = { flagKey: "targeted", expectedType: "boolean", defaultValue: false, context: { appVersion: "2.1.0", private: "must-not-appear" } };
+    const actual = api.evaluateFlag(snapshot, request);
+    const explanation = api.explainEvaluation(snapshot, request);
+    if (actual.value !== true || actual.ruleId !== "pilot" || explanation.ruleId !== "pilot" || JSON.stringify(explanation).includes("must-not-appear")) throw new Error(moduleKind + " v2 targeting/explanation failed");
+    const replay = api.replayEvaluationFixture({ schemaVersion: 1, name: "targeting", snapshot, request, expected: { value: true, variant: "on", ruleId: "pilot", reason: "TARGETING_MATCH", source: "file" } });
+    if (!replay.passed) throw new Error(moduleKind + " v2 replay failed");
   }
 
   const jsonSnapshot = api.parseJsonFlagSnapshot(JSON.stringify({
@@ -426,7 +500,10 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
 `;
 }
 
-function createTypedConsumerSource(moduleKind) {
+function createTypedConsumerSource(moduleKind, targeting) {
+  const publicTypeExports = PUBLIC_TYPE_EXPORTS.filter(
+    (name) => targeting || !V2_TYPE_EXPORTS.has(name)
+  );
   const valueImport =
     moduleKind === "esm"
       ? `import { createLocalProvider } from "${PACKAGE_NAME}";`
@@ -438,11 +515,11 @@ function createTypedConsumerSource(moduleKind) {
 
   return `${valueImport}
 import type {
-  ${PUBLIC_TYPE_EXPORTS.join(",\n  ")}
+  ${publicTypeExports.join(",\n  ")}
 } from "${PACKAGE_NAME}";
 
 type PublicTypeSurface = readonly [
-  ${PUBLIC_TYPE_EXPORTS.join(",\n  ")}
+  ${publicTypeExports.join(",\n  ")}
 ];
 
 const snapshot: FlagSnapshot = {

@@ -38,12 +38,14 @@ API, and the underlying flag source can later be replaced by another provider.
 - Snapshot/replay fixture format for tests and CI.
 - Missing flag behavior that returns the caller's OpenFeature default value with reason metadata.
 
-## Out of Scope
+## Accepted Post-MVP Targeting
 
 Bounded conditional targeting, emergency variant selection, redacted explanations,
 and offline simulation/comparison are accepted post-MVP extensions through
 `docs/adr/0013-bounded-local-targeting.md`. Schema v1 remains supported; schema v2
 opts into the new evaluation rules. See `docs/library/flag-file-schema-v2.md`.
+
+## Out of Scope
 
 - Hosted feature flag SaaS UI.
 - Remote management server or streaming updates.

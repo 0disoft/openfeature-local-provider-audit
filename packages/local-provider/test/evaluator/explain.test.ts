@@ -188,4 +188,25 @@ describe("redacted explanations and rule replay", () => {
     expect(names).toEqual(["email", "plan", "targetingKey"]);
     expect(getter).not.toHaveBeenCalled();
   });
+
+  it("does not invoke targeting-key getters in direct provider calls", async () => {
+    const getter = vi.fn(() => {
+      throw new Error("private accessor");
+    });
+    const context = Object.defineProperty({ plan: "free" }, "targetingKey", {
+      enumerable: true,
+      get: getter
+    });
+    const provider = createLocalProvider({
+      snapshot,
+      env: {},
+      auditSink: { async write() {} },
+      auditWriteMode: "blocking"
+    });
+    expect(
+      await provider.resolveObjectEvaluation("options", {}, context, { warn: vi.fn() } as never)
+    ).toMatchObject({ reason: "TARGETING_MATCH" });
+    expect(getter).not.toHaveBeenCalled();
+    await provider.onClose?.();
+  });
 });

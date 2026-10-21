@@ -32,6 +32,11 @@ keeping application code on the standard OpenFeature evaluation API.
 - SDK validation evidence: replay examples must prove deterministic bucketing when implementation exists.
 - SDK release or rollout policy: example packages must not imply support for untested runtimes.
 - SDK compatibility and migration policy: changed examples require matching public API and compatibility docs.
+- The 2.0 development version accepts schema v2 conditions against the caller's merged
+  OpenFeature context. `localProviderRuleId` identifies selected rules in details.
+  `DISABLED` and `TARGETING_MATCH` are new reasons; raw context is never added to audit
+  or explanation output. See `docs/library/flag-file-schema-v2.md` and
+  `docs/library/local-inspection.md` for priority, replay, and CLI usage.
 
 ## Review Blockers
 
