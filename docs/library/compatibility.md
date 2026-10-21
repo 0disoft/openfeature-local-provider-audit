@@ -28,7 +28,7 @@ Detailed compatibility contracts live in:
 
 - Public API ownership: package exports and documented provider behavior.
 - Semantic versioning policy: behavior that can change evaluated flag values is compatibility-sensitive.
-- Runtime and platform compatibility: server-side Node.js 22 LTS and Node.js 24 LTS are the MVP support targets; Bun, browser, Deno, and other runtimes are deferred.
+- Runtime and platform compatibility: the package root targets Node.js 22 and 24; the P3 core-only execution matrix below governs the portable subpath.
 - Package artifact and export surface: consumers must not rely on undocumented internal modules.
 - Deprecation and migration policy: compatibility notes must include replay fixture expectations.
 - Dependency compatibility: `@openfeature/server-sdk` remains a peer dependency.
@@ -159,3 +159,24 @@ validation boundaries, the development-host minimum, and rollback.
 - Package artifacts drift from documented public API.
 - Replay fixture drift is accepted without explaining the behavior change.
 - Package metadata drifts from docs/adr/0004-package-license-runtime-policy.md.
+
+## P3 portable core runtime matrix (local alpha.18)
+
+The package root retains Node 22/24 only. The `/core` JSON parser, synchronous
+evaluator, errors/reasons and neutral types have this additional verified matrix:
+
+| Runtime | Executed version | Host / scope |
+| --- | --- | --- |
+| Chromium | 149.0.7827.55 | Windows x64, real headless browser, ESM |
+| Bun | 1.4.3 | Windows x64, standalone core ESM |
+| Deno | 2.9.6 | Windows x64, no granted OS/network/env/subprocess permissions |
+| workerd | 2026-10-19 | Windows x64, compatibility date 2026-10-19, both Node modes disabled |
+
+All execute exact packaged core bytes against a shared 1,449-case deterministic
+v1/v2/Unicode/targeting/semver/override/emergency/schedule corpus and three parse
+failures, compared with native Node 24.14.0. Types also pass the earlier strict
+ES2022-only TypeScript consumers. See `portable-core.md` and
+`../testing/core-runtime-acceptance.md` for commands, hashes and boundaries.
+This does not establish Firefox/WebKit/Safari, other OS/runtime versions, the
+full provider on these runtimes, or hosted Cloudflare deployment/account behavior.
+No new runtime dependencies, package engine/peer changes or hosted CI are required.

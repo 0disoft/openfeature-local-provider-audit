@@ -104,3 +104,7 @@ The additive package `/core` subpath exposes pure JSON/evaluation contracts with
 provider registration or Node SDK types. Keep provider, file, audit and inspection
 APIs on the existing Node root. See `docs/library/portable-core.md`; other runtime
 support requires real execution evidence and is not established by this split.
+
+Portable core runtime acceptance now covers only the exact local matrix in
+`docs/library/compatibility.md`; see `docs/testing/core-runtime-acceptance.md`.
+Node-root SDK contracts and supported provider runtimes stay unchanged.

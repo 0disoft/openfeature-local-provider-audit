@@ -44,3 +44,11 @@ fixtures across documented runtime targets.
 
 - SDK examples drift from public API.
 - Compatibility claims lack runtime or consumer evidence.
+
+## Portable core only
+
+Actual packed `/core` ESM is verified on Chromium 149, Bun 1.4.3, Deno 2.9.6 and
+local workerd 2026-10-19 on Windows x64. This is the platform-neutral JSON/evaluation
+surface, not SDK provider registration, file/audit APIs or a hosted Worker
+integration. Exact versions, disabled Node modes, case counts and restrictions are
+in `docs/library/compatibility.md` and `docs/testing/core-runtime-acceptance.md`.

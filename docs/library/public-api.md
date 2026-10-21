@@ -239,3 +239,6 @@ and platform-neutral types in `portable-core.md`, with its separate reviewed
 `api/local-provider-core.api.d.ts` baseline. The root surface above is unchanged.
 Core has no Node/OpenFeature SDK imports in runtime code or declarations. This
 boundary alone does not establish browser/Bun/Deno/Workers runtime support.
+
+The core-only execution matrix is now established separately in `compatibility.md`
+and `../testing/core-runtime-acceptance.md`; it does not extend root API support.

@@ -213,3 +213,48 @@ After runtime acceptance, prepare reproducible adoption material; actual indepen
 adoption still needs a consenting external user and verifiable usage. Do not message
 or publish to obtain it. No incomplete core code is left; runtime evidence remains
 explicitly unfinished. No push, tag, deployment or hosted CI run was performed.
+
+### Core runtime matrix completed locally (2026-10-22 KST)
+
+The actual alpha.18 packed core now matches the native Node reference in Bun 1.4.3,
+Deno 2.9.6, real Chromium 149.0.7827.55 and native workerd 2026-10-19 on Windows x64.
+Each runs the same 1,449 evaluations and three parser failures, including all flag
+types, seeded Unicode hashing, v1/v2 targeting/semver/overrides/emergency, errors,
+metadata and schedule boundaries/backwards time. A committed machine-readable
+receipt and exact package/core/result hashes are in docs/testing/core-runtime-*.
+
+The new opt-in smoke:core-runtimes runner packs/extracts the real artifact, compares
+all results, records real versions and never silently skips missing runtimes.
+Bun/Deno import the standalone bytes; Deno grants no OS/network/env/run permissions.
+Browser and workerd prove Node globals are absent. Workerd's current compatibility
+date automatically enables Node modes, so both official disable flags are set
+explicitly. The native worker owns an identifiable loopback response and shuts down
+without an intermediary process; browser/server/temp artifacts close in finally.
+No deployed Worker, account access, external flags or recurring hosted CI is used.
+
+Playwright Core ^1.64.1 and workerd ^1.20261019.1 are Apache-2.0 development tools;
+declarations and lockfile agree and supply-chain checks passed. Workerd's unneeded
+postinstall is explicitly false; the verified optional native binary already works.
+Bun/Deno/Chromium are caller-installed executables, selectable with explicit env
+paths. The package manager initially interpreted Deno as a dev runtime; that change
+was removed, preserving the project's Node runtime and avoiding automatic downloads.
+Root/core public APIs, DB, package engines/peers and runtime dependencies are unchanged.
+Runner/build-script policy changes are local and opt-in; no CI/hygiene changes.
+
+ADR 0004, library/SDK compatibility, portable-core and public API docs now reflect
+only this verified core matrix. The root provider remains Node 22/24 only; other
+browser engines/OS/version combinations and hosted production account behavior
+remain unverified. The acceptance report details reproduction and boundaries.
+
+Remaining P3: prepare adoption examples and reproducible usage/performance/compatibility
+material, then verify real independent use by a consenting external adopter. Do not
+manufacture a user, send external messages or publish without authorization. The
+runtime implementation/evidence is complete; adoption work is the next unit.
+
+Final validation for this unit: smoke:core-runtimes passed all four real runtimes;
+check passed 379 package tests (6 existing platform skips), type/coverage/API,
+migration/stable gate and package resolution checks. Format, lint, docs readiness
+and whitespace checks passed. Missing-browser ENOENT also failed visibly and
+cleaned its fixture/listener. Existing packed Node/CJS/strict type consumers were
+verified in the preceding implementation; this unit changes no library API/code.
+No additional hosted/OS/browser production claims or adoption claim is made.

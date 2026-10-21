@@ -41,3 +41,18 @@ types and a bundled maintained SHA-256 implementation. The package root and
 OpenFeature provider remain Node 22/24 only. Separating this code does not itself
 promote browser, Bun, Deno or Workers into the support matrix; each requires actual
 packaged runtime execution. The existing peer policy and Node engines stay intact.
+
+## P3 runtime acceptance (2026-10-22 KST)
+
+Actual packed alpha.18 core ESM now passes the same 1,449 evaluations and three
+parse errors as native Node on Chromium 149.0.7827.55, Bun 1.4.3, Deno 2.9.6 and
+native workerd 2026-10-19, all on Windows x64. Workerd explicitly disables both
+Node compatibility modes at compatibility date 2026-10-19; browser and worker
+assert Node process/Buffer/require globals are absent. Deno runs without granted
+OS/network/env/subprocess permissions. This promotes only the /core JSON/evaluation
+surface into the verified matrix in docs/library/compatibility.md. Package-root
+OpenFeature provider, transport, audit, file and CLI APIs remain Node 22/24 only.
+Other browser engines, platforms, runtime versions and production Cloudflare
+account deployment are not established by this evidence. Existing Node engines,
+server-SDK peer and Apache-2.0 identity are unchanged. Re-run the opt-in local
+smoke for dependency/runtime upgrades; do not add recurring hosted CI cost here.

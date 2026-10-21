@@ -115,3 +115,8 @@ explicit offline time and caller-owned provider clocks, without background timer
 - [docs/ops/runtime-recipes.md](docs/ops/runtime-recipes.md): snapshot replacement, shutdown,
   audit backpressure, and multi-process runtime guidance.
 - [VALIDATION.md](VALIDATION.md): stable validation commands.
+
+The opt-in `/core` JSON/evaluation subpath has actual local runtime evidence on
+Chromium, Bun, Deno and workerd. See [the scoped compatibility matrix](docs/library/compatibility.md)
+and [the repeatable runtime smoke](docs/testing/core-runtime-acceptance.md).
+Root provider/file/audit APIs remain Node 22/24 only.

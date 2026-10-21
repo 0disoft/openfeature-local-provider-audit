@@ -350,7 +350,7 @@ with the existing signed refresher and recovery store. See
 [bounded object snapshots](https://github.com/0disoft/openfeature-local-provider-audit/blob/main/docs/library/s3-snapshots.md).
 
 The opt-in `/core` subpath provides synchronous `evaluateFlag` and
-`parseJsonFlagSnapshot` without Node/SDK imports. Its portable runtime support is
-still being validated; root provider and audit APIs remain Node-only. See
+`parseJsonFlagSnapshot` without Node/SDK imports. Its packed ESM was verified on Chromium 149, Bun 1.4.3, Deno 2.9.6 and local
+workerd 2026-10-19 on Windows x64; root provider/audit APIs remain Node-only. See
 [portable core contract](https://github.com/0disoft/openfeature-local-provider-audit/blob/main/docs/library/portable-core.md).
 Bundled MIT/ISC dependency notices are in THIRD_PARTY_NOTICES.

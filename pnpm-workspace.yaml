@@ -8,3 +8,5 @@ overrides:
   source-map-js: ^1.2.2
 allowBuilds:
   esbuild: true
+  # Optional platform binary is already installed; the CLI resolves it directly.
+  workerd: false

@@ -33,17 +33,20 @@
     "test:release-tools": "node --test scripts/registry-consumer-plan.test.mjs scripts/release-channel.test.mjs scripts/registry-release.test.mjs scripts/stable-release-gate.test.mjs",
     "test:coverage": "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools",
     "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && pnpm --filter @0disoft/openfeature-local-provider build && tsc -p examples/node-basic/tsconfig.json --noEmit",
-    "smoke:gitops": "pnpm run build && pnpm --filter openfeature-local-provider-node-basic-example run smoke:gitops"
+    "smoke:gitops": "pnpm run build && pnpm --filter openfeature-local-provider-node-basic-example run smoke:gitops",
+    "smoke:core-runtimes": "pnpm run build && node scripts/core-runtime-smoke.mjs"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "^2.5.15",
     "@types/node": "^24.19.2",
     "@vitest/coverage-v8": "^5.0.5",
+    "playwright-core": "^1.64.1",
     "publint": "^0.3.25",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.5",
     "tsdown": "^0.23.1",
-    "typescript-api": "npm:typescript@^6.0.3"
+    "typescript": "^7.0.2",
+    "typescript-api": "npm:typescript@^6.0.3",
+    "vitest": "^5.0.5",
+    "workerd": "^1.20261019.1"
   }
 }

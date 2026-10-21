@@ -43,6 +43,12 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - stable-release-gate: `pnpm run stable-release-gate`
 - registry-smoke: `pnpm run registry-smoke`
 - smoke: `pnpm run build` and `pnpm run pack:check`
+- Portable runtime smoke: `pnpm run smoke:core-runtimes`; serially packs and runs
+  the same artifact/corpus on Bun, sandboxed Deno, real headless Chromium and local
+  workerd without Node compatibility flags. Requires installed Bun, Deno and Chromium;
+  CORE_BROWSER_BINARY, CORE_BUN_BINARY and CORE_DENO_BINARY select local executables.
+  Workerd and Playwright Core are dev tools. Temporary loopback fixtures shut down.
+  Optional runtime list is forwarded after the script name; no hosted CI added.
 - GitOps recipe smoke (targeted, optional): `pnpm run smoke:gitops`; creates and removes
   ephemeral loopback TLS/key/recovery/audit artifacts and requires OpenSSL. It does
   not provision a service or add a hosted workflow.

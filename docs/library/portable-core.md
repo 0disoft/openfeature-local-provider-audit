@@ -1,6 +1,6 @@
 # Portable evaluation core
 
-Status: implemented locally in alpha.18 under ADR 0015; non-Node runtime support pending.
+Status: implemented locally in alpha.18; core runtime matrix verified on 2026-10-22 KST.
 
 Expose @0disoft/openfeature-local-provider/core as a deliberate ESM/CJS subpath.
 It provides synchronous evaluateFlag and parseJsonFlagSnapshot, LocalProviderError,
@@ -68,5 +68,32 @@ no Node type libraries using strict TypeScript 5.9.3 and 7.0.2.
 
 The bundled hash package is a development dependency; Node consumers acquire no
 new runtime dependency. Legacy TypeScript subpath resolution is covered by the
-package typesVersions mapping. Runtime-specific execution evidence remains the
-next acceptance step; no non-Node support is claimed yet.
+package typesVersions mapping. Runtime-specific execution evidence is recorded in `../testing/core-runtime-acceptance.md`.
+Support is limited to that core-only runtime/host matrix.
+
+## Reproduce runtime acceptance
+
+Run `pnpm run smoke:core-runtimes` after installing Bun, Deno and a local Chromium.
+`CORE_BUN_BINARY`, `CORE_DENO_BINARY`, `CORE_BROWSER_BINARY` can select explicit
+executables; Playwright's installed Chromium is the default browser. The script
+never downloads browsers or changes the project's Node runtime. Workerd and
+Playwright Core are development tools. `CORE_RUNTIME_REPORT` optionally saves the
+machine-readable package/core/result hashes and exact versions. A positional list
+such as `browser,workerd` runs only that subset and is not full-matrix acceptance.
+
+The controller packs and extracts the actual package, copies its exact core ESM
+bytes into an isolated fixture and compares the same shared corpus with native
+Node evaluation. Bun/Deno import the standalone bytes; Deno grants no read/write,
+network, environment or subprocess permissions, uses no npm/config/lock file and
+never prompts. The real browser loads modules over loopback. Native workerd runs
+the same modules with no Node globals and explicit no_nodejs_compat /
+no_nodejs_compat_v2 flags at its current compatibility date. Workers defaults
+changed after 2026-08-04, so an empty positive flag list is insufficient to prove
+this boundary. See [Cloudflare's explicit disable instructions](https://developers.cloudflare.com/changelog/post/2026-08-04-nodejs-compat-default/).
+
+Every selected runtime must match all 1,449 results and three parser error records;
+no missing runtime is silently skipped. Native child processes are bounded and
+owned, fixtures bind loopback only, and browser/server/workerd/temp files close on
+success or failure. The local workerd socket uses an ephemeral port reservation;
+a competing bind fails visibly rather than silently testing a different port.
+No deployment, account credentials, remote flag requests or hosted CI is involved.
