@@ -29,6 +29,9 @@ because malformed or changed configuration can alter evaluated flag values.
   places, and total no more than 100.
 - Rollout rules for one flag must use at most one shared optional seed.
 - Object flag values are allowed but audit output must not include evaluated object values by default.
+- Object values in either schema version are limited to 128 nested edges and
+  100,000 visited values per tree. Cycles and accessor properties in direct object
+  inputs are rejected without invoking getters, with SCHEMA_ERROR.
 - File watching must keep evaluation file-I/O free and preserve the last valid snapshot
   when reload fails.
 - Optional consistency polling performs metadata-only idle checks at a caller-selected

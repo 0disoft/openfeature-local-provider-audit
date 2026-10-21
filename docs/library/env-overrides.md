@@ -50,3 +50,8 @@ The contract must avoid ambiguous automatic environment variable mapping.
 - Override errors are silently ignored.
 - Oversized override input is parsed before size validation.
 - Raw env values are written to audit output by default.
+
+JSON values in snapshots and overrides are limited to 128 nested edges and 100,000
+visited values per value tree. Cycles and accessor properties in direct object
+inputs are rejected without invoking getters. Snapshot violations are SCHEMA_ERROR;
+override violations follow the existing visible override-parse error contract.

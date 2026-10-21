@@ -4,6 +4,21 @@ import { isLocalProviderError } from "../../src/errors/local-provider-error.js";
 import { parseJsonFlagSnapshot } from "../../src/flags/parse-json-snapshot.js";
 
 describe("parseJsonFlagSnapshot", () => {
+  it("rejects deep and oversized value trees with SCHEMA_ERROR rather than stack overflow", () => {
+    const wrap = (value: string) =>
+      `{"schemaVersion":1,"flags":{"deep":{"type":"object","defaultVariant":"v","variants":{"v":${value}}}}}`;
+    for (const value of [
+      "[".repeat(12_000) + "0" + "]".repeat(12_000),
+      JSON.stringify(Array(100_001).fill(0))
+    ]) {
+      expect(() => parseJsonFlagSnapshot(wrap(value))).toThrow(
+        expect.objectContaining({ code: "SCHEMA_ERROR" })
+      );
+    }
+    expect(() =>
+      parseJsonFlagSnapshot(wrap("[".repeat(128) + "0" + "]".repeat(128)))
+    ).not.toThrow();
+  });
   it("parses a valid schemaVersion 1 snapshot", () => {
     const snapshot = parseJsonFlagSnapshot(
       JSON.stringify({
