@@ -51,6 +51,7 @@
   "scripts": {
     "build": "tsdown --config tsdown.config.mjs && tsdown --config tsdown.core.config.mjs",
     "pack:check": "pnpm run build && publint && attw --pack .",
+    "pack:check:built": "publint && attw --pack .",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

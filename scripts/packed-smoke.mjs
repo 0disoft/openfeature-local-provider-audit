@@ -18,6 +18,7 @@ import { promisify } from "node:util";
 const execFileAsync = promisify(execFile);
 const execAsync = promisify(exec);
 const ROOT = process.cwd();
+const reuseBuild = process.argv[2] === "--reuse-build";
 const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
@@ -176,7 +177,7 @@ try {
   const installTarget = await resolveInstallTarget(
     packDirectory,
     packageJson,
-    parseRegistryVersion(process.argv.slice(2))
+    parseRegistryVersion(process.argv.slice(reuseBuild ? 3 : 2))
   );
 
   await writeFile(
@@ -1028,6 +1029,7 @@ function parseRegistryVersion(args) {
 
 async function resolveInstallTarget(packDirectory, packageJson, registryVersion) {
   if (registryVersion !== undefined) {
+    if (reuseBuild) throw new Error("--reuse-build cannot be combined with registry smoke.");
     const requestedVersion = registryVersion === "package" ? packageJson.version : registryVersion;
     const metadataResponse = await fetch(
       `https://registry.npmjs.org/${encodeURIComponent(PACKAGE_NAME)}/${encodeURIComponent(requestedVersion)}`,
@@ -1097,7 +1099,12 @@ async function resolveTarballPath(packDirectory) {
     return tarballPath;
   }
 
-  await run("pnpm", ["--filter", PACKAGE_NAME, "build"], ROOT);
+  if (reuseBuild) {
+    for (const file of ["index.js", "index.cjs", "index.d.ts", "core.js", "core.cjs", "core.d.ts"])
+      await access(path.join(packageDirectory, "dist", file));
+  } else {
+    await run("pnpm", ["--filter", PACKAGE_NAME, "build"], ROOT);
+  }
   await run("pnpm", ["--filter", PACKAGE_NAME, "pack", "--pack-destination", packDirectory], ROOT);
 
   const tarball = (await readdir(packDirectory)).find((name) => name.endsWith(".tgz"));

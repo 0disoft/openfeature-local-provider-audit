@@ -10,6 +10,11 @@ on the supported Node.js runtime matrix.
 ## Implemented Runner
 
 - GitHub Actions workflow: `.github/workflows/ci.yml`.
+- Each CI job builds the Node/core package once before running typecheck:built,
+  api:check:built, pack:check:built and packed-smoke:built. The source and toolchain
+  must remain unchanged between these gates. Reuse commands never replace the
+  actual tarball/consumer check; standalone commands still build automatically.
+  The six supported jobs therefore request six package builds instead of 24.
 - Trigger: pushes and pull requests targeting `main`.
 - Runtime matrix: Node.js 22.x and 24.x on `ubuntu-latest`, `windows-latest`, and
   `macos-15` hosted runners.

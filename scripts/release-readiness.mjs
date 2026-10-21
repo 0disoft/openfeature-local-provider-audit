@@ -259,6 +259,18 @@ function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
+  expectScript(rootPackage, "packed-smoke:built", "node scripts/packed-smoke.mjs --reuse-build");
+  expectScript(rootPackage, "api:check:built", "node scripts/api-surface.mjs --check");
+  expectScript(
+    rootPackage,
+    "typecheck:built",
+    "pnpm --filter @0disoft/openfeature-local-provider typecheck && tsc -p examples/node-basic/tsconfig.json --noEmit"
+  );
+  expectScript(
+    rootPackage,
+    "pack:check:built",
+    "pnpm --filter @0disoft/openfeature-local-provider pack:check:built"
+  );
   expectScript(rootPackage, "registry-smoke", "node scripts/packed-smoke.mjs");
   expectScript(rootPackage, "stable-release-gate", "node scripts/stable-release-gate.mjs");
   expectScript(rootPackage, "api:check", "pnpm run build && node scripts/api-surface.mjs --check");
@@ -435,6 +447,9 @@ function checkReleaseWorkflow(workflow) {
 }
 
 function checkCiWorkflow(workflow) {
+  expectIncludes(workflow, "run: pnpm run build", "CI shared build");
+  for (const intent of ["typecheck", "api:check", "pack:check", "packed-smoke"])
+    expectIncludes(workflow, `run: pnpm run ${intent}:built`, `CI reused ${intent} gate`);
   checkPinnedGitHubActions(workflow, "CI workflow");
   expectIncludes(workflow, "ubuntu-latest", "CI Ubuntu runner matrix");
   expectIncludes(workflow, "windows-latest", "CI Windows runner matrix");

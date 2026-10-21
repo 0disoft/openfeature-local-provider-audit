@@ -52,11 +52,14 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
+      - name: Build package once for all consumer gates
+        run: pnpm run build
+
       - name: Typecheck
-        run: pnpm run typecheck
+        run: pnpm run typecheck:built
 
       - name: Check API surface
-        run: pnpm run api:check
+        run: pnpm run api:check:built
 
       - name: Test
         if: runner.os != 'Linux' || matrix.node-version != '24.x'
@@ -70,10 +73,10 @@ jobs:
         run: pnpm run release-readiness
 
       - name: Package check
-        run: pnpm run pack:check
+        run: pnpm run pack:check:built
 
       - name: Smoke example
         run: pnpm --filter openfeature-local-provider-node-basic-example start
 
       - name: Packed package smoke
-        run: pnpm run packed-smoke
+        run: pnpm run packed-smoke:built

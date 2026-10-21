@@ -11,6 +11,7 @@
   "scripts": {
     "benchmark:evaluation": "pnpm run build && node --expose-gc scripts/evaluation-benchmark.mjs",
     "api:check": "pnpm run build && node scripts/api-surface.mjs --check",
+    "api:check:built": "node scripts/api-surface.mjs --check",
     "benchmark:audit-queue": "pnpm run build && node --expose-gc scripts/audit-queue-benchmark.mjs",
     "benchmark:audit-queue:plan": "node scripts/audit-queue-benchmark-plan.mjs",
     "benchmark:audit-queue:summarize": "node scripts/audit-queue-benchmark-summary.mjs",
@@ -22,7 +23,9 @@
     "lint": "biome lint .",
     "migration-check": "pnpm run test:migration-tools && node scripts/migration-check.mjs",
     "pack:check": "pnpm --filter @0disoft/openfeature-local-provider pack:check",
+    "pack:check:built": "pnpm --filter @0disoft/openfeature-local-provider pack:check:built",
     "packed-smoke": "node scripts/packed-smoke.mjs",
+    "packed-smoke:built": "node scripts/packed-smoke.mjs --reuse-build",
     "release-readiness": "node scripts/release-readiness.mjs",
     "registry-smoke": "node scripts/packed-smoke.mjs",
     "stable-release-gate": "node scripts/stable-release-gate.mjs",
@@ -33,6 +36,7 @@
     "test:release-tools": "node --test scripts/registry-consumer-plan.test.mjs scripts/release-channel.test.mjs scripts/registry-release.test.mjs scripts/stable-release-gate.test.mjs",
     "test:coverage": "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools",
     "typecheck": "pnpm --filter @0disoft/openfeature-local-provider typecheck && pnpm --filter @0disoft/openfeature-local-provider build && tsc -p examples/node-basic/tsconfig.json --noEmit",
+    "typecheck:built": "pnpm --filter @0disoft/openfeature-local-provider typecheck && tsc -p examples/node-basic/tsconfig.json --noEmit",
     "smoke:gitops": "pnpm run build && pnpm --filter openfeature-local-provider-node-basic-example run smoke:gitops",
     "smoke:core-runtimes": "pnpm run build && node scripts/core-runtime-smoke.mjs",
     "smoke:core-example": "pnpm run build && pnpm --filter openfeature-local-provider-core-example run start"

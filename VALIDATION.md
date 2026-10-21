@@ -58,6 +58,13 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - docs: `pnpm run release-readiness`
 - check: `pnpm run check`
 
+CI builds once per job, then runs typecheck:built, api:check:built,
+pack:check:built and packed-smoke:built serially against those unchanged artifacts.
+These explicit reuse commands require a prior successful build in the same checkout;
+they do not establish freshness on their own. The standalone commands above retain
+their build behavior. packed-smoke:built still packs and installs the actual tarball,
+rejects absent build entries and cannot be combined with registry smoke.
+
 ## Hygiene Validation
 
 Repository hygiene file changes must check line-ending churn, binary diff pollution,
