@@ -35,12 +35,12 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
-    "@biomejs/biome": "2.5.7",
-    "@types/node": "24.13.3",
-    "@vitest/coverage-v8": "4.1.10",
-    "publint": "0.3.23",
+    "@biomejs/biome": "2.5.15",
+    "@types/node": "24.19.2",
+    "@vitest/coverage-v8": "4.1.12",
+    "publint": "0.3.25",
     "tsup": "8.5.1",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.12"
   }
 }

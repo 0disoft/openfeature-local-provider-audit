@@ -5,6 +5,10 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 5
+    ignore:
+      # Match the officially supported Node runtime; promote with runtime support.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       development-minor-patch:
         dependency-type: "development"
