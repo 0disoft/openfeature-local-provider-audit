@@ -47,6 +47,13 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 - Replay fixtures for compatibility-sensitive evaluation behavior.
 - Opt-in projected-volume consistency polling for local snapshot watchers.
 - OpenFeature configuration-change events with deterministic changed-flag keys.
+- Optional operational status, audit failure policy and caller-owned OpenTelemetry metrics.
+- Caller-triggered HTTPS signed snapshot delivery, durable recovery and GitOps recipes.
+- Optional chained audit storage, rotation and trusted-checkpoint verification.
+
+These operations/integrity additions belong to the unpublished 2.0 checkout; see
+the [P2 delivery record](docs/product/07-operations-and-integrity.md) and
+[local acceptance evidence](docs/testing/p2-acceptance.md).
 
 ## What It Does Not Own
 

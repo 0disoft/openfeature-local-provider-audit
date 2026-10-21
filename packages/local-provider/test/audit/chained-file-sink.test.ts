@@ -1,17 +1,26 @@
 import { execFile } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import { appendFile, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
+import { ErrorCode, OpenFeature } from "@openfeature/server-sdk";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createChainedFileAuditSink,
   createChainedAuditEvent,
   createAuditEvent,
+  createAuditChainCheckpoint,
+  createLocalProvider,
+  createSnapshotVerifier,
+  signFlagSnapshot,
   evaluateFlag,
   verifyAuditChain,
+  verifyAuditChainRecord,
   type ChainedAuditEvent
 } from "../../src/index.js";
+import { runCli } from "../../src/cli/run.js";
+import { staticSnapshot } from "../fixtures.js";
 
 vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof import("node:fs/promises")>();
@@ -52,6 +61,96 @@ afterEach(async () => {
 });
 
 describe("chained file audit sink", () => {
+  it("preserves signed SDK origins from a trusted checkpoint and returns defaults on storage failure", async () => {
+    const keys = generateKeyPairSync("ed25519");
+    const artifact = signFlagSnapshot({
+      snapshot: staticSnapshot,
+      privateKey: keys.privateKey,
+      keyId: "release",
+      audience: "sdk-chain-test",
+      sequence: 1,
+      issuedAt: Date.now() - 1_000,
+      expiresAt: Date.now() + 60_000
+    });
+    const verified = createSnapshotVerifier({
+      audience: "sdk-chain-test",
+      trustedKeys: { release: keys.publicKey }
+    }).verify(Buffer.from(artifact));
+    const genesis = createAuditChainCheckpoint("writer/test");
+    const trustedStart = verifyAuditChainRecord(createChainedAuditEvent(event(), genesis), genesis);
+    const target = sink({ initialCheckpoint: trustedStart });
+    const provider = createLocalProvider({
+      ...verified,
+      env: {},
+      auditSink: target,
+      auditFailurePolicy: "returnDefault",
+      auditTimeoutMs: 10_000,
+      auditRedaction: { contextKeys: "none" }
+    });
+    const domain = "chained-audit-sdk";
+    await OpenFeature.setProviderAndWait(domain, provider);
+    try {
+      const client = OpenFeature.getClient(domain);
+      expect(
+        await client.getBooleanValue("checkout.enabled", false, {
+          targetingKey: "private-subject",
+          email: "private-mail"
+        })
+      ).toBe(true);
+      const checkpoint = await target.getCheckpoint();
+      expect(checkpoint.start).toEqual(trustedStart);
+      expect(checkpoint.head.sequence).toBe(2);
+      const rows = await records(checkpoint.files);
+      expect(rows[0]?.event.provenance).toEqual(verified.provenance);
+      expect(rows[0]?.event.snapshotHash).toBe(verified.provenance.snapshotHash);
+      expect(JSON.stringify(rows)).not.toContain("private-");
+      await writeFile(join(directory, "start.json"), JSON.stringify(trustedStart));
+      await writeFile(join(directory, "head.json"), JSON.stringify(checkpoint.head));
+      let stdout = "";
+      const stderr = vi.fn();
+      expect(
+        await runCli(
+          [
+            "audit-verify",
+            ...checkpoint.files,
+            "--start",
+            "start.json",
+            "--expect-head",
+            "head.json"
+          ],
+          {
+            cwd: directory,
+            stdout(text) {
+              stdout += text;
+            },
+            stderr
+          }
+        )
+      ).toBe(0);
+      expect(JSON.parse(stdout)).toMatchObject({ records: 1, checkpointMatched: true });
+      expect(stderr).not.toHaveBeenCalled();
+      // Keep the evidence intact: a partial append must fail confirmation, never reset the log.
+      const file = join(directory, checkpoint.files[0] ?? "");
+      await appendFile(file, '{"partial":');
+      const corrupted = await readFile(file);
+      expect(await client.getBooleanDetails("checkout.enabled", false)).toMatchObject({
+        value: false,
+        reason: "ERROR",
+        errorCode: ErrorCode.GENERAL
+      });
+      expect(provider.getStatus().audit).toMatchObject({
+        resolvedWrites: 1,
+        failedWrites: 1,
+        pendingWrites: 0
+      });
+      expect(await readFile(file)).toEqual(corrupted);
+      await expect(target.flush?.()).rejects.toThrow();
+      await expect(target.getCheckpoint()).rejects.toThrow();
+    } finally {
+      await OpenFeature.clearProviders();
+    }
+  });
+
   it("serializes shared instances, captures input, restarts and exports verified retained checkpoints", async () => {
     const first = sink(),
       second = sink();

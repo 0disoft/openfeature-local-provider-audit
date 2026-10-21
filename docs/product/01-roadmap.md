@@ -45,10 +45,13 @@ a feature flag platform.
 
 ## Next Evaluation Areas
 
-The active local 2.0 development work is bounded conditional targeting, emergency
-variant selection, redacted explanations, and offline simulation/comparison under
-ADR 0013. See `06-maintenance-and-targeting.md` for completion and publication boundaries.
-Independent adoption work runs alongside this; cross-runtime expansion remains deferred.
+The local 2.0 checkout includes targeting, emergency variant selection, private
+explanations and offline inspection under ADR 0013, plus operations, signed delivery,
+durable recovery, GitOps and audit integrity under ADR 0014. See
+`06-maintenance-and-targeting.md`, `07-operations-and-integrity.md` and
+`../testing/p2-acceptance.md` for evidence and publication boundaries.
+These local milestones do not constitute a public 2.0 release or hosted CI results.
+Independent adoption and the explicitly deferred P3 extensions remain future work.
 
 - Browser SDK.
 - Additional language support after the TypeScript package surface proves useful.

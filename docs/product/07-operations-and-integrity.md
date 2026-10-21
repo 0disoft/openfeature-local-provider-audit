@@ -1,7 +1,12 @@
 # P2 operations and integrity delivery
 
 Owner: 0disoft
-Status: implementation in progress, local main only; no publication authorized.
+Status: all six P2 slices locally implemented and accepted on main; unpublished.
+
+Current acceptance: `docs/testing/p2-acceptance.md` maps every item below to the
+inspected source and behavioral evidence. The final acceptance entry at the end
+owns current results. Earlier entries are historical: their remaining-work lists
+describe what was outstanding at that slice, not the current backlog.
 
 ## Delivery order and acceptance
 
@@ -357,7 +362,7 @@ External checkpoint trust/storage remains operator-owned. No push, tag or releas
 
 ### Segmented chained audit storage completed locally
 
-Alpha.14 adds the optional `createChainedFileAuditSink` without changing the plain
+Commit c8cca9d / alpha.14 adds the optional `createChainedFileAuditSink` without changing the plain
 file format. Shared bounded queues and mandatory owner locks serialize cooperating
 writers, including independent processes. Stable segment names and an atomically
 replaced manifest preserve sequence/hash across retention. Data is flushed before
@@ -388,3 +393,44 @@ Remaining P2: audit every acceptance item above against actual implementation an
 evidence, reconcile stale scope/status descriptions and record any concrete gaps.
 Hosted Linux/macOS/current-source CI and remote issue/PR reconciliation remain
 unverified without an authorized push. P3 stays separate. No push, tag or release.
+
+### Full P2 acceptance completed locally
+
+The final audit checked all six numbered delivery items against actual source,
+test assertions, SDK behavior and packed-consumer results. The matrix in
+`docs/testing/p2-acceptance.md` covers status/freshness/privacy, audit counters and
+failure policy, OTel lifecycle/cardinality, bounded HTTPS/ETag/last-good behavior,
+signature/trust/time/sequence rules, exact audit origin, durable atomic activation,
+restart/history/rollback, executable GitOps and anchored segmented audit integrity.
+No accepted local P2 implementation remains open.
+
+The audit added one missing integration proof: a real signed OpenFeature SDK
+evaluation writes from a non-genesis trusted checkpoint, retains exact provenance
+without raw user data, verifies its output through `audit-verify`, then returns the
+caller's default with GENERAL error after a partial append. The original evidence
+is preserved, the failed write is observable and checkpoint export fails closed.
+No runtime code, API, dependency, version or storage format changed in this audit.
+
+Fresh `check`, `contract`, `smoke:gitops`, format, lint and diff whitespace checks
+passed. Windows Node 24.14.0 and 22.23.3 each passed 360 package tests with 6 existing
+platform skips. Coverage remains 93.84% statements / 91.80% branches / 99.43%
+functions / 95.47% lines. Tool checks and the reviewed 105-export / 30-value API
+baseline passed. The actual 218,131-byte alpha.14 tarball passed ESM/CJS runtime,
+typed exports, chain sink and packaged CLI checks, TypeScript 5.9.3 full-library
+and 7.0.2 consumer-surface validation. The latter retains the documented SDK
+skipLibCheck boundary, not strict TypeScript 7 library compatibility.
+
+The GitOps smoke again proved releases 1/2/3, one ETag 304, higher-sequence restored
+contents, fresh consumer recovery without fetch, two rejected stale/corrupt updates,
+ten evaluations without network and fifteen redacted audit records. Old migration
+pending-slice descriptions and roadmap/P0-P1 status were reconciled. The GitOps
+contract now distinguishes snapshot lookup in memory from configured audit disk I/O.
+No DB, runner/workflow, hygiene policy or remote state changed.
+
+Remaining work is outside accepted local P2: hosted Linux/macOS/current-source CI,
+Node 26 canary, remote issue/PR reconciliation and public release evidence require
+separate authorization. Operators own trusted external checkpoints, origin promotion,
+sequence allocation and storage recovery policy. HMAC identifiers, S3/R2 clients,
+automatic rollout schedules, other runtimes and independent adoption remain P3.
+These boundaries are documented, not claimed as completed operations. No push, tag,
+deployment or publication was performed or authorized.

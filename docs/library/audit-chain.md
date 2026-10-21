@@ -53,7 +53,7 @@ is accepted. Sequential regular-file/no-follow reads are bounded by 256 MiB tota
 events, context and paths. Exit codes: 0 verified, 1 invalid/I/O/limit, 2 usage.
 Errors are generic without offending fields or nested causes.
 
-## Trust and remaining writer scope
+## Trust boundaries
 
 Consecutive links detect modification, reorder, duplication and interior deletion
 relative to the starting point. A trusted exact head detects tail loss/rewrite
@@ -122,4 +122,5 @@ Quiesce writers or make an external consistent copy before exporting files and
 checkpoints, because later rotation can remove files after the lock is released.
 Store checkpoint copies outside the log's writable trust boundary; the operational
 manifest is not independent authentication. No remote checkpoint exporter is
-installed. Full P2 acceptance auditing remains the next step.
+installed. Requirement-by-requirement local evidence is recorded in
+`../testing/p2-acceptance.md`.

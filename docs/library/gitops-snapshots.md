@@ -4,8 +4,9 @@ Status: executable SDK recipe; local validation only, no remote publication.
 
 The publisher checks out a reviewed configuration Git revision, validates its
 JSON/YAML file and signs a release. An existing HTTPS origin delivers the compact
-JWS. Consumers verify it, persist acceptance and then activate locally. Evaluations
-use memory, with no Git, HTTPS or filesystem work per request.
+JWS. Consumers verify it, persist acceptance and then activate locally. Flag lookup
+uses memory; evaluations never read snapshot files or invoke Git/HTTPS delivery or
+recovery. A configured audit sink can separately write evaluation records to disk.
 
 The executable composition is `examples/node-basic/src/gitops.ts`. Its helpers are
 SDK example code, not new package-root exports. It uses the public file loader,

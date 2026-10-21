@@ -56,8 +56,9 @@ Preserve unrelated changes. No push or hosted run is authorized by this document
 P0/P1 requires actual targeting, rollout control, explanations, simulation and
 comparison, compatible v1 behavior, bounded validation, privacy-safe output, and
 packaged API/CLI checks. A green existing test suite alone is insufficient.
-Remote snapshot fetching, signatures, persistent rollback, telemetry adapters, audit
-chains/HMAC, scheduled rollout, and other runtimes remain later work.
+P2 subsequently implements remote snapshot fetching, signatures, persistent rollback,
+telemetry adapters and audit chains; see `07-operations-and-integrity.md`.
+HMAC identifiers, scheduled rollout and other runtimes remain P3.
 
 ## Local completion evidence (2026-10-21)
 
@@ -90,6 +91,7 @@ v2; it does not infer support from whatever exports a package happens to contain
 
 No push, tag, release, issue/PR write or hosted workflow was performed. Linux/macOS
 tests, Node 26 canary, current-source hosted CI, independent adoption and public 2.0
-publication remain unverified. The staged version is `2.0.0-alpha.3`; npm stable stays
-1.0.0. Next scope is P2 operational status/telemetry and safe snapshot delivery,
-subject to a new task; P0/P1 does not silently implement those deferred features.
+publication remain unverified. This historical P0/P1 record describes
+`2.0.0-alpha.3`; the subsequent P2 delivery record owns the current development
+version and evidence. P0/P1 did not implement those later features. No public 2.0
+publication is implied.

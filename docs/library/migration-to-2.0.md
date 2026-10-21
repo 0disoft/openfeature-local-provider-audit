@@ -49,7 +49,7 @@ Custom `SnapshotRefresher` implementations add `getProvenance()`.
 signing, pinned public keys for verification and current deployment-specific
 audience/freshness policy. No JOSE or other runtime dependency is added. See
 `signed-snapshots.md` before rotation, rollback or reconstructing process-local
-replay state. Persistent restart recovery is still a separate pending slice.
+replay state. Alpha.10/11 below add persistent restart recovery and durable refresh.
 The protected algorithm identifier is fully specified `Ed25519` under RFC 9864;
 the deprecated polymorphic `EdDSA` identifier is not accepted by this new profile.
 
@@ -65,8 +65,8 @@ types. `SnapshotRefresherOptions.previous` restores an authenticated durable flo
 it requires a verifier and cannot contradict an equal-sequence initial origin.
 `load()` exposes expired history only as historical evidence, with no fresh `current`.
 Existing providers/refresher defaults perform no storage I/O. See
-`snapshot-recovery.md` for bounds, storage trust, crash/lock recovery and the pending
-automatic coordination between persistence and active provider application.
+`snapshot-recovery.md` for bounds, storage trust and crash/lock recovery. Alpha.11
+below adds coordination between persistence and active provider application.
 
 Alpha.11 adds optional `SnapshotRefresherOptions.store`, provider capability
 `prepareSnapshot` and `SnapshotUpdateTransaction`. Only durable refresh requires
@@ -86,8 +86,8 @@ Alpha.13 adds opt-in audit chain primitives and `audit-verify` without changing
 plain AuditEvent/file sink output. Four helpers and five contract types capture
 redacted events, verify consecutive links and compare explicit trusted checkpoints.
 Unknown/accessor/raw fields are rejected. See `audit-chain.md` for canonical bytes,
-bounds and authenticity/truncation limits. Chained file writing/rotation remains
-pending; ordinary sinks do not automatically acquire a chain.
+bounds and authenticity/truncation limits. Alpha.14 below adds chained file writing
+and rotation; ordinary sinks do not automatically acquire a chain.
 
 Alpha.14 adds `createChainedFileAuditSink` and three options/checkpoint/sink types.
 Its dedicated directory/manifest/segments are separate from the plain file format.

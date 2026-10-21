@@ -21,6 +21,12 @@ formatting, and replay fixture helpers.
 - Audit events: docs/library/audit-event-v1.md
 - Replay fixtures: docs/library/replay-fixture-v1.md
 - Configuration-change events: docs/library/configuration-change-events.md
+- Operational status and audit policy: operational-status.md, audit-failure-policy.md
+- Optional metrics: opentelemetry-metrics.md
+- Snapshot delivery and recovery: https-snapshots.md, signed-snapshots.md, snapshot-recovery.md
+- GitOps composition: gitops-snapshots.md
+- Audit integrity and trust: audit-chain.md
+- P2 acceptance evidence: docs/testing/p2-acceptance.md
 
 ## Required Decisions
 
