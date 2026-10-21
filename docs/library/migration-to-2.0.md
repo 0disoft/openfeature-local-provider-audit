@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.6` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.7` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -32,6 +32,14 @@ The lockfile selects published versions past the repository's release-age policy
 fresh API 1.10 / SDK 3 were not allowed through an exception. No collector/exporter,
 global SDK, timer or OpenTelemetry runtime dependency is installed by the adapter.
 See `opentelemetry-metrics.md` for collection, labels and lifecycle.
+
+Alpha.7 adds caller-triggered HTTPS delivery through `createHttpsSnapshotSource`
+and `createSnapshotRefresher`, with the source/request/response/options/result
+interfaces in `https-snapshots.md`. Existing local file/evaluation APIs are unchanged;
+no evaluation performs a fetch and no automatic refresh is enabled. No runtime
+dependency was added. Source transport failures use existing `PROVIDER_NOT_READY`;
+the active last good provider remains available. Signing and durable recovery are
+not claimed by this transport slice.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

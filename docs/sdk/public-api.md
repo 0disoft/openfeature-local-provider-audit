@@ -47,6 +47,10 @@ without SDK/exporter installation or global registration. Labels exclude flag ke
 context and values; close unregisters status observation. See
 `docs/library/opentelemetry-metrics.md`.
 
+Caller-triggered HTTPS sources/refresher are optional, distinct from SDK
+evaluation. The caller owns refreshing/shutdown and trusted URL/CA configuration.
+See `docs/library/https-snapshots.md` for ETag commit, cancellation and last-good behavior.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

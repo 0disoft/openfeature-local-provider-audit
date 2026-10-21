@@ -63,6 +63,9 @@ See `audit-failure-policy.md` for the default-preserving opt-in contract.
 Optional metrics add `createOpenTelemetryMetrics`, `OpenTelemetryMeter`,
 `ProviderMetrics`, `ProviderMetricsSession`, `ProviderEvaluationMetric` and
 `LocalProviderOptions.metrics`; see `opentelemetry-metrics.md`.
+Caller-triggered delivery adds `createHttpsSnapshotSource` and
+`createSnapshotRefresher`, with the seven source/refresher contract types below;
+see `https-snapshots.md`. Provider resolution remains local.
 
 The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
 `TargetingCondition`, and `TargetingRule`, snapshot version `1 | 2`, optional
@@ -87,6 +90,7 @@ The package-root runtime value surface is exactly:
 - `replayEvaluationFixture`.
 - `createAuditEvent`, `serializeAuditEvent`, `redactContext`, and `createFileAuditSink`.
 - `createOpenTelemetryMetrics`.
+- `createHttpsSnapshotSource` and `createSnapshotRefresher`.
 
 The package-root type surface is exactly:
 
@@ -109,6 +113,9 @@ The package-root type surface is exactly:
 - `AuditFailurePolicy`.
 - `OpenTelemetryMeter`, `ProviderMetrics`, `ProviderMetricsSession`, and
   `ProviderEvaluationMetric`.
+- `SnapshotSource`, `SnapshotSourceRequest`, `SnapshotSourceResponse`,
+  `HttpsSnapshotSourceOptions`, `SnapshotRefresherOptions`,
+  `SnapshotRefreshResult`, and `SnapshotRefresher`.
 - `ReplayExpectedResult`, `ReplayFixture`, `ReplayMismatch`, `ReplayOverrideInput`,
   and `ReplayResult`.
 

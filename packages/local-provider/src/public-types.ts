@@ -225,6 +225,45 @@ export interface ReloadableLocalProvider extends ObservableLocalProvider {
   updateSnapshot(snapshot: FlagSnapshot): void;
 }
 
+export interface SnapshotSourceRequest {
+  readonly etag?: string;
+  readonly signal?: AbortSignal;
+}
+
+export type SnapshotSourceResponse =
+  | { readonly status: "notModified" }
+  | { readonly status: "content"; readonly content: Uint8Array; readonly etag?: string };
+
+export interface SnapshotSource {
+  fetch(request?: SnapshotSourceRequest): Promise<SnapshotSourceResponse>;
+}
+
+export interface HttpsSnapshotSourceOptions {
+  readonly url: string | URL;
+  readonly ca?: string;
+  readonly maxBytes?: number;
+  readonly timeoutMs?: number;
+  readonly maxAttempts?: number;
+  readonly retryDelayMs?: number;
+}
+
+export interface SnapshotRefresherOptions {
+  readonly provider: ReloadableLocalProvider;
+  readonly source: SnapshotSource;
+  readonly format?: "json" | "yaml";
+  readonly maxBytes?: number;
+}
+
+export interface SnapshotRefreshResult {
+  readonly status: "updated" | "unchanged";
+  readonly snapshotHash: string;
+}
+
+export interface SnapshotRefresher {
+  refresh(): Promise<SnapshotRefreshResult>;
+  close(): void;
+}
+
 export type SnapshotFileFormat = "auto" | "json" | "yaml";
 
 export interface LoadFlagSnapshotFileOptions {

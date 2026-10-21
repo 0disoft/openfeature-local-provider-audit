@@ -258,6 +258,44 @@ interface ReloadableLocalProvider extends ObservableLocalProvider {
   getSnapshot(): FlagSnapshot;
   updateSnapshot(snapshot: FlagSnapshot): void;
 }
+interface SnapshotSourceRequest {
+  readonly etag?: string;
+  readonly signal?: AbortSignal;
+}
+type SnapshotSourceResponse =
+  | {
+      readonly status: "notModified";
+    }
+  | {
+      readonly status: "content";
+      readonly content: Uint8Array;
+      readonly etag?: string;
+    };
+interface SnapshotSource {
+  fetch(request?: SnapshotSourceRequest): Promise<SnapshotSourceResponse>;
+}
+interface HttpsSnapshotSourceOptions {
+  readonly url: string | URL;
+  readonly ca?: string;
+  readonly maxBytes?: number;
+  readonly timeoutMs?: number;
+  readonly maxAttempts?: number;
+  readonly retryDelayMs?: number;
+}
+interface SnapshotRefresherOptions {
+  readonly provider: ReloadableLocalProvider;
+  readonly source: SnapshotSource;
+  readonly format?: "json" | "yaml";
+  readonly maxBytes?: number;
+}
+interface SnapshotRefreshResult {
+  readonly status: "updated" | "unchanged";
+  readonly snapshotHash: string;
+}
+interface SnapshotRefresher {
+  refresh(): Promise<SnapshotRefreshResult>;
+  close(): void;
+}
 type SnapshotFileFormat = "auto" | "json" | "yaml";
 interface LoadFlagSnapshotFileOptions {
   readonly format?: SnapshotFileFormat;
@@ -447,6 +485,16 @@ export declare function createFileAuditSink(options: FileAuditSinkOptions): Audi
 /** Uses a caller-owned Meter; never installs an SDK, exporter, timer or global provider. */
 export declare function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderMetrics;
 //#endregion
+//#region src/sources/https-source.d.ts
+export declare function createHttpsSnapshotSource(
+  options: HttpsSnapshotSourceOptions
+): SnapshotSource;
+//#endregion
+//#region src/sources/snapshot-refresher.d.ts
+export declare function createSnapshotRefresher(
+  options: SnapshotRefresherOptions
+): SnapshotRefresher;
+//#endregion
 export type {
   AuditContextKeyMode,
   AuditEvent,
@@ -473,6 +521,7 @@ export type {
   FlagSnapshotFileWatcher,
   FlagType,
   FlagValue,
+  HttpsSnapshotSourceOptions,
   JsonObject,
   JsonValue,
   LoadFlagSnapshotFileOptions,
@@ -496,6 +545,12 @@ export type {
   ReplayResult,
   RuleExplanation,
   SnapshotFileFormat,
+  SnapshotRefreshResult,
+  SnapshotRefresher,
+  SnapshotRefresherOptions,
+  SnapshotSource,
+  SnapshotSourceRequest,
+  SnapshotSourceResponse,
   TargetingCondition,
   TargetingRule,
   WatchFlagSnapshotFileOptions

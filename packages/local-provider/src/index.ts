@@ -13,6 +13,8 @@ export { replayEvaluationFixture } from "./replay/replay-fixture.js";
 export { createAuditEvent, redactContext, serializeAuditEvent } from "./audit/audit-event.js";
 export { createFileAuditSink } from "./audit/audit-sink.js";
 export { createOpenTelemetryMetrics } from "./metrics/opentelemetry.js";
+export { createHttpsSnapshotSource } from "./sources/https-source.js";
+export { createSnapshotRefresher } from "./sources/snapshot-refresher.js";
 export {
   LOCAL_PROVIDER_ERROR_CODES,
   type LocalProviderErrorCode
@@ -52,6 +54,13 @@ export type {
   JsonObject,
   JsonValue,
   LocalProviderOptions,
+  SnapshotSource,
+  SnapshotSourceRequest,
+  SnapshotSourceResponse,
+  HttpsSnapshotSourceOptions,
+  SnapshotRefresherOptions,
+  SnapshotRefreshResult,
+  SnapshotRefresher,
   OpenTelemetryMeter,
   ProviderEvaluationMetric,
   ProviderMetrics,

@@ -9,6 +9,8 @@ Owner: 0disoft
 - Environment overrides are caller-owned process input and may be mistyped.
 - Evaluation context may contain personal or security-sensitive data.
 - Audit sinks may fail or write to locations with different retention policies.
+- Optional HTTPS source URL and CA are trusted operator configuration. No context-
+  supplied URLs, redirect following or TLS verification bypass is supported.
 - Audit file sink paths are trusted local configuration, not end-user input.
 - Replay fixtures are public-test artifacts and must be synthetic.
 
@@ -19,6 +21,14 @@ Owner: 0disoft
 - Tenant enforcement.
 - Hosted secret management.
 - Remote flag management.
+
+Caller-triggered HTTPS snapshot delivery is accepted post-MVP under ADR 0014.
+Transport verifies TLS and bounds bytes/time/retries, but is not a management
+server or a signed content/provenance guarantee. The active last good state is
+preserved on failed fetch/parse/apply. ETags commit after apply, and asynchronous
+responses cannot overwrite a different current provider hash. Network errors do
+not expose source URLs, response bodies or raw causes. Protect presigned queries
+in caller-owned configuration and any external network instrumentation.
 
 ## Required Controls
 

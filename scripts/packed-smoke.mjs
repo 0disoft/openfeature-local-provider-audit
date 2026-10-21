@@ -12,6 +12,13 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "SnapshotSource",
+  "SnapshotSourceRequest",
+  "SnapshotSourceResponse",
+  "HttpsSnapshotSourceOptions",
+  "SnapshotRefresherOptions",
+  "SnapshotRefreshResult",
+  "SnapshotRefresher",
   "OpenTelemetryMeter",
   "ProviderMetrics",
   "ProviderMetricsSession",
@@ -28,6 +35,13 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "SnapshotSource",
+  "SnapshotSourceRequest",
+  "SnapshotSourceResponse",
+  "HttpsSnapshotSourceOptions",
+  "SnapshotRefresherOptions",
+  "SnapshotRefreshResult",
+  "SnapshotRefresher",
   "OpenTelemetryMeter",
   "ProviderMetrics",
   "ProviderMetricsSession",
@@ -360,7 +374,14 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
       "createLocalProvider",
       "createReloadableLocalProvider",
       "evaluateFlag",
-      ...(targeting ? ["explainEvaluation", "createOpenTelemetryMetrics"] : []),
+      ...(targeting
+        ? [
+            "explainEvaluation",
+            "createOpenTelemetryMetrics",
+            "createHttpsSnapshotSource",
+            "createSnapshotRefresher"
+          ]
+        : []),
       "isLocalProviderError",
       "loadFlagSnapshotFile",
       "parseJsonFlagSnapshot",
@@ -479,6 +500,28 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     }
     await strictAuditProvider.onClose();
     if (callbacks.size !== 0) throw new Error(moduleKind + " metrics cleanup failed");
+    const offlineProvider = api.createReloadableLocalProvider({ snapshot: jsonSnapshot, env: {} });
+    let sourceCalls = 0;
+    const refresher = api.createSnapshotRefresher({
+      provider: offlineProvider,
+      source: {
+        async fetch(input) {
+          sourceCalls++;
+          return input.etag === '"packed"' ? { status: "notModified" } :
+            { status: "content", content: Buffer.from(JSON.stringify(jsonSnapshot)), etag: '"packed"' };
+        }
+      }
+    });
+    await refresher.refresh();
+    await refresher.refresh();
+    if (sourceCalls !== 2 || offlineProvider.getStatus().successfulRefreshes !== 3) {
+      throw new Error(moduleKind + " source refresh contract failed");
+    }
+    refresher.close();
+    let rejectedInsecure = false;
+    try { api.createHttpsSnapshotSource({ url: "http://example.test/flags" }); }
+    catch { rejectedInsecure = true; }
+    if (!rejectedInsecure) throw new Error(moduleKind + " source HTTPS validation failed");
   }
   let flagsChanged = [];
   reloadableProvider.events?.addHandler(ProviderEvents.ConfigurationChanged, (details) => {
@@ -625,6 +668,14 @@ const confirmedOptions: LocalProviderOptions = {
 const timedOutWrites: number = auditStatus.timedOutWrites;
 void confirmedOptions;
 void timedOutWrites;
+const sourceRequest: SnapshotSourceRequest = { etag: '"typed"' };
+const snapshotSource: SnapshotSource = {
+  async fetch(input) {
+    return input?.etag ? { status: "notModified" } : { status: "content", content: new Uint8Array() };
+  }
+};
+const sourceResponse: Promise<SnapshotSourceResponse> = snapshotSource.fetch(sourceRequest);
+void sourceResponse;
 `
     : ""
 }

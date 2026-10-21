@@ -110,5 +110,31 @@ aged versions passed without any policy exception or workspace policy change.
 No DB, runner, runtime dependency or remote state changed. Hosted Linux/macOS
 verification remains deferred because no push is authorized.
 
-Remaining, in order: HTTPS delivery; signatures and persistent recovery; GitOps
-recipe; audit chain/checkpoint verification.
+### Caller-triggered HTTPS delivery completed locally
+
+Alpha.7 adds the native HTTPS source interface and coalescing snapshot refresher.
+TLS verification stays enabled, redirects are rejected, stream/header sizes and
+whole-attempt deadlines are bounded, retries are finite and cancellation covers
+I/O/backoff. ETags commit only after validated application. Invalid responses,
+application rejection, asynchronous external updates and reentrant configuration
+callbacks cannot attach a new validator to the wrong snapshot. Existing last-good
+evaluation stays local; no automatic scheduler or background worker is added.
+
+`check`, `contract`, format and lint passed. Windows Node 24.14.0 and 22.23.3 each
+passed 289 package tests with 5 existing platform skips. Coverage: 94.70% statements,
+92.41% branches, 99.23% functions, 95.27% lines. Tests use a real ephemeral TLS
+certificate and loopback HTTPS service: trust failure, ETag 200/304, status/socket
+retry, stream/length limits, header/body stalls, cancellation/backoff, validation,
+coalescing, offline evaluation and failed/reentrant apply/cache behavior.
+OpenSSL is required only for generating those ephemeral test artifacts.
+
+The 145,058-byte alpha.7 tarball passed ESM/CJS source/refresher and existing runtime
+checks plus TypeScript 5.9.3 full-library and 7.0.2 consumer-surface checks.
+The API baseline has 80 exports, 22 runtime values. Public API, migration, SDK and
+threat-model contracts point to `https-snapshots.md`. No runtime/development
+dependency, DB, runner or repository hygiene policy changed. Hosted Linux/macOS
+verification remains deferred because no push is authorized.
+
+Plain TLS/ETag is not signed provenance or persistent recovery. Remaining, in
+order: signatures/expiry/replay/downgrade rules and persistent last-good/rollback;
+GitOps recipe; audit chain/checkpoint verification.

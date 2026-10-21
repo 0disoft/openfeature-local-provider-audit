@@ -6,6 +6,8 @@ import {
   createEnvOverrides,
   createFileAuditSink,
   createOpenTelemetryMetrics,
+  createHttpsSnapshotSource,
+  createSnapshotRefresher,
   createLocalProvider,
   createReloadableLocalProvider,
   evaluateFlag,
@@ -32,6 +34,8 @@ describe("package exports", () => {
     expect(typeof createAuditEvent).toBe("function");
     expect(typeof createFileAuditSink).toBe("function");
     expect(typeof createOpenTelemetryMetrics).toBe("function");
+    expect(typeof createHttpsSnapshotSource).toBe("function");
+    expect(typeof createSnapshotRefresher).toBe("function");
     expect(typeof serializeAuditEvent).toBe("function");
     expect(typeof redactContext).toBe("function");
     expect(EVALUATION_REASONS.STATIC).toBe("STATIC");
