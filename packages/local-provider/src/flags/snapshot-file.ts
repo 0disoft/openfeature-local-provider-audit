@@ -188,9 +188,10 @@ export async function watchFlagSnapshotFile(
     queuedReload = { request, promise: reload };
     reloadQueue = reload.then(
       () => undefined,
-      async (error: unknown) => {
+      (error: unknown) => {
         if (request.reportError) {
-          await reportReloadError(error);
+          // Recovery callbacks may await reload(); they cannot own the reload queue.
+          void reportReloadError(error);
         }
       }
     );

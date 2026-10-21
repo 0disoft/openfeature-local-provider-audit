@@ -46,6 +46,9 @@ because malformed or changed configuration can alter evaluated flag values.
   reporting. Closing prevents pending/new file reads and returns the last committed
   snapshot to pending/manual requests; an already-started read/callback may finish
   but cannot publish a snapshot after close.
+- Error notifications do not hold the reload queue. Async `onError` callbacks may
+  repair the file and await `reload()`; callback throws/rejections are isolated.
+  Notifications may still be pending when a later reload completes or close returns.
 
 ## Failure Behavior
 

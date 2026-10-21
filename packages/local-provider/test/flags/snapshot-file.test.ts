@@ -426,6 +426,39 @@ describe("snapshot file helpers", () => {
       await rm(tempDirectory, { recursive: true, force: true });
     }
   });
+
+  it("allows an async error callback to repair and await reload without blocking the queue", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-watch-recovery-"));
+    let watcher: Awaited<ReturnType<typeof watchFlagSnapshotFile>> | undefined;
+    try {
+      const path = join(directory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true));
+      let recovering = false;
+      let recovered = false;
+      watcher = await watchFlagSnapshotFile({
+        path,
+        debounceMs: 10,
+        onSnapshot() {},
+        async onError() {
+          if (recovering) return;
+          recovering = true;
+          await writeFile(path, createJsonSnapshot(false));
+          const snapshot = await watcher?.reload();
+          expect(snapshot && getCheckoutDefaultEnabled(snapshot)).toBe(false);
+          recovered = true;
+          // A rejected async notification must be isolated too.
+          throw new Error("notification failed after recovery");
+        }
+      });
+      await writeFile(path, "{");
+      await waitFor(() => recovered);
+      expect(getCheckoutDefaultEnabled(await watcher.reload())).toBe(false);
+      expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(false);
+    } finally {
+      watcher?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 });
 
 function createJsonSnapshot(enabled: boolean): string {
