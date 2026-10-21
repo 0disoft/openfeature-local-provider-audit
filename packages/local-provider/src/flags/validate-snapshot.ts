@@ -9,6 +9,7 @@ import type {
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
+import { hasRolloutPrecision } from "../evaluator/rollout-precision.js";
 import { captureSnapshotInput } from "./capture-snapshot-input.js";
 import { validateScheduledRollout } from "./validate-schedule.js";
 import { validateTargetingRules } from "./validate-targeting.js";
@@ -215,8 +216,7 @@ function validateRolloutPercentage(flagKey: string, index: number, value: unknow
     );
   }
 
-  const scaled = value * 1_000;
-  if (Math.abs(scaled - Math.round(scaled)) > Number.EPSILON * 1_000) {
+  if (!hasRolloutPrecision(value)) {
     throw schemaError(
       `Flag "${flagKey}" rollout rule ${index} percentage supports up to 3 decimal places.`
     );

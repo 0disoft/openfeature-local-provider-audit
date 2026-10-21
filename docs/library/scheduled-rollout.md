@@ -10,6 +10,9 @@ bucketing seed. stages has 1..100 entries `{ at, percentage }`: at is nonnegativ
 safe-integer epoch milliseconds, strictly increasing; percentage is 0..100 with
 at most three decimals and is nondecreasing. Configuration is copied and frozen.
 Schema v1 rejects this field. Old v2 snapshots without it retain their behavior.
+Ordinary and scheduled rollouts share a magnitude-aware floating-point tolerance:
+valid decimals such as 2.01 and 65.005 are accepted without rounding the stored
+percentage or changing the existing integer bucket threshold.
 Older alpha providers reject schedule fields; upgrade consumers before delivering
 scheduled snapshots. Reverting to schedule-free configuration restores the old path.
 

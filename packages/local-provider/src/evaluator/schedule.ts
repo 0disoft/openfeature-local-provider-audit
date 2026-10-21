@@ -1,5 +1,6 @@
 import type { ScheduledRollout, ScheduleEvaluation } from "../core-types.js";
 import { percentageToBucketCount, type ComputeBucket } from "./bucketing-rules.js";
+import { hasRolloutPrecision } from "./rollout-precision.js";
 
 export const validScheduleTime = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
@@ -8,7 +9,7 @@ export const validSchedulePercentage = (value: unknown): value is number =>
   Number.isFinite(value) &&
   value >= 0 &&
   value <= 100 &&
-  Math.abs(value * 1000 - Math.round(value * 1000)) <= Number.EPSILON * 1000;
+  hasRolloutPrecision(value);
 
 export function selectScheduledVariant(
   schedule: ScheduledRollout,
