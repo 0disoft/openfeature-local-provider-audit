@@ -10,7 +10,10 @@ export function toOpenFeatureResolution<T extends FlagValue>(
   return {
     value: result.value,
     reason: result.reason,
-    flagMetadata: result.flagMetadata,
+    flagMetadata:
+      result.ruleId === undefined
+        ? result.flagMetadata
+        : { ...result.flagMetadata, localProviderRuleId: result.ruleId },
     ...(result.variant !== undefined ? { variant: result.variant } : {}),
     ...(errorCode !== undefined ? { errorCode } : {}),
     ...(result.errorMessage !== undefined ? { errorMessage: result.errorMessage } : {})

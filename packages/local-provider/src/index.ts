@@ -22,6 +22,9 @@ export {
   type EvaluationSource
 } from "./reasons.js";
 export type {
+  ConditionScalar,
+  TargetingCondition,
+  TargetingRule,
   EvaluationRequest,
   EvaluationResult,
   EnvOverrideState,

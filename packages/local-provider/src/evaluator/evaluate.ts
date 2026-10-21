@@ -3,15 +3,25 @@ import type {
   EvaluationRequest,
   EvaluationResult,
   FlagSnapshot,
+  FlagDefinition,
   FlagValue
 } from "../public-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { selectRolloutVariant } from "./bucketing.js";
+import { matchesCondition } from "./conditions.js";
 import { flagValueMatchesType } from "./type-guards.js";
 
 export function evaluateFlag<T extends FlagValue>(
   snapshot: FlagSnapshot,
   request: EvaluationRequest<T>
+): EvaluationResult<T> {
+  return evaluateWithTrace(snapshot, request);
+}
+
+export function evaluateWithTrace<T extends FlagValue>(
+  snapshot: FlagSnapshot,
+  request: EvaluationRequest<T>,
+  trace?: (id: string, matched: boolean) => void
 ): EvaluationResult<T> {
   const flag = getOwn(snapshot.flags, request.flagKey);
 
@@ -37,6 +47,10 @@ export function evaluateFlag<T extends FlagValue>(
       errorMessage: `Flag "${request.flagKey}" is type "${flag.type}", not "${request.expectedType}".`,
       flagMetadata: flag.metadata ?? {}
     };
+  }
+
+  if (snapshot.schemaVersion === 2 && flag.disabledVariant !== undefined) {
+    return selectedVariant(flag, request, flag.disabledVariant, EVALUATION_REASONS.DISABLED);
   }
 
   const overrideError = getOverrideError(request);
@@ -73,6 +87,45 @@ export function evaluateFlag<T extends FlagValue>(
       source: EVALUATION_SOURCES.ENV,
       flagMetadata: flag.metadata ?? {}
     };
+  }
+
+  if (snapshot.schemaVersion === 2) {
+    for (const rule of flag.rules ?? []) {
+      const matched = matchesCondition(rule.when, request);
+      trace?.(rule.id, matched);
+      if (!matched) continue;
+      if (rule.variant !== undefined) {
+        return {
+          ...selectedVariant(flag, request, rule.variant, EVALUATION_REASONS.TARGETING_MATCH),
+          ruleId: rule.id
+        };
+      }
+      if (request.targetingKey === undefined || !request.targetingKey.trim()) {
+        return {
+          flagKey: request.flagKey,
+          value: request.defaultValue,
+          reason: EVALUATION_REASONS.ERROR,
+          source: EVALUATION_SOURCES.ERROR,
+          errorCode: LOCAL_PROVIDER_ERROR_CODES.INVALID_CONTEXT,
+          errorMessage: "Matched targeting rollout requires a non-empty targetingKey.",
+          ruleId: rule.id,
+          flagMetadata: flag.metadata ?? {}
+        };
+      }
+      const selection = selectRolloutVariant(request.flagKey, request.targetingKey, rule.rollout);
+      return {
+        ...selectedVariant(
+          flag,
+          request,
+          selection.variant ?? flag.defaultVariant,
+          selection.variant === undefined
+            ? EVALUATION_REASONS.TARGETING_MATCH
+            : EVALUATION_REASONS.SPLIT
+        ),
+        ruleId: rule.id,
+        bucket: selection.bucket
+      };
+    }
   }
 
   if (flag.rollout !== undefined) {
@@ -135,6 +188,34 @@ export function evaluateFlag<T extends FlagValue>(
     value: value as T,
     variant: flag.defaultVariant,
     reason: EVALUATION_REASONS.STATIC,
+    source: EVALUATION_SOURCES.FILE,
+    flagMetadata: flag.metadata ?? {}
+  };
+}
+
+function selectedVariant<T extends FlagValue>(
+  flag: FlagDefinition,
+  request: EvaluationRequest<T>,
+  variant: string,
+  reason: EvaluationResult<T>["reason"]
+): EvaluationResult<T> {
+  const value = getOwn(flag.variants, variant);
+  if (value === undefined || !flagValueMatchesType(value, request.expectedType)) {
+    return {
+      flagKey: request.flagKey,
+      value: request.defaultValue,
+      reason: EVALUATION_REASONS.ERROR,
+      source: EVALUATION_SOURCES.ERROR,
+      errorCode: LOCAL_PROVIDER_ERROR_CODES.TYPE_MISMATCH,
+      errorMessage: "Selected variant does not match its declared type.",
+      flagMetadata: flag.metadata ?? {}
+    };
+  }
+  return {
+    flagKey: request.flagKey,
+    value: value as T,
+    variant,
+    reason,
     source: EVALUATION_SOURCES.FILE,
     flagMetadata: flag.metadata ?? {}
   };

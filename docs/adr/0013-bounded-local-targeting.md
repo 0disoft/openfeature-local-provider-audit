@@ -11,7 +11,7 @@ rejecting v2 fields. Use one validated evaluator for provider, explanation, repl
 and CLI simulation. There is no network or file read in evaluation and no segment DB.
 
 Public declarations expand the snapshot version and reason unions. This can break
-exhaustive consumers even when v1 runtime results are unchanged. Stage version 2.0.0
+exhaustive consumers even when v1 runtime results are unchanged. Stage a version 2.0.0 prerelease
 and an explicitly reviewed declaration baseline; do not publish, tag, or push.
 
 The detailed contract is `docs/library/flag-file-schema-v2.md`. New sources of truth

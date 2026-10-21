@@ -25,10 +25,42 @@ export interface FlagDefinition {
   readonly rollout?: readonly PercentageRolloutRule[];
   readonly envVar?: string;
   readonly metadata?: Readonly<Record<string, string | number | boolean>>;
+  readonly rules?: readonly TargetingRule[];
+  readonly disabledVariant?: string;
 }
 
+export type ConditionScalar = string | number | boolean | null;
+
+export type TargetingCondition =
+  | { readonly all: readonly TargetingCondition[] }
+  | { readonly any: readonly TargetingCondition[] }
+  | { readonly attribute: readonly string[]; readonly op: "eq"; readonly value: ConditionScalar }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "in";
+      readonly value: readonly ConditionScalar[];
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "gt" | "gte" | "lt" | "lte";
+      readonly value: number;
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "semverEq" | "semverGt" | "semverGte" | "semverLt" | "semverLte";
+      readonly value: string;
+    };
+
+export type TargetingRule = {
+  readonly id: string;
+  readonly when: TargetingCondition;
+} & (
+  | { readonly variant: string; readonly rollout?: never }
+  | { readonly variant?: never; readonly rollout: readonly PercentageRolloutRule[] }
+);
+
 export interface FlagSnapshot {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 1 | 2;
   readonly flags: Readonly<Record<string, FlagDefinition>>;
   readonly metadata?: Readonly<Record<string, string | number | boolean>>;
 }
@@ -66,6 +98,7 @@ export interface EvaluationResult<T extends FlagValue = FlagValue> {
   readonly flagKey: string;
   readonly value: T;
   readonly variant?: string;
+  readonly ruleId?: string;
   readonly bucket?: number;
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;

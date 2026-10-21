@@ -8,7 +8,8 @@ import type {
   JsonValue,
   PercentageRolloutRule
 } from "../public-types.js";
-import { flagValueMatchesType, isFlagValue, isJsonObject } from "../evaluator/type-guards.js";
+import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
+import { validateTargetingRules } from "./validate-targeting.js";
 
 const FLAG_TYPES = new Set<FlagType>(["boolean", "string", "number", "object"]);
 const SNAPSHOT_KEYS = new Set(["schemaVersion", "flags", "metadata"]);
@@ -20,6 +21,7 @@ const FLAG_DEFINITION_KEYS = new Set([
   "envVar",
   "metadata"
 ]);
+const V2_FLAG_KEYS = new Set([...FLAG_DEFINITION_KEYS, "rules", "disabledVariant"]);
 const ROLLOUT_RULE_KEYS = new Set(["variant", "percentage", "seed"]);
 
 export function validateFlagSnapshot(value: unknown): FlagSnapshot {
@@ -28,8 +30,8 @@ export function validateFlagSnapshot(value: unknown): FlagSnapshot {
   }
   rejectUnknownKeys(value, SNAPSHOT_KEYS, "Flag snapshot");
 
-  if (value.schemaVersion !== 1) {
-    throw schemaError("Flag snapshot schemaVersion must be 1.");
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2) {
+    throw schemaError("Flag snapshot schemaVersion must be 1 or 2.");
   }
 
   if (!isJsonObject(value.flags)) {
@@ -42,11 +44,15 @@ export function validateFlagSnapshot(value: unknown): FlagSnapshot {
     if (!flagKey.trim()) {
       throw schemaError("Flag keys must be non-empty strings.");
     }
-    defineRecordEntry(flags, flagKey, validateFlagDefinition(flagKey, rawFlag));
+    defineRecordEntry(
+      flags,
+      flagKey,
+      validateFlagDefinition(flagKey, rawFlag, value.schemaVersion)
+    );
   }
 
   const snapshot: FlagSnapshot = {
-    schemaVersion: 1,
+    schemaVersion: value.schemaVersion,
     flags
   };
 
@@ -58,11 +64,15 @@ export function validateFlagSnapshot(value: unknown): FlagSnapshot {
   return deepFreeze(snapshot);
 }
 
-function validateFlagDefinition(flagKey: string, value: unknown): FlagDefinition {
+function validateFlagDefinition(flagKey: string, value: unknown, version: 1 | 2): FlagDefinition {
   if (!isJsonObject(value)) {
     throw schemaError(`Flag "${flagKey}" must be an object.`);
   }
-  rejectUnknownKeys(value, FLAG_DEFINITION_KEYS, `Flag "${flagKey}"`);
+  rejectUnknownKeys(
+    value,
+    version === 2 ? V2_FLAG_KEYS : FLAG_DEFINITION_KEYS,
+    `Flag "${flagKey}"`
+  );
 
   const type = value.type;
   if (typeof type !== "string" || !FLAG_TYPES.has(type as FlagType)) {
@@ -90,13 +100,30 @@ function validateFlagDefinition(flagKey: string, value: unknown): FlagDefinition
   };
 
   const envVar = validateOptionalString(value.envVar, `Flag "${flagKey}" envVar`);
-  const rollout = validateRollout(flagKey, value.rollout, variants);
+  const parseRollout = (input: unknown) => {
+    if (version === 2 && Array.isArray(input) && input.length > 100)
+      throw schemaError("V2 rollout exceeds 100 entries.");
+    return validateRollout(flagKey, input, variants);
+  };
+  const rollout = parseRollout(value.rollout);
+  const rules =
+    version === 2
+      ? validateTargetingRules(value.rules, (name) => hasOwn(variants, name), parseRollout)
+      : undefined;
+  const disabledVariant =
+    version === 2
+      ? validateOptionalString(value.disabledVariant, `Flag "${flagKey}" disabledVariant`)
+      : undefined;
+  if (disabledVariant !== undefined && !hasOwn(variants, disabledVariant))
+    throw schemaError("disabledVariant must reference an existing variant.");
   const metadata = validateMetadata(value.metadata, `Flag "${flagKey}" metadata`);
 
   return {
     ...flag,
     ...(envVar !== undefined ? { envVar } : {}),
     ...(rollout !== undefined ? { rollout } : {}),
+    ...(rules !== undefined ? { rules } : {}),
+    ...(disabledVariant !== undefined ? { disabledVariant } : {}),
     ...(metadata !== undefined ? { metadata } : {})
   };
 }
@@ -229,9 +256,10 @@ function validateMetadata(
   const metadata: Record<string, string | number | boolean> = {};
   for (const [key, metadataValue] of Object.entries(value)) {
     if (
-      typeof metadataValue !== "string" &&
-      typeof metadataValue !== "number" &&
-      typeof metadataValue !== "boolean"
+      (typeof metadataValue !== "string" &&
+        typeof metadataValue !== "number" &&
+        typeof metadataValue !== "boolean") ||
+      (typeof metadataValue === "number" && !Number.isFinite(metadataValue))
     ) {
       throw schemaError(`${label} values must be strings, numbers, or booleans.`);
     }
@@ -305,4 +333,8 @@ function deepFreeze<T>(value: T): T {
   }
 
   return Object.freeze(value);
+}
+
+function isJsonObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

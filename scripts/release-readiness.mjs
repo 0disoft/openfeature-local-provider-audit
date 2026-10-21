@@ -595,7 +595,9 @@ function checkApiSurfaceContract({
     "local-provider.api.d.ts",
     "API baseline declaration path"
   );
-  expectIncludes(apiBaselineDeclarations, "export {", "API declaration baseline export surface");
+  if (!/^\s*export\s+(?:\{|declare\s)/m.test(apiBaselineDeclarations)) {
+    blockers.push("API declaration baseline must contain exported declarations");
+  }
   expectIncludes(apiSurfaceScript, 'from "typescript-api"', "API surface TypeScript compiler API");
   expectIncludes(
     apiSurfaceScript,

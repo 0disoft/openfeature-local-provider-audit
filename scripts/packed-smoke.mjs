@@ -12,6 +12,9 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const PUBLIC_TYPE_EXPORTS = [
+  "ConditionScalar",
+  "TargetingCondition",
+  "TargetingRule",
   "AuditContextKeyMode",
   "AuditEvent",
   "AuditQueueOverflowPolicy",

@@ -1,6 +1,6 @@
 import { Provider } from "@openfeature/server-sdk";
-
-declare const LOCAL_PROVIDER_ERROR_CODES: {
+//#region src/errors/error-codes.d.ts
+export declare const LOCAL_PROVIDER_ERROR_CODES: {
   readonly PARSE_ERROR: "PARSE_ERROR";
   readonly SCHEMA_ERROR: "SCHEMA_ERROR";
   readonly FLAG_NOT_FOUND: "FLAG_NOT_FOUND";
@@ -12,29 +12,34 @@ declare const LOCAL_PROVIDER_ERROR_CODES: {
 };
 type LocalProviderErrorCode =
   (typeof LOCAL_PROVIDER_ERROR_CODES)[keyof typeof LOCAL_PROVIDER_ERROR_CODES];
-
-declare class LocalProviderError extends Error {
+//#endregion
+//#region src/errors/local-provider-error.d.ts
+export declare class LocalProviderError extends Error {
   readonly code: LocalProviderErrorCode;
   constructor(code: LocalProviderErrorCode, message: string);
 }
-declare function isLocalProviderError(value: unknown): value is LocalProviderError;
-
-declare const EVALUATION_REASONS: {
+export declare function isLocalProviderError(value: unknown): value is LocalProviderError;
+//#endregion
+//#region src/reasons.d.ts
+export declare const EVALUATION_REASONS: {
   readonly STATIC: "STATIC";
   readonly DEFAULT: "DEFAULT";
   readonly ENV_OVERRIDE: "ENV_OVERRIDE";
   readonly SPLIT: "SPLIT";
+  readonly TARGETING_MATCH: "TARGETING_MATCH";
+  readonly DISABLED: "DISABLED";
   readonly ERROR: "ERROR";
 };
 type EvaluationReason = (typeof EVALUATION_REASONS)[keyof typeof EVALUATION_REASONS];
-declare const EVALUATION_SOURCES: {
+export declare const EVALUATION_SOURCES: {
   readonly FILE: "file";
   readonly ENV: "env";
   readonly DEFAULT: "default";
   readonly ERROR: "error";
 };
 type EvaluationSource = (typeof EVALUATION_SOURCES)[keyof typeof EVALUATION_SOURCES];
-
+//#endregion
+//#region src/public-types.d.ts
 type FlagType = "boolean" | "string" | "number" | "object";
 type JsonValue = string | number | boolean | null | JsonObject | readonly JsonValue[];
 type JsonObject = {
@@ -53,9 +58,52 @@ interface FlagDefinition {
   readonly rollout?: readonly PercentageRolloutRule[];
   readonly envVar?: string;
   readonly metadata?: Readonly<Record<string, string | number | boolean>>;
+  readonly rules?: readonly TargetingRule[];
+  readonly disabledVariant?: string;
 }
+type ConditionScalar = string | number | boolean | null;
+type TargetingCondition =
+  | {
+      readonly all: readonly TargetingCondition[];
+    }
+  | {
+      readonly any: readonly TargetingCondition[];
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "eq";
+      readonly value: ConditionScalar;
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "in";
+      readonly value: readonly ConditionScalar[];
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "gt" | "gte" | "lt" | "lte";
+      readonly value: number;
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "semverEq" | "semverGt" | "semverGte" | "semverLt" | "semverLte";
+      readonly value: string;
+    };
+type TargetingRule = {
+  readonly id: string;
+  readonly when: TargetingCondition;
+} & (
+  | {
+      readonly variant: string;
+      readonly rollout?: never;
+    }
+  | {
+      readonly variant?: never;
+      readonly rollout: readonly PercentageRolloutRule[];
+    }
+);
 interface FlagSnapshot {
-  readonly schemaVersion: 1;
+  readonly schemaVersion: 1 | 2;
   readonly flags: Readonly<Record<string, FlagDefinition>>;
   readonly metadata?: Readonly<Record<string, string | number | boolean>>;
 }
@@ -88,6 +136,7 @@ interface EvaluationResult<T extends FlagValue = FlagValue> {
   readonly flagKey: string;
   readonly value: T;
   readonly variant?: string;
+  readonly ruleId?: string;
   readonly bucket?: number;
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;
@@ -234,101 +283,96 @@ interface FileAuditSinkOptions {
   readonly maxQueueSize?: number | null;
   readonly queueOverflowPolicy?: AuditQueueOverflowPolicy;
 }
-
-declare function parseJsonFlagSnapshot(json: string): FlagSnapshot;
-
-declare function parseYamlFlagSnapshot(yaml: string): FlagSnapshot;
-
-declare function loadFlagSnapshotFile(
+//#endregion
+//#region src/flags/parse-json-snapshot.d.ts
+export declare function parseJsonFlagSnapshot(json: string): FlagSnapshot;
+//#endregion
+//#region src/flags/parse-yaml-snapshot.d.ts
+export declare function parseYamlFlagSnapshot(yaml: string): FlagSnapshot;
+//#endregion
+//#region src/flags/snapshot-file.d.ts
+export declare function loadFlagSnapshotFile(
   path: string | URL,
   options?: LoadFlagSnapshotFileOptions
 ): Promise<FlagSnapshot>;
-declare function watchFlagSnapshotFile(
+export declare function watchFlagSnapshotFile(
   options: WatchFlagSnapshotFileOptions
 ): Promise<FlagSnapshotFileWatcher>;
-
-declare function createEnvOverrides(
+//#endregion
+//#region src/env/env-overrides.d.ts
+export declare function createEnvOverrides(
   snapshot: FlagSnapshot,
   options?: CreateEnvOverridesOptions
 ): EnvOverrideState;
-
-declare function evaluateFlag<T extends FlagValue>(
+//#endregion
+//#region src/evaluator/evaluate.d.ts
+export declare function evaluateFlag<T extends FlagValue>(
   snapshot: FlagSnapshot,
   request: EvaluationRequest<T>
 ): EvaluationResult<T>;
-
-declare function createLocalProvider(options: LocalProviderOptions): Provider;
-declare function createReloadableLocalProvider(
+//#endregion
+//#region src/provider/local-provider.d.ts
+export declare function createLocalProvider(options: LocalProviderOptions): Provider;
+export declare function createReloadableLocalProvider(
   options: LocalProviderOptions
 ): ReloadableLocalProvider;
-
-declare function replayEvaluationFixture<T extends FlagValue>(
+//#endregion
+//#region src/replay/replay-fixture.d.ts
+export declare function replayEvaluationFixture<T extends FlagValue>(
   fixture: ReplayFixture<T>
 ): ReplayResult<T>;
-
-declare function createAuditEvent(options: CreateAuditEventOptions): AuditEvent;
-declare function serializeAuditEvent(event: AuditEvent): string;
-declare function redactContext(
+//#endregion
+//#region src/audit/audit-event.d.ts
+export declare function createAuditEvent(options: CreateAuditEventOptions): AuditEvent;
+export declare function serializeAuditEvent(event: AuditEvent): string;
+export declare function redactContext(
   context?: EvaluationContext,
   options?: AuditRedactionOptions
 ): RedactedAuditContext;
-
-declare function createFileAuditSink(options: FileAuditSinkOptions): AuditSink;
-
-export {
-  type AuditContextKeyMode,
-  type AuditEvent,
-  type AuditQueueOverflowPolicy,
-  type AuditRedactionOptions,
-  type AuditSink,
-  type AuditWriteMode,
-  type CreateAuditEventOptions,
-  type CreateEnvOverridesOptions,
-  EVALUATION_REASONS,
-  EVALUATION_SOURCES,
-  type EnvOverrideState,
-  type EnvSource,
-  type EvaluationContext,
-  type EvaluationReason,
-  type EvaluationRequest,
-  type EvaluationResult,
-  type EvaluationSource,
-  type FileAuditSinkOptions,
-  type FileAuditSinkStats,
-  type FlagDefinition,
-  type FlagSnapshot,
-  type FlagSnapshotFileWatcher,
-  type FlagType,
-  type FlagValue,
-  type JsonObject,
-  type JsonValue,
-  LOCAL_PROVIDER_ERROR_CODES,
-  type LoadFlagSnapshotFileOptions,
-  LocalProviderError,
-  type LocalProviderErrorCode,
-  type LocalProviderOptions,
-  type PercentageRolloutRule,
-  type RedactedAuditContext,
-  type ReloadableLocalProvider,
-  type ReplayExpectedResult,
-  type ReplayFixture,
-  type ReplayMismatch,
-  type ReplayOverrideInput,
-  type ReplayResult,
-  type SnapshotFileFormat,
-  type WatchFlagSnapshotFileOptions,
-  createAuditEvent,
-  createEnvOverrides,
-  createFileAuditSink,
-  createLocalProvider,
-  createReloadableLocalProvider,
-  evaluateFlag,
-  isLocalProviderError,
-  loadFlagSnapshotFile,
-  parseJsonFlagSnapshot,
-  parseYamlFlagSnapshot,
-  redactContext,
-  replayEvaluationFixture,
-  serializeAuditEvent,
-  watchFlagSnapshotFile
+//#endregion
+//#region src/audit/audit-sink.d.ts
+export declare function createFileAuditSink(options: FileAuditSinkOptions): AuditSink;
+//#endregion
+export type {
+  AuditContextKeyMode,
+  AuditEvent,
+  AuditQueueOverflowPolicy,
+  AuditRedactionOptions,
+  AuditSink,
+  AuditWriteMode,
+  ConditionScalar,
+  CreateAuditEventOptions,
+  CreateEnvOverridesOptions,
+  EnvOverrideState,
+  EnvSource,
+  EvaluationContext,
+  EvaluationReason,
+  EvaluationRequest,
+  EvaluationResult,
+  EvaluationSource,
+  FileAuditSinkOptions,
+  FileAuditSinkStats,
+  FlagDefinition,
+  FlagSnapshot,
+  FlagSnapshotFileWatcher,
+  FlagType,
+  FlagValue,
+  JsonObject,
+  JsonValue,
+  LoadFlagSnapshotFileOptions,
+  LocalProviderErrorCode,
+  LocalProviderOptions,
+  PercentageRolloutRule,
+  RedactedAuditContext,
+  ReloadableLocalProvider,
+  ReplayExpectedResult,
+  ReplayFixture,
+  ReplayMismatch,
+  ReplayOverrideInput,
+  ReplayResult,
+  SnapshotFileFormat,
+  TargetingCondition,
+  TargetingRule,
+  WatchFlagSnapshotFileOptions
 };
+//# sourceMappingURL=index.d.ts.map

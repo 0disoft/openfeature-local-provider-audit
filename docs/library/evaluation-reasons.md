@@ -15,6 +15,9 @@ testing and audit contract.
 - `ENV_OVERRIDE`: value came from an explicit env override.
 - `SPLIT`: value came from deterministic percentage bucketing.
 - `ERROR`: evaluation hit a parse, schema, type, readiness, or override error.
+- Schema v2 adds `TARGETING_MATCH`: a matched rule selected a variant or its rollout's
+  unallocated default, and `DISABLED`: an emergency variant bypassed overrides/rules.
+  V1 reason behavior is unchanged. See `migration-to-2.0.md` for exhaustive consumers.
 
 ## Error Code Candidates
 

@@ -294,7 +294,7 @@ function createFlagHashes(snapshot: FlagSnapshot): ReadonlyMap<string, string> {
   return new Map(
     Object.entries(snapshot.flags).map(([flagKey, flag]) => [
       flagKey,
-      createSnapshotHash({ schemaVersion: 1, flags: { [flagKey]: flag } })
+      createSnapshotHash({ schemaVersion: snapshot.schemaVersion, flags: { [flagKey]: flag } })
     ])
   );
 }

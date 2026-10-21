@@ -52,6 +52,12 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
+`TargetingCondition`, and `TargetingRule`, snapshot version `1 | 2`, optional
+`FlagDefinition.rules` / `disabledVariant`, `EvaluationResult.ruleId`, and reasons
+`TARGETING_MATCH` / `DISABLED`. See `flag-file-schema-v2.md` and `migration-to-2.0.md`.
+V1 runtime behavior remains supported; exhaustive type consumers must migrate.
+
 The package-root runtime value surface is exactly:
 
 - `LocalProviderError` and `isLocalProviderError`.
