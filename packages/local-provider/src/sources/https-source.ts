@@ -114,7 +114,7 @@ async function readAttempt(
           maxHeaderSize: 16 * 1024,
           ...(ca !== undefined ? { ca } : {}),
           headers: {
-            accept: "application/json, application/yaml, text/yaml",
+            accept: "application/jose, application/json, application/yaml, text/yaml",
             "accept-encoding": "identity",
             ...(etag !== undefined ? { "if-none-match": etag } : {})
           }

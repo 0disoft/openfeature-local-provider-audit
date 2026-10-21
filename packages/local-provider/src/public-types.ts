@@ -1,4 +1,5 @@
 import type { Provider } from "@openfeature/server-sdk";
+import type { KeyObject } from "node:crypto";
 import type { EvaluationReason, EvaluationSource } from "./reasons.js";
 import type { LocalProviderErrorCode } from "./errors/error-codes.js";
 
@@ -252,15 +253,58 @@ export interface SnapshotRefresherOptions {
   readonly source: SnapshotSource;
   readonly format?: "json" | "yaml";
   readonly maxBytes?: number;
+  readonly verifier?: SnapshotVerifier;
+}
+
+export interface SignFlagSnapshotOptions {
+  readonly snapshot: FlagSnapshot;
+  readonly privateKey: KeyObject;
+  readonly keyId: string;
+  readonly audience: string;
+  readonly sequence: number;
+  readonly issuedAt: number;
+  readonly expiresAt: number;
+  readonly maxBytes?: number;
+}
+
+export interface SnapshotVerificationOptions {
+  readonly trustedKeys: Readonly<Record<string, KeyObject | string>>;
+  readonly audience: string;
+  readonly minSequence?: number;
+  readonly maxAgeMs?: number;
+  readonly maxLifetimeMs?: number;
+  readonly clockSkewMs?: number;
+  readonly maxBytes?: number;
+}
+
+export interface SignedSnapshotMetadata {
+  readonly keyId: string;
+  readonly audience: string;
+  readonly sequence: number;
+  readonly issuedAt: number;
+  readonly expiresAt: number;
+  readonly snapshotHash: string;
+  readonly artifactHash: string;
+}
+
+export interface VerifiedFlagSnapshot {
+  readonly snapshot: FlagSnapshot;
+  readonly provenance: SignedSnapshotMetadata;
+}
+
+export interface SnapshotVerifier {
+  verify(content: Uint8Array, previous?: SignedSnapshotMetadata): VerifiedFlagSnapshot;
 }
 
 export interface SnapshotRefreshResult {
   readonly status: "updated" | "unchanged";
   readonly snapshotHash: string;
+  readonly provenance?: SignedSnapshotMetadata;
 }
 
 export interface SnapshotRefresher {
   refresh(): Promise<SnapshotRefreshResult>;
+  getProvenance(): SignedSnapshotMetadata | undefined;
   close(): void;
 }
 

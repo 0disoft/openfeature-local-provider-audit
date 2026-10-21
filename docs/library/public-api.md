@@ -66,6 +66,9 @@ Optional metrics add `createOpenTelemetryMetrics`, `OpenTelemetryMeter`,
 Caller-triggered delivery adds `createHttpsSnapshotSource` and
 `createSnapshotRefresher`, with the seven source/refresher contract types below;
 see `https-snapshots.md`. Provider resolution remains local.
+Optional signed delivery adds `signFlagSnapshot`, `createSnapshotVerifier`,
+`SignFlagSnapshotOptions`, `SnapshotVerificationOptions`, `SignedSnapshotMetadata`,
+`VerifiedFlagSnapshot` and `SnapshotVerifier`; see `signed-snapshots.md`.
 
 The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
 `TargetingCondition`, and `TargetingRule`, snapshot version `1 | 2`, optional
@@ -91,6 +94,7 @@ The package-root runtime value surface is exactly:
 - `createAuditEvent`, `serializeAuditEvent`, `redactContext`, and `createFileAuditSink`.
 - `createOpenTelemetryMetrics`.
 - `createHttpsSnapshotSource` and `createSnapshotRefresher`.
+- `signFlagSnapshot` and `createSnapshotVerifier`.
 
 The package-root type surface is exactly:
 
@@ -116,6 +120,8 @@ The package-root type surface is exactly:
 - `SnapshotSource`, `SnapshotSourceRequest`, `SnapshotSourceResponse`,
   `HttpsSnapshotSourceOptions`, `SnapshotRefresherOptions`,
   `SnapshotRefreshResult`, and `SnapshotRefresher`.
+- `SignFlagSnapshotOptions`, `SnapshotVerificationOptions`, `SignedSnapshotMetadata`,
+  `VerifiedFlagSnapshot`, and `SnapshotVerifier`.
 - `ReplayExpectedResult`, `ReplayFixture`, `ReplayMismatch`, `ReplayOverrideInput`,
   and `ReplayResult`.
 

@@ -1,3 +1,4 @@
+import { KeyObject } from "node:crypto";
 import { Provider } from "@openfeature/server-sdk";
 //#region src/errors/error-codes.d.ts
 export declare const LOCAL_PROVIDER_ERROR_CODES: {
@@ -287,13 +288,51 @@ interface SnapshotRefresherOptions {
   readonly source: SnapshotSource;
   readonly format?: "json" | "yaml";
   readonly maxBytes?: number;
+  readonly verifier?: SnapshotVerifier;
+}
+interface SignFlagSnapshotOptions {
+  readonly snapshot: FlagSnapshot;
+  readonly privateKey: KeyObject;
+  readonly keyId: string;
+  readonly audience: string;
+  readonly sequence: number;
+  readonly issuedAt: number;
+  readonly expiresAt: number;
+  readonly maxBytes?: number;
+}
+interface SnapshotVerificationOptions {
+  readonly trustedKeys: Readonly<Record<string, KeyObject | string>>;
+  readonly audience: string;
+  readonly minSequence?: number;
+  readonly maxAgeMs?: number;
+  readonly maxLifetimeMs?: number;
+  readonly clockSkewMs?: number;
+  readonly maxBytes?: number;
+}
+interface SignedSnapshotMetadata {
+  readonly keyId: string;
+  readonly audience: string;
+  readonly sequence: number;
+  readonly issuedAt: number;
+  readonly expiresAt: number;
+  readonly snapshotHash: string;
+  readonly artifactHash: string;
+}
+interface VerifiedFlagSnapshot {
+  readonly snapshot: FlagSnapshot;
+  readonly provenance: SignedSnapshotMetadata;
+}
+interface SnapshotVerifier {
+  verify(content: Uint8Array, previous?: SignedSnapshotMetadata): VerifiedFlagSnapshot;
 }
 interface SnapshotRefreshResult {
   readonly status: "updated" | "unchanged";
   readonly snapshotHash: string;
+  readonly provenance?: SignedSnapshotMetadata;
 }
 interface SnapshotRefresher {
   refresh(): Promise<SnapshotRefreshResult>;
+  getProvenance(): SignedSnapshotMetadata | undefined;
   close(): void;
 }
 type SnapshotFileFormat = "auto" | "json" | "yaml";
@@ -495,6 +534,12 @@ export declare function createSnapshotRefresher(
   options: SnapshotRefresherOptions
 ): SnapshotRefresher;
 //#endregion
+//#region src/sources/signed-snapshot.d.ts
+export declare function signFlagSnapshot(options: SignFlagSnapshotOptions): string;
+export declare function createSnapshotVerifier(
+  options: SnapshotVerificationOptions
+): SnapshotVerifier;
+//#endregion
 export type {
   AuditContextKeyMode,
   AuditEvent,
@@ -544,6 +589,8 @@ export type {
   ReplayOverrideInput,
   ReplayResult,
   RuleExplanation,
+  SignFlagSnapshotOptions,
+  SignedSnapshotMetadata,
   SnapshotFileFormat,
   SnapshotRefreshResult,
   SnapshotRefresher,
@@ -551,8 +598,11 @@ export type {
   SnapshotSource,
   SnapshotSourceRequest,
   SnapshotSourceResponse,
+  SnapshotVerificationOptions,
+  SnapshotVerifier,
   TargetingCondition,
   TargetingRule,
+  VerifiedFlagSnapshot,
   WatchFlagSnapshotFileOptions
 };
 //# sourceMappingURL=index.d.ts.map

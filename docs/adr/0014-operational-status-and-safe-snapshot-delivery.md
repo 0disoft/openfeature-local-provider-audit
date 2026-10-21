@@ -37,3 +37,9 @@ No control plane, database, background worker or runtime expansion is authorized
 Detailed source/signature/recovery/integrity contracts must accompany their code,
 including failure and rollback behavior. This ADR does not claim those slices
 already exist or that local tests constitute publication or hosted evidence.
+
+The implemented signature profile is restricted compact JWS with the fully-specified
+RFC 9864 `Ed25519` algorithm, a package-specific protected type and bounded
+audience/sequence/millisecond lifetime claims. Trust keys are pinned out of band;
+no dynamic discovery or algorithm negotiation. The detailed signing and
+process-local continuity contract is `docs/library/signed-snapshots.md`.

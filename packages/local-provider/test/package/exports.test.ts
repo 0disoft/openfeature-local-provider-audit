@@ -8,6 +8,8 @@ import {
   createOpenTelemetryMetrics,
   createHttpsSnapshotSource,
   createSnapshotRefresher,
+  signFlagSnapshot,
+  createSnapshotVerifier,
   createLocalProvider,
   createReloadableLocalProvider,
   evaluateFlag,
@@ -36,6 +38,8 @@ describe("package exports", () => {
     expect(typeof createOpenTelemetryMetrics).toBe("function");
     expect(typeof createHttpsSnapshotSource).toBe("function");
     expect(typeof createSnapshotRefresher).toBe("function");
+    expect(typeof signFlagSnapshot).toBe("function");
+    expect(typeof createSnapshotVerifier).toBe("function");
     expect(typeof serializeAuditEvent).toBe("function");
     expect(typeof redactContext).toBe("function");
     expect(EVALUATION_REASONS.STATIC).toBe("STATIC");

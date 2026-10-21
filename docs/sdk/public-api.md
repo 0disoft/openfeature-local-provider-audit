@@ -51,6 +51,11 @@ Caller-triggered HTTPS sources/refresher are optional, distinct from SDK
 evaluation. The caller owns refreshing/shutdown and trusted URL/CA configuration.
 See `docs/library/https-snapshots.md` for ETag commit, cancellation and last-good behavior.
 
+Optional signed refresh authenticates audience/sequence/lifetime and snapshot
+before provider application, including 304 freshness checks. Provenance joins audit
+by snapshot hash; see `docs/library/signed-snapshots.md`. No signing key is needed
+for evaluation or verification, and active last-good values are not disabled at expiry.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

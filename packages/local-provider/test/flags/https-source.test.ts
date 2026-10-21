@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { generateKeyPairSync } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:https";
@@ -11,6 +12,8 @@ import {
   createHttpsSnapshotSource,
   createReloadableLocalProvider,
   createSnapshotRefresher,
+  createSnapshotVerifier,
+  signFlagSnapshot,
   type FlagSnapshot,
   type HttpsSnapshotSourceOptions,
   type SnapshotSource,
@@ -104,6 +107,39 @@ function content(enabled: boolean, etag = '"v1"'): SnapshotSourceResponse {
 }
 
 describe("HTTPS source and local refresh", () => {
+  it("verifies signed content downloaded over TLS before exposing it to evaluations", async () => {
+    const signingKeys = generateKeyPairSync("ed25519");
+    const token = signFlagSnapshot({
+      snapshot: snapshot(true),
+      privateKey: signingKeys.privateKey,
+      keyId: "release",
+      audience: "tls-test",
+      sequence: 1,
+      issuedAt: Date.now() - 1_000,
+      expiresAt: Date.now() + 60_000
+    });
+    handle = (_request, response) => response.writeHead(200, { etag: '"signed"' }).end(token);
+    const provider = createReloadableLocalProvider({ snapshot: snapshot(false), env: {} });
+    const refresh = createSnapshotRefresher({
+      provider,
+      source: source(),
+      verifier: createSnapshotVerifier({
+        audience: "tls-test",
+        trustedKeys: { release: signingKeys.publicKey }
+      })
+    });
+    const result = await refresh.refresh();
+    expect(result.provenance?.snapshotHash).toBe(provider.getStatus().snapshotHash);
+    expect(requests[0]?.headers.accept).toContain("application/jose");
+    await expect(
+      provider.resolveBooleanEvaluation("feature", false, {}, logger)
+    ).resolves.toMatchObject({ value: true });
+    handle = (_request, response) => response.end(token.slice(0, -2));
+    await expect(refresh.refresh()).rejects.toThrow("Signed snapshot verification failed.");
+    expect(provider.getSnapshot()).toEqual(snapshot(true));
+    expect(refresh.getProvenance()?.sequence).toBe(1);
+    refresh.close();
+  });
   it("applies over verified TLS, revalidates with ETag and never fetches during evaluation", async () => {
     handle = (request, response) => {
       if (request.headers["if-none-match"] === '"v1"') response.writeHead(304).end();

@@ -12,6 +12,11 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "SignFlagSnapshotOptions",
+  "SnapshotVerificationOptions",
+  "SignedSnapshotMetadata",
+  "VerifiedFlagSnapshot",
+  "SnapshotVerifier",
   "SnapshotSource",
   "SnapshotSourceRequest",
   "SnapshotSourceResponse",
@@ -35,6 +40,11 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "SignFlagSnapshotOptions",
+  "SnapshotVerificationOptions",
+  "SignedSnapshotMetadata",
+  "VerifiedFlagSnapshot",
+  "SnapshotVerifier",
   "SnapshotSource",
   "SnapshotSourceRequest",
   "SnapshotSourceResponse",
@@ -379,7 +389,9 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "explainEvaluation",
             "createOpenTelemetryMetrics",
             "createHttpsSnapshotSource",
-            "createSnapshotRefresher"
+            "createSnapshotRefresher",
+            "signFlagSnapshot",
+            "createSnapshotVerifier"
           ]
         : []),
       "isLocalProviderError",
@@ -522,6 +534,22 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     try { api.createHttpsSnapshotSource({ url: "http://example.test/flags" }); }
     catch { rejectedInsecure = true; }
     if (!rejectedInsecure) throw new Error(moduleKind + " source HTTPS validation failed");
+    const signingKeys = require("node:crypto").generateKeyPairSync("ed25519");
+    const signed = api.signFlagSnapshot({
+      snapshot: jsonSnapshot, privateKey: signingKeys.privateKey, keyId: "packed",
+      audience: "packed", sequence: 1, issuedAt: Date.now() - 1000, expiresAt: Date.now() + 60000
+    });
+    const signedRefresher = api.createSnapshotRefresher({
+      provider: offlineProvider,
+      source: { async fetch() { return { status: "content", content: Buffer.from(signed) }; } },
+      verifier: api.createSnapshotVerifier({ audience: "packed", trustedKeys: { packed: signingKeys.publicKey } })
+    });
+    const signedResult = await signedRefresher.refresh();
+    if (signedResult.provenance?.sequence !== 1 ||
+        signedRefresher.getProvenance()?.snapshotHash !== offlineProvider.getStatus().snapshotHash) {
+      throw new Error(moduleKind + " signed snapshot/provenance contract failed");
+    }
+    signedRefresher.close();
   }
   let flagsChanged = [];
   reloadableProvider.events?.addHandler(ProviderEvents.ConfigurationChanged, (details) => {

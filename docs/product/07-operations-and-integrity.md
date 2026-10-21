@@ -135,6 +135,38 @@ threat-model contracts point to `https-snapshots.md`. No runtime/development
 dependency, DB, runner or repository hygiene policy changed. Hosted Linux/macOS
 verification remains deferred because no push is authorized.
 
-Plain TLS/ETag is not signed provenance or persistent recovery. Remaining, in
-order: signatures/expiry/replay/downgrade rules and persistent last-good/rollback;
-GitOps recipe; audit chain/checkpoint verification.
+### Signed delivery and process-local continuity completed locally
+
+Alpha.8 adds native Ed25519 signing and pinned public-key verification under a
+restricted compact-JWS profile. It uses the fully-specified RFC 9864 algorithm
+identifier, not deprecated polymorphic EdDSA. Bounded authenticated claims cover
+audience, sequence, issuance/expiry and snapshot. Payload/schema parsing follows
+signature verification. Strict expiry, maximum age/lifetime, bootstrap floor,
+previous sequence/artifact continuity and explicit out-of-band rotation are enforced.
+
+The refresher verifies 200 content and revalidates cached signatures on 304;
+failed signature/application does not advance provenance/ETag/replay state.
+Frozen provenance links to current semantic snapshot hashes and existing audit
+records. That is snapshot-level linkage: distinct signed artifacts of identical
+configuration are not yet individually identified in each evaluation's audit event.
+Active last-good evaluations remain local after expiry/fetch failure.
+
+`check`, `contract`, format and lint passed. Windows Node 24.14.0 and 22.23.3 each
+passed 316 package tests with 5 existing platform skips. Coverage: 94.85% statements,
+92.81% branches, 99.28% functions, 95.61% lines. Evidence covers independent native
+JWS generation/verification, real TLS download, corruption/algorithm/key/audience
+substitution, unknown headers, temporal/sequence limits, key capture/rotation,
+equivocation/replay, signed-304 expiry, failed application continuity and audit hash
+linkage. All keys are ephemeral real generated keys, not committed private fixtures.
+
+The 157,095-byte alpha.8 tarball passed ESM/CJS signer/verifier/refresher/provenance
+and existing runtime/CLI contracts, TypeScript 5.9.3 full-library validation and
+7.0.2 consumer-surface validation. Reviewed API: 87 exports, 24 runtime values.
+Public API, migration, SDK, ADR 0014 and threat-model contracts name
+`signed-snapshots.md`. No dependency, DB, runner or repository hygiene policy changed.
+Hosted Linux/macOS verification remains deferred because no push is authorized.
+
+Remaining, in order: persistent verified last-good recovery, durable replay floor,
+bounded history and explicit rollback, with exact signed-artifact audit linkage;
+GitOps recipe; audit chain/checkpoint verification. Process-local provenance must
+not be claimed as restart protection. Preserve this remaining scope in later slices.

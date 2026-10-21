@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.7` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.8` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -40,6 +40,18 @@ no evaluation performs a fetch and no automatic refresh is enabled. No runtime
 dependency was added. Source transport failures use existing `PROVIDER_NOT_READY`;
 the active last good provider remains available. Signing and durable recovery are
 not claimed by this transport slice.
+
+Alpha.8 adds optional signed JWS delivery, `signFlagSnapshot`,
+`createSnapshotVerifier` and five signing/verification/provenance types.
+`SnapshotRefresherOptions.verifier` opts in; ordinary JSON/YAML refresh is unchanged.
+Custom `SnapshotRefresher` implementations add `getProvenance()`.
+`SnapshotRefreshResult.provenance` is optional. Use native Ed25519 KeyObjects for
+signing, pinned public keys for verification and current deployment-specific
+audience/freshness policy. No JOSE or other runtime dependency is added. See
+`signed-snapshots.md` before rotation, rollback or reconstructing process-local
+replay state. Persistent restart recovery is still a separate pending slice.
+The protected algorithm identifier is fully specified `Ed25519` under RFC 9864;
+the deprecated polymorphic `EdDSA` identifier is not accepted by this new profile.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

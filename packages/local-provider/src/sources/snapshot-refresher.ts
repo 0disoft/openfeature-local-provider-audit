@@ -7,15 +7,19 @@ import type {
   SnapshotRefresher,
   SnapshotRefresherOptions,
   SnapshotRefreshResult,
-  SnapshotSourceResponse
+  SnapshotSourceResponse,
+  SignedSnapshotMetadata,
+  VerifiedFlagSnapshot
 } from "../public-types.js";
 import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./https-source.js";
 
 export function createSnapshotRefresher(options: SnapshotRefresherOptions): SnapshotRefresher {
-  const { provider, source } = options;
+  const { provider, source, verifier } = options;
   const format = options.format ?? "json";
   if (format !== "json" && format !== "yaml")
     throw new TypeError("Snapshot format must be json or yaml.");
+  if (verifier !== undefined && format !== "json")
+    throw new TypeError("Signed snapshots require JSON format.");
   const maxBytes = sourceInteger(
     "maxBytes",
     options.maxBytes ?? DEFAULT_SOURCE_BYTES,
@@ -27,6 +31,8 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
   let closed = false;
   let active: AbortController | undefined;
   let inFlight: Promise<SnapshotRefreshResult> | undefined;
+  let provenance: SignedSnapshotMetadata | undefined;
+  let committedArtifact: Uint8Array | undefined;
 
   async function performRefresh(): Promise<SnapshotRefreshResult> {
     if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
@@ -49,21 +55,44 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         provider.reportRefreshFailure("load");
         throw unavailable("Snapshot changed during refresh; retry explicitly.");
       }
-      let snapshot: FlagSnapshot;
+      let artifact: Uint8Array | undefined;
       try {
         if (response.status === "notModified") {
           if (conditionalEtag === undefined) throw new Error("Unexpected not-modified response.");
-          snapshot = provider.getSnapshot();
         } else if (response.status === "content") {
           if (response.content.byteLength > maxBytes) throw new Error("Snapshot exceeds maxBytes.");
-          const text = new TextDecoder("utf-8", { fatal: true }).decode(response.content);
-          snapshot = format === "json" ? parseJsonFlagSnapshot(text) : parseYamlFlagSnapshot(text);
+          artifact = verifier === undefined ? response.content : Uint8Array.from(response.content);
         } else {
           throw new Error("Unknown source response.");
         }
       } catch {
         provider.reportRefreshFailure("validation");
         throw new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid.");
+      }
+      let snapshot: FlagSnapshot;
+      let verified: VerifiedFlagSnapshot | undefined;
+      if (verifier !== undefined) {
+        try {
+          const signedBytes = artifact ?? committedArtifact;
+          if (signedBytes === undefined) throw new Error("No signed artifact.");
+          verified = verifier.verify(signedBytes, provenance);
+          snapshot = verified.snapshot;
+        } catch {
+          provider.reportRefreshFailure("signature");
+          throw new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed.");
+        }
+      } else {
+        try {
+          if (artifact === undefined) snapshot = provider.getSnapshot();
+          else {
+            const text = new TextDecoder("utf-8", { fatal: true }).decode(artifact);
+            snapshot =
+              format === "json" ? parseJsonFlagSnapshot(text) : parseYamlFlagSnapshot(text);
+          }
+        } catch {
+          provider.reportRefreshFailure("validation");
+          throw new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid.");
+        }
       }
       // Provider validation failures are already counted there. Commit the validator
       // only after application succeeds; failures leave both snapshot and ETag intact.
@@ -75,14 +104,25 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         throw unavailable("Snapshot changed during application; retry explicitly.");
       }
       committedHash = snapshotHash;
+      if (verified !== undefined) {
+        provenance = verified.provenance;
+        if (artifact !== undefined) committedArtifact = artifact;
+      }
       if (response.status === "content") etag = response.etag;
-      return { status: snapshotHash === before ? "unchanged" : "updated", snapshotHash };
+      return {
+        status: snapshotHash === before ? "unchanged" : "updated",
+        snapshotHash,
+        ...(provenance !== undefined ? { provenance } : {})
+      };
     } finally {
       active = undefined;
     }
   }
 
   return {
+    getProvenance() {
+      return provider.getStatus().snapshotHash === committedHash ? provenance : undefined;
+    },
     refresh() {
       if (inFlight !== undefined) return inFlight;
       inFlight = Promise.resolve()

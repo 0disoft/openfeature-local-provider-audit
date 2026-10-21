@@ -30,6 +30,14 @@ responses cannot overwrite a different current provider hash. Network errors do
 not expose source URLs, response bodies or raw causes. Protect presigned queries
 in caller-owned configuration and any external network instrumentation.
 
+Optional signed delivery pins Ed25519 public keys and expected audience, bounds
+artifact size/age/lifetime and checks previous committed sequence/artifact identity.
+The signing helper accepts a caller-owned private KeyObject and never reads secrets.
+Untrusted headers cannot choose another algorithm or discover keys. Expired 304
+responses do not renew freshness. Publisher key security, trusted clocks/floors and
+out-of-band key rotation remain caller responsibilities. Replay continuity is
+process-local until the persistent recovery slice; JWS does not encrypt configuration.
+
 ## Required Controls
 
 - Validate flag snapshots before accepting them.
