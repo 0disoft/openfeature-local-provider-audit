@@ -35,6 +35,11 @@ instead of drifting into a feature flag platform.
 - Browser SDK and multi-language SDKs.
 - General-purpose targeting rule language, country or plan rules, regex rules, and stored user segments.
 
+ADR 0013 accepts bounded attribute comparisons (including caller-supplied region,
+tenant, and app version), emergency variant selection and local inspection as a
+post-MVP extension. General-purpose languages, regex, stored segments, automatic
+schedules and remote management remain deferred.
+
 ## Deferred Extension Rule
 
 Deferred features require an ADR before implementation. The ADR must name the source of

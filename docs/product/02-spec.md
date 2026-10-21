@@ -40,6 +40,11 @@ API, and the underlying flag source can later be replaced by another provider.
 
 ## Out of Scope
 
+Bounded conditional targeting, emergency variant selection, redacted explanations,
+and offline simulation/comparison are accepted post-MVP extensions through
+`docs/adr/0013-bounded-local-targeting.md`. Schema v1 remains supported; schema v2
+opts into the new evaluation rules. See `docs/library/flag-file-schema-v2.md`.
+
 - Hosted feature flag SaaS UI.
 - Remote management server or streaming updates.
 - Approval workflow, experiment analytics, or segment database.

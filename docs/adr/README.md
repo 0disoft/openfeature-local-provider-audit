@@ -22,6 +22,8 @@ which behavior becomes part of the public compatibility contract.
 - Audit context key redaction ADR: docs/adr/0009-audit-context-key-redaction.md
 - Bounded audit queue default ADR: docs/adr/0010-bounded-audit-queue-default.md
 - Projected-volume consistency ADR: docs/adr/0011-projected-volume-consistency.md
+- TypeScript 7 toolchain ADR: docs/adr/0012-typescript-7-toolchain.md
+- Bounded local targeting ADR: docs/adr/0013-bounded-local-targeting.md
 
 ## Required Decisions
 
