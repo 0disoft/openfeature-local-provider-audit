@@ -10,6 +10,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { ProviderEvents } from "@openfeature/server-sdk";
 import {
   createHttpsSnapshotSource,
+  createFileSnapshotStore,
   createReloadableLocalProvider,
   createSnapshotRefresher,
   createSnapshotVerifier,
@@ -119,14 +120,15 @@ describe("HTTPS source and local refresh", () => {
       expiresAt: Date.now() + 60_000
     });
     handle = (_request, response) => response.writeHead(200, { etag: '"signed"' }).end(token);
+    const verification = { audience: "tls-test", trustedKeys: { release: signingKeys.publicKey } };
+    const storePath = join(directory, "signed-state.json");
+    const store = createFileSnapshotStore({ path: storePath, verification });
     const provider = createReloadableLocalProvider({ snapshot: snapshot(false), env: {} });
     const refresh = createSnapshotRefresher({
       provider,
       source: source(),
-      verifier: createSnapshotVerifier({
-        audience: "tls-test",
-        trustedKeys: { release: signingKeys.publicKey }
-      })
+      store,
+      verifier: createSnapshotVerifier(verification)
     });
     const result = await refresh.refresh();
     expect(result.provenance?.snapshotHash).toBe(provider.getStatus().snapshotHash);
@@ -138,6 +140,13 @@ describe("HTTPS source and local refresh", () => {
     await expect(refresh.refresh()).rejects.toThrow("Signed snapshot verification failed.");
     expect(provider.getSnapshot()).toEqual(snapshot(true));
     expect(refresh.getProvenance()?.sequence).toBe(1);
+    const recovered = await createFileSnapshotStore({ path: storePath, verification }).load();
+    if (recovered?.current === undefined) throw new Error("Missing durable TLS recovery.");
+    expect(recovered.floor.artifactHash).toBe(result.provenance?.artifactHash);
+    const restarted = createReloadableLocalProvider({ ...recovered.current, env: {} });
+    await expect(
+      restarted.resolveBooleanEvaluation("feature", false, {}, logger)
+    ).resolves.toMatchObject({ value: true });
     refresh.close();
   });
   it("applies over verified TLS, revalidates with ETag and never fetches during evaluation", async () => {

@@ -15,7 +15,10 @@ import type {
 import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./https-source.js";
 
 export function createSnapshotRefresher(options: SnapshotRefresherOptions): SnapshotRefresher {
-  const { provider, source, verifier } = options;
+  const { provider, source, verifier, store } = options;
+  const prepare = store === undefined ? undefined : provider.prepareSnapshot?.bind(provider);
+  if (store !== undefined && (verifier === undefined || prepare === undefined))
+    throw new TypeError("Durable refresh requires a signed verifier and transactional provider.");
   const format = options.format ?? "json";
   if (options.previous !== undefined && verifier === undefined)
     throw new TypeError("Recovered provenance requires a signed verifier.");
@@ -42,7 +45,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
           options.previous,
           Object.getOwnPropertyDescriptor(options.previous, "snapshotHash")?.value as string
         );
-  let provenance: SignedSnapshotMetadata | undefined =
+  let replayFloor: SignedSnapshotMetadata | undefined =
     verifier === undefined
       ? undefined
       : recovered !== undefined && (initial === undefined || recovered.sequence > initial.sequence)
@@ -55,6 +58,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       (recovered.sequence === initial.sequence && recovered.artifactHash !== initial.artifactHash))
   )
     throw new TypeError("Recovered provenance conflicts with initial provider origin.");
+  let provenance: SignedSnapshotMetadata | undefined;
   let committedArtifact: Uint8Array | undefined;
 
   async function performRefresh(): Promise<SnapshotRefreshResult> {
@@ -66,6 +70,21 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       committedHash === before && provenance?.artifactHash === beforeArtifact ? etag : undefined;
     active = new AbortController();
     try {
+      if (store !== undefined) {
+        try {
+          replayFloor = mergeFloor(replayFloor, (await store.load())?.floor);
+        } catch {
+          provider.reportRefreshFailure("persist");
+          throw unavailable("Snapshot persistence is unavailable.");
+        }
+        if (closed || provider.getStatus().closed)
+          throw unavailable("Snapshot refresher is closed.");
+        const loaded = provider.getStatus();
+        if (loaded.snapshotHash !== before || loaded.provenance?.artifactHash !== beforeArtifact) {
+          provider.reportRefreshFailure("load");
+          throw unavailable("Snapshot changed during recovery; retry explicitly.");
+        }
+      }
       let response: SnapshotSourceResponse;
       try {
         response = await source.fetch({
@@ -102,12 +121,8 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         try {
           const signedBytes = artifact ?? committedArtifact;
           if (signedBytes === undefined) throw new Error("No signed artifact.");
-          const previous =
-            beforeStatus.provenance !== undefined &&
-            (provenance === undefined || beforeStatus.provenance.sequence > provenance.sequence)
-              ? beforeStatus.provenance
-              : provenance;
-          verified = verifier.verify(signedBytes, previous);
+          replayFloor = mergeFloor(replayFloor, beforeStatus.provenance);
+          verified = verifier.verify(signedBytes, replayFloor);
           snapshot = verified.snapshot;
         } catch {
           provider.reportRefreshFailure("signature");
@@ -129,7 +144,56 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       // Provider validation failures are already counted there. Commit the validator
       // only after application succeeds; failures leave both snapshot and ETag intact.
       const expectedHash = createSnapshotHash(snapshot);
-      provider.updateSnapshot(snapshot, verified?.provenance);
+      if (
+        store !== undefined &&
+        verified !== undefined &&
+        prepare !== undefined &&
+        verifier !== undefined
+      ) {
+        const signedBytes = artifact ?? committedArtifact;
+        if (signedBytes === undefined) throw unavailable("No signed artifact is available.");
+        const transaction = prepare(snapshot, verified.provenance);
+        try {
+          if (closed || provider.getStatus().closed)
+            throw unavailable("Snapshot refresher is closed.");
+          try {
+            const acknowledged = await store.commit(Uint8Array.from(signedBytes));
+            if (
+              acknowledged.provenance.artifactHash !== verified.provenance.artifactHash ||
+              acknowledged.provenance.snapshotHash !== expectedHash
+            )
+              throw new Error();
+          } catch {
+            provider.reportRefreshFailure("persist");
+            throw unavailable("Snapshot persistence is unavailable.");
+          }
+          // Durable acceptance survives close, later callbacks and ambiguous application.
+          replayFloor = verified.provenance;
+          if (closed || provider.getStatus().closed)
+            throw unavailable("Snapshot refresher is closed after persistence.");
+          try {
+            const fresh = verifier.verify(signedBytes, replayFloor);
+            if (
+              fresh.provenance.artifactHash !== verified.provenance.artifactHash ||
+              fresh.provenance.snapshotHash !== expectedHash
+            )
+              throw new Error();
+          } catch {
+            provider.reportRefreshFailure("signature");
+            throw new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed.");
+          }
+          try {
+            transaction.commit();
+          } catch {
+            provider.reportRefreshFailure("load");
+            throw unavailable("Snapshot application failed after persistence.");
+          }
+        } finally {
+          transaction.cancel();
+        }
+      } else {
+        provider.updateSnapshot(snapshot, verified?.provenance);
+      }
       const applied = provider.getStatus();
       const snapshotHash = applied.snapshotHash;
       if (
@@ -142,6 +206,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       committedHash = snapshotHash;
       if (verified !== undefined) {
         provenance = verified.provenance;
+        replayFloor = verified.provenance;
         if (artifact !== undefined) committedArtifact = artifact;
       }
       if (response.status === "content") etag = response.etag;
@@ -181,4 +246,25 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
 
 function unavailable(message: string): LocalProviderError {
   return new LocalProviderError("PROVIDER_NOT_READY", message);
+}
+
+function mergeFloor(
+  previous: SignedSnapshotMetadata | undefined,
+  candidate: SignedSnapshotMetadata | undefined
+): SignedSnapshotMetadata | undefined {
+  if (candidate === undefined) return previous;
+  const next = captureSnapshotProvenance(
+    candidate,
+    Object.getOwnPropertyDescriptor(candidate, "snapshotHash")?.value as string
+  );
+  if (next === undefined) return previous;
+  if (previous === undefined) return next;
+  if (
+    previous.audience !== next.audience ||
+    (previous.sequence === next.sequence && previous.artifactHash !== next.artifactHash) ||
+    (previous.sequence < next.sequence && previous.issuedAt > next.issuedAt) ||
+    (previous.sequence > next.sequence && previous.issuedAt < next.issuedAt)
+  )
+    throw unavailable("Snapshot continuity state conflicts.");
+  return next.sequence > previous.sequence ? next : previous;
 }

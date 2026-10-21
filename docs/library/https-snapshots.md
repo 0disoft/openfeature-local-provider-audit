@@ -99,9 +99,11 @@ can still stall its own call, but cannot apply after close.
 
 `refresher.close()` is idempotent and does not flush/close the provider or source.
 Callers own scheduling and shutdown; no recurring timer, worker or management
-service is installed. ETags and snapshots are process-local in this slice.
-Signature verification, expiry/replay/downgrade rules and persistent restart recovery
-remain the next P2 slice; neither TLS nor ETag is a content provenance guarantee.
+service is installed. ETags remain controller-local. Optional signature verification
+and durable recovery are contracted in `signed-snapshots.md` and
+`snapshot-recovery.md`; TLS/ETag alone is not a content provenance guarantee.
+Durable refresh prepares validated state, persists acceptance and only then
+activates. Close after persistence starts cannot retract an accepted journal.
 
 ## Verification boundary
 

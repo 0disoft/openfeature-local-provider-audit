@@ -206,7 +206,7 @@ concurrent-writer and crash boundaries. No restart protection is claimed yet.
 
 ### Standalone signed storage and restart recovery completed locally
 
-Alpha.10 adds the bounded atomic `createFileSnapshotStore` journal, native signature
+Commit aaecb82 / alpha.10 adds the bounded atomic `createFileSnapshotStore` journal, native signature
 re-verification, retained newest-first history and higher-sequence signed rollback.
 Recovered fresh `current` is separate from authenticated historical `floor`/entries:
 expired or below-current-policy artifacts cannot silently reactivate. Explicit
@@ -239,3 +239,47 @@ replacement, cancellation, persistence errors and ETag/provenance commit boundar
 The standalone store does not claim atomic coordination with independent provider
 updates. Then complete the GitOps recipe and audit hash chain/verifier/checkpoints
 with rotation, concurrent-writer and crash boundaries. Preserve the full P2 scope.
+
+
+### Durable refresh and provider activation completed locally
+
+Alpha.11 adds optional signed-refresher `store` integration and the optional
+provider `prepareSnapshot` / `SnapshotUpdateTransaction` capability. Each refresh
+reloads authenticated durable continuity before fetching. Preparation validates and
+reserves provider mutation while evaluations/audit keep the old snapshot/origin.
+Store acceptance precedes atomic activation and configuration event delivery;
+post-storage freshness validation prevents an artifact expiring during I/O from
+being activated. Concurrent direct updates/preparations reject while reserved.
+
+Validation failure never persists. Failed or ambiguous storage cancels preparation,
+preserves active state/freshness/source ETag and is counted once as `persist`.
+The next refresh reads the durable floor again. Matching acknowledgment advances
+accepted continuity before callbacks; later reentrant replacement or close cannot
+roll back already accepted disk state. ETag/source provenance only commit with
+matching active contents. Close before storage starts prevents the commit; close
+after it starts drains that operation and prevents activation. Custom transactions
+must provide idempotent nonthrowing cancellation and honor the reservation contract.
+The authoritative boundary is `docs/library/snapshot-recovery.md` and matching
+signed/HTTPS/API/SDK/migration/threat-model/ADR contracts.
+
+`check`, `contract`, format, lint and diff whitespace checks passed. Windows Node
+24.14.0 and 22.23.3 each passed 345 package tests with 6 existing platform skips.
+Coverage: 94.37% statements, 92.52% branches, 99.34% functions, 95.35% lines.
+Tests cover gated I/O, old/new evaluation audit identity, mutation reservation,
+preparation rejection, persistence failure/ambiguous success, close on either
+owner, expiration during storage, post-activation replacement, floor recovery,
+ETag 304, wrong acknowledgments and custom-store buffer mutation. The real ephemeral
+TLS test now downloads/verifies/persists/activates and recovers with a fresh store
+and provider. Prior independent-process restart coverage remains in place.
+
+The 176,775-byte alpha.11 tarball passed ESM/CJS integrated durable refresh/recovery
+and existing runtime/CLI contracts, TypeScript 5.9.3 full-library and 7.0.2 consumer
+surface checks, including transaction/store option typing. Reviewed API: 92 exports /
+25 runtime values. No dependency, DB, runner or repository hygiene policy changed.
+Hosted Linux/macOS checks remain deferred because no push is authorized.
+
+Remaining P2, in order: GitOps recipe using the actual signing/verification/store/
+refresher/history APIs; audit hash chain, verification tool and trusted external
+checkpoints with explicit rotation, concurrent-writer and crash boundaries. Final
+completion must audit the whole P2 acceptance list, not only these latest slices.
+No push, tag, release or remote workflow is authorized. P3 remains separate.

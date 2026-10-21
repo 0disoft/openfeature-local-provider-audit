@@ -12,6 +12,7 @@ import {
   resolveAuditContextKeyMode
 } from "../audit/audit-event.js";
 import { createEnvOverrides } from "../env/env-overrides.js";
+import { LocalProviderError } from "../errors/local-provider-error.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
@@ -34,7 +35,8 @@ import type {
   ProviderMetricsSession,
   RefreshFailureKind,
   ReloadableLocalProvider,
-  SignedSnapshotMetadata
+  SignedSnapshotMetadata,
+  SnapshotUpdateTransaction
 } from "../public-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
@@ -110,6 +112,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   readonly events = new OpenFeatureEventEmitter();
   private state: ProviderState;
   private closed = false;
+  private pendingUpdate: object | undefined;
   private readonly operational: OperationalState;
   private readonly metricsSession: ProviderMetricsSession | undefined;
 
@@ -153,20 +156,64 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   }
 
   updateSnapshot(snapshot: FlagSnapshot, provenance?: SignedSnapshotMetadata): void {
-    const previousState = this.state;
-    let nextState: ProviderState;
+    this.assertUpdateAvailable();
+    this.applyState(this.buildNextState(snapshot, provenance));
+  }
+
+  prepareSnapshot(
+    snapshot: FlagSnapshot,
+    provenance?: SignedSnapshotMetadata
+  ): SnapshotUpdateTransaction {
+    this.assertUpdateAvailable();
+    if (this.closed) throw new LocalProviderError("PROVIDER_NOT_READY", "Provider is closed.");
+    const next = this.buildNextState(snapshot, provenance);
+    const reservation = {};
+    this.pendingUpdate = reservation;
+    return Object.freeze({
+      commit: () => {
+        if (this.pendingUpdate !== reservation || this.closed)
+          throw new LocalProviderError(
+            "PROVIDER_NOT_READY",
+            "Snapshot transaction is no longer active."
+          );
+        this.pendingUpdate = undefined;
+        this.applyState(next);
+      },
+      cancel: () => {
+        if (this.pendingUpdate === reservation) this.pendingUpdate = undefined;
+      }
+    });
+  }
+
+  private assertUpdateAvailable(): void {
+    if (this.pendingUpdate !== undefined) {
+      this.operational.refreshFailed("load");
+      throw new LocalProviderError(
+        "PROVIDER_NOT_READY",
+        "A snapshot update is pending persistence."
+      );
+    }
+  }
+
+  private buildNextState(
+    snapshot: FlagSnapshot,
+    provenance?: SignedSnapshotMetadata
+  ): ProviderState {
     try {
-      nextState = this.createState(snapshot, provenance);
+      return this.createState(snapshot, provenance);
     } catch (error) {
       this.operational.refreshFailed("validation");
       throw error;
     }
+  }
+
+  private applyState(nextState: ProviderState): void {
+    const previousState = this.state;
     this.operational.refreshed(nextState.snapshotHash !== previousState.snapshotHash);
     if (nextState.snapshotHash === previousState.snapshotHash) {
       this.state = { ...previousState, provenance: nextState.provenance };
       return;
     }
-
     this.state = nextState;
     if (!this.closed) {
       this.events.emit(ProviderEvents.ConfigurationChanged, {

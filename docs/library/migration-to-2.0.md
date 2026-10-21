@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.10` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.11` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -67,6 +67,15 @@ it requires a verifier and cannot contradict an equal-sequence initial origin.
 Existing providers/refresher defaults perform no storage I/O. See
 `snapshot-recovery.md` for bounds, storage trust, crash/lock recovery and the pending
 automatic coordination between persistence and active provider application.
+
+Alpha.11 adds optional `SnapshotRefresherOptions.store`, provider capability
+`prepareSnapshot` and `SnapshotUpdateTransaction`. Only durable refresh requires
+this capability and a signed verifier; ordinary custom providers remain compatible.
+Native providers reserve updates during storage while serving old evaluations.
+Store acceptance precedes activation and is not undone by close or later application
+callbacks. Failed preparation never persists; failed/ambiguous storage never activates
+and a subsequent refresh reloads the floor. Post-storage expiry also blocks activation.
+See `snapshot-recovery.md`; the existing no-store behavior is preserved.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

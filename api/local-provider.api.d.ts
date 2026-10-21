@@ -260,6 +260,14 @@ interface ObservableLocalProvider extends Provider {
 interface ReloadableLocalProvider extends ObservableLocalProvider {
   getSnapshot(): FlagSnapshot;
   updateSnapshot(snapshot: FlagSnapshot, provenance?: SignedSnapshotMetadata): void;
+  prepareSnapshot?(
+    snapshot: FlagSnapshot,
+    provenance?: SignedSnapshotMetadata
+  ): SnapshotUpdateTransaction;
+}
+interface SnapshotUpdateTransaction {
+  commit(): void;
+  cancel(): void;
 }
 interface SnapshotSourceRequest {
   readonly etag?: string;
@@ -292,6 +300,7 @@ interface SnapshotRefresherOptions {
   readonly maxBytes?: number;
   readonly verifier?: SnapshotVerifier;
   readonly previous?: SignedSnapshotMetadata;
+  readonly store?: SignedSnapshotStore;
 }
 interface SignFlagSnapshotOptions {
   readonly snapshot: FlagSnapshot;
@@ -627,6 +636,7 @@ export type {
   SnapshotSource,
   SnapshotSourceRequest,
   SnapshotSourceResponse,
+  SnapshotUpdateTransaction,
   SnapshotVerificationOptions,
   SnapshotVerifier,
   TargetingCondition,

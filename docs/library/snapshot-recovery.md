@@ -1,6 +1,6 @@
 # Signed snapshot storage and restart recovery
 
-Status: standalone store implemented locally in alpha.10; refresh integration pending.
+Status: standalone store alpha.10; integrated durable refresh implemented locally in alpha.11.
 
 `createFileSnapshotStore({ path, verification, maxHistory?, maxBytes?,
 createDirectory? })` owns a caller-selected local recovery journal. Verification
@@ -27,7 +27,7 @@ const provider = createReloadableLocalProvider({
   ...(recovered?.current ? { provenance: recovered.current.provenance } : {})
 });
 const refresher = createSnapshotRefresher({
-  provider, source, verifier: createSnapshotVerifier(verification),
+  provider, source, verifier: createSnapshotVerifier(verification), store,
   ...(recovered ? { previous: recovered.floor } : {})
 });
 ```
@@ -71,7 +71,43 @@ compromised local storage or signing keys require an external trusted minimum
 sequence/checkpoint. A missing file is a deliberate bootstrap boundary; applications
 that require prior state must treat undefined as a startup error.
 
-This store does not yet automatically persist a refresher's successful application.
-Callers must not claim atomic coordination between independent store commits and
-provider updates. That integration remains the next delivery slice, followed by
-the GitOps recipe and audit log integrity tools.
+## Integrated durable refresh
+
+Pass `store` with a signed `verifier` to `createSnapshotRefresher`. Each refresh
+loads and merges the authenticated durable floor before fetching, so stale/missing
+caller bootstrap metadata cannot bypass the store's continuity. Invalid storage
+fails before fetch. Explicit startup recovery still initializes active contents;
+refresh does not silently activate stored history.
+
+Before persistence, the provider validates and prepares immutable next state.
+`ReloadableLocalProvider.prepareSnapshot?` returns a `SnapshotUpdateTransaction`
+with synchronous `commit()` and idempotent, nonthrowing `cancel()`. Preparation
+reserves updates:
+other direct updates/preparations reject with `PROVIDER_NOT_READY` while evaluations
+continue using the old state. Failed validation never calls the store. Custom
+providers used with durable refresh must implement this optional reservation contract.
+Direct transaction callers must always commit or cancel their reservation.
+
+After a matching store acknowledgment, durable acceptance advances the replay floor;
+only then does the transaction atomically activate snapshot/provenance and emit
+configuration events. Store failure cancels preparation and preserves active state,
+freshness, ETag and source provenance. `persist` counts the failure once without
+retaining paths or causes. A later refresh reloads durable state, including any
+ambiguous commit that became visible before a storage error.
+
+Durable acceptance cannot be undone by later application callbacks. If a callback
+explicitly replaces the just-activated state, refresh rejects without adopting its
+ETag/source provenance, but the accepted durable floor stays advanced. If close
+occurs before persistence starts, nothing commits. Once a filesystem commit starts,
+close cannot retract it: the promise is drained, no closed provider is activated,
+and durable acceptance may remain for restart recovery. Callers must await the
+in-flight refresh to know persistence has settled. Old active evaluations retain
+exact old audit origin until activation; callback evaluations see the new origin.
+
+This is ordered durable acceptance followed by atomic in-process activation,
+not a distributed transaction with arbitrary application callbacks or hardware.
+Freshness is checked again after acknowledgment; storage delay cannot activate an
+expired artifact. Its already accepted floor remains durable even if this final
+check fails. A signed 304 is reverified and acknowledged before renewing freshness.
+No automatic scheduler, evaluation-time I/O or background worker is added.
+The remaining delivery slices are the GitOps recipe and audit integrity tools.

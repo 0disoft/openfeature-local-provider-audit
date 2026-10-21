@@ -15,6 +15,7 @@ const V2_TYPE_EXPORTS = new Set([
   "FileSnapshotStoreOptions",
   "SnapshotRecovery",
   "SignedSnapshotStore",
+  "SnapshotUpdateTransaction",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -46,6 +47,7 @@ const PUBLIC_TYPE_EXPORTS = [
   "FileSnapshotStoreOptions",
   "SnapshotRecovery",
   "SignedSnapshotStore",
+  "SnapshotUpdateTransaction",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -572,7 +574,16 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     const recoveryStore = api.createFileSnapshotStore({ path: auditPath + ".snapshots", verification: {
       audience: "packed", trustedKeys: { packed: signingKeys.publicKey }
     } });
-    await recoveryStore.commit(Buffer.from(signed));
+    const durableProvider = api.createReloadableLocalProvider({ snapshot: jsonSnapshot, env: {} });
+    const durableRefresher = api.createSnapshotRefresher({ provider: durableProvider, store: recoveryStore,
+      verifier: api.createSnapshotVerifier({ audience: "packed", trustedKeys: { packed: signingKeys.publicKey } }),
+      source: { async fetch() { return { status: "content", content: Buffer.from(signed) }; } }
+    });
+    await durableRefresher.refresh();
+    if (durableProvider.getStatus().provenance?.artifactHash !== signedResult.provenance.artifactHash) {
+      throw new Error(moduleKind + " durable activation failed");
+    }
+    durableRefresher.close();
     const recoveredSnapshot = await api.createFileSnapshotStore({ path: auditPath + ".snapshots", verification: {
       audience: "packed", trustedKeys: { packed: signingKeys.publicKey }
     } }).load();
@@ -745,9 +756,13 @@ const storeOptions: FileSnapshotStoreOptions = {
   path: "caller-owned-state.json", verification: { trustedKeys: {}, audience: "typed" }, maxHistory: 5
 };
 const refreshOptions: SnapshotRefresherOptions = {
-  provider: reloadable, source: { async fetch() { return { status: "notModified" }; } },
+  provider: reloadable, store: recoveryStore, source: { async fetch() { return { status: "notModified" }; } },
   ...(origin ? { previous: origin } : {})
 };
+if (reloadable.prepareSnapshot !== undefined) {
+  const transaction: SnapshotUpdateTransaction = reloadable.prepareSnapshot(snapshot, origin);
+  transaction.cancel();
+}
 void refreshOptions;
 void recoveryPromise;
 void storeOptions;

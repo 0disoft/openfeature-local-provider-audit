@@ -226,6 +226,15 @@ export interface ObservableLocalProvider extends Provider {
 export interface ReloadableLocalProvider extends ObservableLocalProvider {
   getSnapshot(): FlagSnapshot;
   updateSnapshot(snapshot: FlagSnapshot, provenance?: SignedSnapshotMetadata): void;
+  prepareSnapshot?(
+    snapshot: FlagSnapshot,
+    provenance?: SignedSnapshotMetadata
+  ): SnapshotUpdateTransaction;
+}
+
+export interface SnapshotUpdateTransaction {
+  commit(): void;
+  cancel(): void;
 }
 
 export interface SnapshotSourceRequest {
@@ -257,6 +266,7 @@ export interface SnapshotRefresherOptions {
   readonly maxBytes?: number;
   readonly verifier?: SnapshotVerifier;
   readonly previous?: SignedSnapshotMetadata;
+  readonly store?: SignedSnapshotStore;
 }
 
 export interface SignFlagSnapshotOptions {

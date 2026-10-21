@@ -64,6 +64,7 @@ export type {
   FileSnapshotStoreOptions,
   SnapshotRecovery,
   SignedSnapshotStore,
+  SnapshotUpdateTransaction,
   SnapshotSource,
   SnapshotSourceRequest,
   SnapshotSourceResponse,

@@ -42,8 +42,9 @@ expired history separately from fresh activation and seeds refresh through `prev
 It trusts the full local directory chain, clock and pinned keys. Restoring/deleting an
 entire journal requires an external trusted minimum sequence; file storage is not a
 hardware monotonic counter. Interrupted-writer locks require stopped-owner recovery.
-See `docs/library/snapshot-recovery.md`; automatic persistence/application coordination
-remains pending. JWS does not encrypt configuration.
+See `docs/library/snapshot-recovery.md` for ordered durable acceptance and atomic
+provider activation. Prepared updates reserve mutation while old evaluations remain
+available; close/reentrant callbacks cannot undo an already accepted durable floor. JWS does not encrypt configuration.
 
 ## Required Controls
 

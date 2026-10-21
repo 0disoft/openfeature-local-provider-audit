@@ -72,6 +72,8 @@ Optional signed delivery adds `signFlagSnapshot`, `createSnapshotVerifier`,
 Standalone signed recovery adds `createFileSnapshotStore`, `FileSnapshotStoreOptions`,
 `SnapshotRecovery` and `SignedSnapshotStore`; see `snapshot-recovery.md`. Signed
 refresher `previous` seeds authenticated continuity independently of active contents.
+Optional `store` coordinates durable acceptance before activation through optional
+`prepareSnapshot` and `SnapshotUpdateTransaction`; direct evaluations remain local.
 Optional initial/update provenance is captured atomically in provider status and
 evaluation audit events. Metadata alone is caller-asserted; signature verification
 is separate. Unsigned updates clear provenance, including equal-hash updates.

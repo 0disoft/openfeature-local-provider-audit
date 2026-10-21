@@ -60,7 +60,8 @@ for evaluation or verification, and active last-good values are not disabled at 
 Standalone signed recovery returns an optional fresh current snapshot, authenticated
 historical entries and a replay floor. Always seed signed refresh with the recovered
 floor even when using safe bootstrap contents. See `docs/library/snapshot-recovery.md`;
-automatic store/apply coordination is still pending.
+optional `store` persists before atomic provider activation and keeps evaluations on
+the previous state during I/O. Custom providers need the transaction capability.
 
 ## Review Blockers
 

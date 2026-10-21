@@ -47,4 +47,6 @@ process-local continuity contract is `docs/library/signed-snapshots.md`.
 The standalone signed recovery journal contract is in
 `docs/library/snapshot-recovery.md`: atomic bounded artifact history, authenticated
 historical floor separate from fresh activation, explicit store ownership and
-crash recovery. Automatic persistence/application coordination remains pending.
+crash recovery. Optional durable refresh uses provider preparation/reservation,
+durable acceptance and then atomic activation. Accepted floors survive later close
+or reentrant replacement; no source ETag is attached to mismatched active contents.

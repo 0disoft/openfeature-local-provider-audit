@@ -85,8 +85,11 @@ The refresher retains its last committed provenance as the replay floor, includi
 after external unsigned provider updates. Signature/freshness failure never falls
 back to unsigned parsing. YAML format is incompatible with a verifier. On 304 the
 cached signed artifact is verified again, so ETag caching cannot extend expiry.
-Rejected application or reentrant configuration replacement commits neither new
-provenance, ETag nor anti-rollback state. Updates remain serialized/coalesced.
+Without storage, rejected application or reentrant configuration replacement commits
+neither new provenance, ETag nor replay state. With `store`, durable acceptance is
+irreversible before activation/callbacks; reentrant replacement cannot lower that
+floor, while ETag/source provenance still require matching active state. See
+`snapshot-recovery.md`. Updates remain serialized/coalesced.
 
 After a failed or expired refresh, the already active last good snapshot continues
 evaluating locally. Failure status records `signature` once and does not renew
@@ -106,8 +109,8 @@ No artifact can authorize its own new key or lower the configured floor.
 An authorized rollback is a **new higher sequence** with a current issuance/expiry
 and the desired older flag contents. Replaying an older signed release is not rollback.
 The optional file store retains authenticated replay floors, supports restart
-recovery and history selection; see `snapshot-recovery.md`. Automatic coordination
-with refresher application remains pending; a refresher alone is process-local.
+recovery and history selection; see `snapshot-recovery.md`. Optional `store`
+coordination persists accepted content before atomic provider activation; a refresher without storage remains process-local.
 
 ## Evaluation audit linkage
 
@@ -137,7 +140,8 @@ require both active snapshot and artifact identity to match the controller's com
 Provenance describes historical acceptance, not current freshness or durable restart
 protection. A newly constructed controller cannot recover a floor that was never
 persisted or supplied. The file store and `previous` refresh option support
-explicit restart recovery; automatic save/apply coordination remains the next slice.
+explicit restart recovery. Optional `store` coordinates durable acceptance before
+activation; see `snapshot-recovery.md` for close, callbacks and ambiguous failure.
 
 Verification errors are generic `LocalProviderError(SCHEMA_ERROR)` without a raw
 token, key, claim value or nested cause. The publisher helper may throw input
