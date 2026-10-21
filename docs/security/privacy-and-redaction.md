@@ -29,6 +29,16 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
   `names` choice.
 - Snapshot and override data are represented by SHA-256 hashes.
 - Evaluated values are excluded from audit events.
+- V2 rule IDs are included only for selected targeting rules; flag names, rule IDs,
+  variant names and caller metadata must be non-sensitive. Explanations omit values,
+  context fields and condition operands, but match outcomes can still reveal cohort
+  membership. Simulation/comparison counts can disclose small groups; protect reports.
+- Conditions read only bounded own data-property paths, not getters or prototypes.
+  Audit redaction and direct provider targeting-key extraction do not invoke getters.
+  Proxy traps and SDK-owned context merging remain caller-controlled behavior.
+- Snapshot/override hashes identify inputs; hashing low-entropy configuration does not
+  make it confidential and does not authenticate its author. Replay still requires
+  the original sanitized inputs; audit records alone do not retain those inputs.
 - JSON Lines serialization is explicit.
 - File audit sinks append only serialized redacted events.
 - Provider audit sink failures are logged without changing the evaluated result.

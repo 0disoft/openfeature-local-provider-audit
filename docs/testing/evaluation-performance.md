@@ -28,3 +28,37 @@ The benchmark explicitly checks the changed value, fails on provider warnings, c
 its watcher and removes temporary files. Audit queue saturation is covered by the
 separate `benchmark:audit-queue` harness. Linux/macOS results and v2 targeting cost
 remain to be measured; do not extrapolate these numbers to other hosts or rule counts.
+
+## V2 development sample
+
+Measured after f1026e3 on the same Windows/Node/pnpm combination, with the v2 benchmark
+cases added alongside this update. Command:
+`corepack pnpm run benchmark:evaluation --iterations 1000 --output .git/evaluation-v2.json`.
+Captured at 2026-10-21T08:23:10Z. As above, this is one host-dependent sample, not a
+speedup claim versus the earlier sample. Setup is outside timing; selected rule
+identity is asserted. Both targeting cases contain 1,000 flags; the 100-rule case
+matches the last rule. SemVer and conditional rollout are measured together.
+
+| Case | p50 microseconds | p95 microseconds |
+| --- | ---: | ---: |
+| V1 static, 1,000 flags | 0.4 | 0.4 |
+| V1 percentage, 1,000 flags | 5.6 | 7.1 |
+| V2 attribute, 1 rule | 1.3 | 1.6 |
+| V2 attribute, 100 visited rules | 8.9 | 14.8 |
+| V2 tenant + SemVer + conditional percentage | 8.5 | 16.1 |
+| Provider, audit disabled | 2.3 | 5.5 |
+| Provider, non-blocking audit | 7.8 | 13.7 |
+| Provider, blocking audit | 943.2 | 1,165.0 |
+
+Non-blocking audit returned with 1,000 pending writes and drained in another 985.8 ms;
+the observed heap delta was 4,948,560 bytes. No writes were dropped/rejected. One
+atomic replacement propagated in 78.4 ms. These observations establish neither
+maximum latency nor peak memory, and do not measure the maximum 100-node condition
+tree for all 100 rules. Large rules need deployment-specific measurements.
+
+The existing queue benchmark was also run with 100 writes, queue size 10 and a 50 ms
+advisory-lock stall (`benchmark:audit-queue --writes 100 --queue-size 10 --stall-ms 50
+--json --output .git/p1-audit-stall.json`). Fast/stalled unbounded cases wrote 100;
+bounded reject wrote 10/rejected 90; bounded drop-newest wrote 10/dropped 90. All
+cases accounted for every write with zero unexplained failures. This is a correctness
+sample; the historical cross-platform decision evidence still owns the default size.

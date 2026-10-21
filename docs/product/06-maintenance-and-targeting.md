@@ -1,7 +1,7 @@
 # Maintenance and targeting delivery
 
 Owner: 0disoft
-Status: In progress; local changes are not published evidence.
+Status: P0/P1 implemented and locally verified; local changes are not published evidence.
 
 ## Product direction
 
@@ -58,3 +58,38 @@ comparison, compatible v1 behavior, bounded validation, privacy-safe output, and
 packaged API/CLI checks. A green existing test suite alone is insufficient.
 Remote snapshot fetching, signatures, persistent rollback, telemetry adapters, audit
 chains/HMAC, scheduled rollout, and other runtimes remain later work.
+
+## Local completion evidence (2026-10-21)
+
+| Requirement | Implementation/evidence |
+| --- | --- |
+| P0 issue disposition and positioning | 8219410; item map above and README; no scores treated as gates |
+| P0 latency/memory/propagation | `scripts/evaluation-benchmark.mjs`; `docs/testing/evaluation-performance.md` |
+| P1 contract/compatibility | 664fd79, ADR 0013, schema v2 and 2.0 migration; v1 still accepted |
+| P1 bounded typed conditions/priority | 1b3ee60; targeting tests cover missing/types, order, SemVer, limits and inherited/accessor properties |
+| P1 rollout/emergency control | 1b3ee60; existing bucket equivalence, non-vacuous expansion continuity, override/error collision and real SDK reload tests |
+| P1 private explanations/audit/replay | bf18807; rule IDs, visited outcomes, no raw values/context, selected-rule replay drift |
+| P1 offline evaluation/simulation/comparison | f1026e3; read-only, bounded input, aggregate privacy, value/decision diff and structural object equality tests |
+| P1 packed distribution | Local 114,742-byte alpha.3 tarball, ESM/CJS, v2 runtime/replay/explanations, new CLI commands, TypeScript 5.9.3 strict library check and 7.0.2 consumer-surface check |
+
+The final `corepack pnpm run check` passed typecheck, coverage, declaration/runtime
+API comparison (61 exports, 19 runtime values), migration, stable-release gate,
+publint/Are the Types Wrong, and release readiness. Windows Node 24.14.0 and 22.23.3
+each passed 237 package tests with 5 platform-specific skips. Tooling tests passed
+(4 API, 9 benchmark, 7 migration, 29 release tests); the migration gate repeats its
+focused tests by design. Coverage: 93.36% statements, 90.81% branches, 99.08% functions,
+93.94% lines. Format, lint, diff whitespace and dependency audit passed; audit found
+zero advisories. Evidence is local and scoped to those versions/platforms.
+
+The updated registry consumer also installed actual npm `latest=1.0.0` and passed
+the legacy ESM/CJS/type/CLI contract on Windows Node 24.14.0 with OpenFeature 1.22.0.
+Its 98,574-byte tarball SHA-256 was
+`bbcbbb6ec60b55262800d82ebeb5bd4af1fd659fdd6ddc8c8a4ebe11344293c0`.
+The harness checks the fixed legacy surface for v1 and the expanded surface/CLI for
+v2; it does not infer support from whatever exports a package happens to contain.
+
+No push, tag, release, issue/PR write or hosted workflow was performed. Linux/macOS
+tests, Node 26 canary, current-source hosted CI, independent adoption and public 2.0
+publication remain unverified. The staged version is `2.0.0-alpha.3`; npm stable stays
+1.0.0. Next scope is P2 operational status/telemetry and safe snapshot delivery,
+subject to a new task; P0/P1 does not silently implement those deferred features.

@@ -52,6 +52,74 @@ try {
     );
   }
 
+  for (const ruleCount of [1, 100]) {
+    const source = JSON.parse(JSON.stringify(makeSnapshot(1_000)));
+    source.schemaVersion = 2;
+    source.flags["flag.0"].rules = Array.from({ length: ruleCount }, (_, index) => ({
+      id: `rule-${index}`,
+      variant: "on",
+      when: {
+        attribute: ["tenant"],
+        op: "eq",
+        value: index === ruleCount - 1 ? "pilot" : `other-${index}`
+      }
+    }));
+    const snapshot = parseJsonFlagSnapshot(JSON.stringify(source));
+    const request = {
+      flagKey: "flag.0",
+      expectedType: "boolean",
+      defaultValue: false,
+      context: { tenant: "pilot" }
+    };
+    if (evaluateFlag(snapshot, request).ruleId !== `rule-${ruleCount - 1}`)
+      throw new Error("Targeting benchmark did not select the last rule");
+    for (let i = 0; i < 500; i++) evaluateFlag(snapshot, request);
+    cases.push(
+      await measure(`pure-targeting-${ruleCount}-rules-1000-flags`, () =>
+        evaluateFlag(snapshot, request)
+      )
+    );
+  }
+  const versioned = parseJsonFlagSnapshot(
+    JSON.stringify({
+      schemaVersion: 2,
+      flags: {
+        versioned: {
+          type: "boolean",
+          defaultVariant: "off",
+          variants: { on: true, off: false },
+          rules: [
+            {
+              id: "version",
+              when: {
+                all: [
+                  { attribute: ["tenant"], op: "eq", value: "pilot" },
+                  { attribute: ["appVersion"], op: "semverGte", value: "2.0.0" }
+                ]
+              },
+              rollout: [{ variant: "on", percentage: 50, seed: "baseline" }]
+            }
+          ]
+        }
+      }
+    })
+  );
+  const versionedRequest = {
+    flagKey: "versioned",
+    expectedType: "boolean",
+    defaultValue: false,
+    targetingKey: "synthetic",
+    context: { tenant: "pilot", appVersion: "2.1.0" }
+  };
+  if (evaluateFlag(versioned, versionedRequest).ruleId !== "version")
+    throw new Error("Version/rollout benchmark did not select its rule");
+  for (let i = 0; i < 500; i++) evaluateFlag(versioned, versionedRequest);
+  cases.push(
+    await measure("pure-targeting-semver-conditional-rollout", () =>
+      evaluateFlag(versioned, versionedRequest)
+    )
+  );
+
   for (const audit of ["off", "nonBlocking", "blocking"]) {
     const sink =
       audit === "off"

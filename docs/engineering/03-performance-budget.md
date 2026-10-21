@@ -49,6 +49,11 @@ wall-time samples; memory deltas are not peaks. The synthetic inputs contain no 
 users. Results depend on host and storage and are not latency promises or CI gates.
 No extra hosted jobs are added. Retain the JSON with the measured commit/toolchain;
 use the separate queue benchmark below for deliberately saturated/stalled sinks.
+The harness also measures first/last-match v2 targeting at 1/100 rules over 1,000
+flags and a SemVer-plus-conditional-rollout case. Setup/parsing is outside the timed
+evaluation loop; the selected rule is checked before measuring. V2 work is bounded
+by 100 rules per flag, 100 nodes per rule, 8 condition/path levels and fixed operand
+limits. Complexity grows with visited conditions, not the total flag count.
 
 Run `pnpm run benchmark:audit-queue` to compare a fast file sink with unbounded,
 bounded-reject, and bounded-drop-newest queues under a deliberate advisory-lock stall.

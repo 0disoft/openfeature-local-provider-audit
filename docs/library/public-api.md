@@ -71,7 +71,7 @@ The package-root runtime value surface is exactly:
 - `createLocalProvider` and `createReloadableLocalProvider`.
 - `parseJsonFlagSnapshot`, `parseYamlFlagSnapshot`, `loadFlagSnapshotFile`, and
   `watchFlagSnapshotFile`.
-- `createEnvOverrides` and `evaluateFlag`.
+- `createEnvOverrides`, `evaluateFlag`, and `explainEvaluation`.
 - `replayEvaluationFixture`.
 - `createAuditEvent`, `serializeAuditEvent`, `redactContext`, and `createFileAuditSink`.
 
@@ -81,6 +81,8 @@ The package-root type surface is exactly:
   `EvaluationSource`.
 - `EvaluationRequest`, `EvaluationResult`, `EvaluationContext`, `EnvOverrideState`, and
   `EnvSource`.
+- `EvaluationExplanation`, `RuleExplanation`, `ConditionScalar`, `TargetingCondition`,
+  and `TargetingRule`.
 - `FlagSnapshot`, `FlagDefinition`, `FlagType`, `FlagValue`, `PercentageRolloutRule`,
   `JsonObject`, and `JsonValue`.
 - `LocalProviderOptions`, `ReloadableLocalProvider`, `CreateEnvOverridesOptions`,
@@ -104,6 +106,7 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
 - `loadFlagSnapshotFile(path, options)`.
 - `watchFlagSnapshotFile(options)`.
 - `evaluateFlag(snapshot, request)`.
+- `explainEvaluation(snapshot, request)` (redacted, on-demand explanation).
 - `createEnvOverrides(snapshot, options)`.
 - `replayEvaluationFixture(fixture)`.
 - `createAuditEvent(options)`.

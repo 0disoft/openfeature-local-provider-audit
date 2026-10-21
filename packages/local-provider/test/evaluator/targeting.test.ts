@@ -142,7 +142,7 @@ describe("bounded local targeting", () => {
   });
 
   it("uses existing buckets and does not continue after an unallocated rule", () => {
-    const rollout = [{ variant: "on", percentage: 1, seed: "shared" }];
+    const rollout = [{ variant: "on", percentage: 20, seed: "shared" }];
     const targeted = snapshot({
       rules: [
         { id: "roll", when: leaf, rollout },
@@ -150,12 +150,16 @@ describe("bounded local targeting", () => {
       ]
     });
     const legacy = snapshot({ rollout }, 1);
+    let selectedCount = 0;
     for (let i = 0; i < 100; i++) {
       const input = { ...request, targetingKey: `subject-${i}` };
       const selected = evaluateFlag(targeted, input);
       expect(selected.value).toBe(evaluateFlag(legacy, input).value);
       expect(selected.ruleId).toBe("roll");
+      if (selected.value) selectedCount++;
     }
+    expect(selectedCount).toBeGreaterThan(0);
+    expect(selectedCount).toBeLessThan(100);
     expect(evaluateFlag(targeted, request)).toMatchObject({
       errorCode: "INVALID_CONTEXT",
       ruleId: "roll"
