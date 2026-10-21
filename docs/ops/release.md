@@ -52,3 +52,13 @@ checks, npm trusted publishing, and GitHub Release artifact publication.
   Release creation requires `contents: write` on the isolated GitHub Release job. The
   machine-readable evidence record prevents accidental promotion but cannot replace review of
   whether the recorded consumer actually runs in a separate repository at the cited revision.
+
+## Registry Channel Monitoring
+
+The scheduled registry-consumer workflow always tests `latest` on Linux, Windows, and
+macOS. It adds `next` only for a valid prerelease newer than `latest`; after stable
+promotion, a superseded candidate does not consume three extra runner jobs. Missing or
+malformed `next` is inactive. The planner rejects invalid `latest` rather than silently
+skipping stable coverage. Manual dispatch accepts an exact version or dist-tag in its
+`version` input for investigations, including historical candidates. Resolved versions
+are passed as environment data to the existing registry smoke contract.

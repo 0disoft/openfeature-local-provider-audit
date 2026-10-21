@@ -39,9 +39,13 @@ on the supported Node.js runtime matrix.
   ESM, CJS, TypeScript, CLI, watcher, event, replay, and audit contract as packed smoke.
   This proves registry installation, not separate-repository adoption.
 - `.github/workflows/registry-consumer.yml` runs weekly, on manual dispatch, and when its
-  workflow or registry-consumer harness changes on `main`. It installs both npm `latest`
-  and `next` on Node.js 24 across Ubuntu, Windows, and pinned macOS 15, using the registry
-  smoke contract. Channel failures expose publication or platform drift without treating
+  workflow or registry-consumer harness changes on `main`. It resolves npm dist-tags once and always tests `latest`
+  on Node.js 24 across Ubuntu, Windows, and pinned macOS 15. It also tests `next` only
+  when that tag is a prerelease newer than `latest`; missing, malformed, stable, equal,
+  or superseded `next` tags leave the three stable jobs intact. A missing or invalid
+  `latest` fails planning. Each job consumes the exact resolved version. Manual dispatch
+  accepts an exact version or dist-tag through the `version` input without changing the
+  schedule. Values pass through environment variables rather than shell interpolation. Channel failures expose publication or platform drift without treating
   the package-repository matrix as cross-repository consumer evidence.
 - `.github/workflows/audit-queue-benchmark.yml` runs only on manual dispatch. Its `quick`
   profile runs one small sample on Node.js 24.x across Ubuntu, Windows, and macOS. Its

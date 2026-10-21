@@ -487,7 +487,7 @@ function resolveOpenFeatureServerSdkSpec(packageJson) {
 
 function parseRegistryVersion(args) {
   if (args.length === 0) {
-    return undefined;
+    return process.env.REGISTRY_SMOKE_VERSION?.trim() || undefined;
   }
   if (args.length !== 2 || args[0] !== "--registry-version" || args[1].length === 0) {
     throw new Error("Usage: packed-smoke.mjs [--registry-version <package|version>]");

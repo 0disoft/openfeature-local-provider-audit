@@ -138,3 +138,10 @@ releases remain runnable with pending evidence, but stable `1.x` is rejected unt
 cross-repository result is accepted; changing the patch version cannot bypass the gate. The
 accepted same-maintainer result is sufficient because repository separation, normal-registry
 installation, immutable revision, hosted CI, and ownership disclosure are all enforced.
+
+## Scheduled Channel Selection
+
+The channel planner tests `latest` on all three platforms and adds `next` only when it
+is a newer prerelease. With `latest=1.0.0` and `next=1.0.0-rc.2`, the scheduled matrix
+contains three stable jobs. Historical six-job results below predate this optimization.
+Manual dispatch can still test `1.0.0-rc.2` or another exact version/channel explicitly.

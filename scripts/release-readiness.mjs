@@ -154,7 +154,10 @@ checkPackageMetadata(packageJson);
 checkReleaseWorkflow(releaseWorkflow);
 checkCiWorkflow(ciWorkflow);
 checkCompatibilityWorkflow(compatibilityWorkflow, packedSmokeScript);
-checkRegistryConsumerWorkflow(registryConsumerWorkflow);
+checkRegistryConsumerWorkflow(
+  registryConsumerWorkflow,
+  await readText(path.join(ROOT, "scripts", "registry-consumer-plan.mjs"))
+);
 checkRcConsumerReportTemplate(rcConsumerReportTemplate);
 checkApiSurfaceContract({
   apiSurfaceScript,
@@ -290,7 +293,7 @@ function checkRootPackage(rootPackage) {
   expectScript(
     rootPackage,
     "test:release-tools",
-    "node --test scripts/release-channel.test.mjs scripts/registry-release.test.mjs scripts/stable-release-gate.test.mjs"
+    "node --test scripts/registry-consumer-plan.test.mjs scripts/release-channel.test.mjs scripts/registry-release.test.mjs scripts/stable-release-gate.test.mjs"
   );
   expectScript(
     rootPackage,
@@ -520,7 +523,7 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
   expectIncludes(packedSmokeScript, "PACKED_SMOKE_TARBALL", "packed smoke prebuilt tarball input");
 }
 
-function checkRegistryConsumerWorkflow(workflow) {
+function checkRegistryConsumerWorkflow(workflow, planner) {
   checkPinnedGitHubActions(workflow, "registry consumer workflow");
   expectIncludes(workflow, "push:", "registry consumer push trigger");
   expectIncludes(workflow, "branches:", "registry consumer main branch filter");
@@ -538,18 +541,16 @@ function checkRegistryConsumerWorkflow(workflow) {
   expectIncludes(workflow, 'cron: "41 4 * * 3"', "registry consumer schedule");
   expectIncludes(workflow, "workflow_dispatch:", "registry consumer manual trigger");
   expectIncludes(workflow, "ubuntu-latest", "registry consumer Ubuntu runner");
-  expectIncludes(workflow, "windows-latest", "registry consumer Windows runner");
-  expectIncludes(workflow, "macos-15", "registry consumer pinned macOS runner");
+  expectIncludes(planner, "windows-latest", "registry consumer Windows runner");
+  expectIncludes(planner, "macos-15", "registry consumer pinned macOS runner");
   expectIncludes(workflow, "timeout-minutes: 15", "registry consumer timeout");
   expectIncludes(workflow, "node-version: 24.x", "registry consumer Node runtime");
-  expectIncludes(workflow, "- latest", "registry consumer stable channel");
-  expectIncludes(workflow, "- next", "registry consumer prerelease channel");
+  expectIncludes(workflow, "scripts/registry-consumer-plan.mjs", "registry channel planner");
+  expectIncludes(workflow, "fromJSON(needs.plan.outputs.matrix)", "dynamic registry matrix");
+  expectIncludes(workflow, "REGISTRY_SMOKE_VERSION:", "registry version environment input");
+  expectIncludes(workflow, "inputs.version", "manual registry selection");
   expectIncludes(workflow, "pnpm install --frozen-lockfile", "registry consumer install gate");
-  expectIncludes(
-    workflow,
-    'pnpm run registry-smoke --registry-version "$' + '{{ matrix.channel }}"',
-    "registry consumer command"
-  );
+  expectIncludes(workflow, "run: pnpm run registry-smoke", "registry consumer command");
 }
 
 function checkRcConsumerReportTemplate(template) {
