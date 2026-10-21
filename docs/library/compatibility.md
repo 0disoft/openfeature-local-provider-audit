@@ -63,6 +63,20 @@ Detailed compatibility contracts live in:
 - Canary failure blocks widening the peer range or claiming compatibility, but it does not alter
   an already published package or lockfile automatically.
 
+## Node.js 26 Experimental Canary
+
+Node.js 22 and 24 remain the supported runtimes (`engines.node: >=22 <25`). The
+weekly/manual compatibility workflow adds one Linux Node.js 26 packed-consumer job
+with the latest compatible OpenFeature peer. It covers build, ESM/CJS, declarations,
+CLI, provider registration/evaluation, replay, watcher shutdown, and audit flush. It
+does not add jobs to per-push CI or widen the published support promise. Canary
+failures remain visible and must record toolchain or dependency incompatibilities.
+
+Promote Node.js 26 only after it reaches LTS and the packed consumer plus the full
+supported checks pass on Linux, Windows, and macOS. Widen the engine range and public
+runtime policy deliberately in a separate minor SemVer release, then add the normal
+cross-platform CI lanes. The canary alone is insufficient promotion evidence.
+
 ## 0.13.2 Local I/O Hardening
 
 - No public type or snapshot evaluation contract changes.

@@ -490,6 +490,10 @@ function checkCompatibilityWorkflow(workflow, packedSmokeScript) {
   expectIncludes(workflow, 'cron: "17 3 * * 1"', "compatibility workflow schedule");
   expectIncludes(workflow, "workflow_dispatch:", "compatibility workflow manual trigger");
   expectIncludes(workflow, "node-version: 24.x", "compatibility workflow Node version");
+  expectIncludes(workflow, "node-version: 26.x", "experimental Node 26 canary");
+  expectIncludes(workflow, "node-26-canary:", "bounded Node 26 Linux job");
+  expectIncludes(workflow, "contents: read", "compatibility workflow read-only permissions");
+  expectIncludes(workflow, "pnpm install --frozen-lockfile", "compatibility frozen install");
   expectIncludes(workflow, "timeout-minutes: 15", "compatibility workflow timeout");
   expectIncludes(
     workflow,

@@ -37,3 +37,31 @@ jobs:
         env:
           OPENFEATURE_SERVER_SDK_VERSION: peer
         run: pnpm run packed-smoke
+
+  node-26-canary:
+    name: experimental Node.js 26 packed consumer (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26.x
+          package-manager-cache: false
+
+      - name: Enable pnpm through Corepack
+        # Node 26 does not bundle Corepack. Use its stable major and the repo's pnpm pin.
+        run: npm install --global corepack@0 && corepack enable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Test experimental runtime with latest compatible OpenFeature peer
+        env:
+          OPENFEATURE_SERVER_SDK_VERSION: peer
+        run: pnpm run packed-smoke

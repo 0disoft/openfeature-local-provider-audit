@@ -25,6 +25,11 @@ on the supported Node.js runtime matrix.
   newest `@openfeature/server-sdk` version allowed by the package peer range into the packed
   consumer smoke project without changing the lockfile, compiles a strict TypeScript
   consumer, and then runs ESM, CJS, and CLI checks.
+- Node.js 26 has one additional Linux packed-consumer canary in the weekly/manual
+  compatibility workflow only. It uses the latest compatible peer, a frozen lockfile,
+  read-only permissions, and a 15-minute timeout. Node 26 is experimental; promotion
+  requires LTS status, Linux/Windows/macOS evidence, and a deliberate minor release as
+  defined in `docs/library/compatibility.md`. It does not expand the push/PR matrix.
 - Packed declaration consumption runs twice: TypeScript 5.9.3 checks the complete dependency
   declaration graph with `skipLibCheck: false`, while the repository TypeScript version checks
   the package consumer surface with `skipLibCheck: true`. The latter isolates the package contract
