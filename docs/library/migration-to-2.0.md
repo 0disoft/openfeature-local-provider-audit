@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.3` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.4` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.4 adds operational status. Provider factories now return
+`ObservableLocalProvider` (still assignable to OpenFeature `Provider`).
+Custom implementations of `ReloadableLocalProvider` must add `getStatus()` and
+`reportRefreshFailure(kind)`. Existing constructor options and evaluation behavior
+are unchanged; `staleAfterMs` is optional. See `operational-status.md`.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

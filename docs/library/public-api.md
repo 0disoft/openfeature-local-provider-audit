@@ -52,6 +52,11 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+The P2 prerelease adds `ObservableLocalProvider`, `ProviderStatus`,
+`ProviderAuditStatus` and `RefreshFailureKind`. Both factories expose
+`getStatus()` and `reportRefreshFailure(kind)`; `LocalProviderOptions.staleAfterMs`
+opts into age reporting. See `operational-status.md` for counter and privacy semantics.
+
 The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
 `TargetingCondition`, and `TargetingRule`, snapshot version `1 | 2`, optional
 `FlagDefinition.rules` / `disabledVariant`, `EvaluationResult.ruleId`, and reasons
@@ -88,6 +93,8 @@ The package-root type surface is exactly:
 - `LocalProviderOptions`, `ReloadableLocalProvider`, `CreateEnvOverridesOptions`,
   `LoadFlagSnapshotFileOptions`, `WatchFlagSnapshotFileOptions`,
   `FlagSnapshotFileWatcher`, and `SnapshotFileFormat`.
+- `ObservableLocalProvider`, `ProviderStatus`, `ProviderAuditStatus`, and
+  `RefreshFailureKind`.
 - `AuditEvent`, `AuditContextKeyMode`, `AuditQueueOverflowPolicy`,
   `AuditRedactionOptions`, `AuditSink`, `AuditWriteMode`, `CreateAuditEventOptions`,
   `FileAuditSinkOptions`, `FileAuditSinkStats`, and `RedactedAuditContext`.

@@ -2,7 +2,6 @@ import type {
   EvaluationContext,
   JsonValue,
   Logger,
-  Provider,
   ResolutionDetails
 } from "@openfeature/server-sdk";
 import { OpenFeatureEventEmitter, ProviderEvents } from "@openfeature/server-sdk";
@@ -29,14 +28,18 @@ import type {
   FlagType,
   FlagValue,
   LocalProviderOptions,
+  ObservableLocalProvider,
+  ProviderStatus,
+  RefreshFailureKind,
   ReloadableLocalProvider
 } from "../public-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
+import { OperationalState } from "./operational-state.js";
 
 const DEFAULT_PROVIDER_NAME = "openfeature-local-provider";
 
-export function createLocalProvider(options: LocalProviderOptions): Provider {
+export function createLocalProvider(options: LocalProviderOptions): ObservableLocalProvider {
   return createLocalFeatureProvider(options);
 }
 
@@ -67,7 +70,8 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     options.name ?? DEFAULT_PROVIDER_NAME,
     options.auditSink,
     options.auditWriteMode ?? "nonBlocking",
-    resolveAuditContextKeyMode(options.auditRedaction)
+    resolveAuditContextKeyMode(options.auditRedaction),
+    options.staleAfterMs
   );
 }
 
@@ -99,6 +103,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   readonly events = new OpenFeatureEventEmitter();
   private state: ProviderState;
   private closed = false;
+  private readonly operational: OperationalState;
 
   constructor(
     snapshot: FlagSnapshot,
@@ -106,8 +111,10 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     name: string,
     private readonly auditSink: AuditSink | undefined,
     private readonly auditWriteMode: AuditWriteMode,
-    private readonly auditContextKeyMode: AuditContextKeyMode
+    private readonly auditContextKeyMode: AuditContextKeyMode,
+    staleAfterMs: number | undefined
   ) {
+    this.operational = new OperationalState(staleAfterMs);
     this.state = this.createState(snapshot);
     this.metadata = { name };
   }
@@ -116,9 +123,24 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     return this.state.snapshot;
   }
 
+  getStatus(): ProviderStatus {
+    return this.operational.read(this.state.snapshotHash, this.closed, this.auditSink);
+  }
+
+  reportRefreshFailure(kind: RefreshFailureKind): void {
+    this.operational.refreshFailed(kind);
+  }
+
   updateSnapshot(snapshot: FlagSnapshot): void {
     const previousState = this.state;
-    const nextState = this.createState(snapshot);
+    let nextState: ProviderState;
+    try {
+      nextState = this.createState(snapshot);
+    } catch (error) {
+      this.operational.refreshFailed("validation");
+      throw error;
+    }
+    this.operational.refreshed(nextState.snapshotHash !== previousState.snapshotHash);
     if (nextState.snapshotHash === previousState.snapshotHash) {
       return;
     }
@@ -254,6 +276,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       return;
     }
 
+    this.operational.auditStarted();
+    let failed = false;
     try {
       await this.auditSink.write(
         createAuditEvent({
@@ -267,7 +291,10 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
         })
       );
     } catch (error) {
+      failed = true;
       this.warn(logger, "openfeature-local-provider audit sink write failed", error);
+    } finally {
+      this.operational.auditFinished(failed);
     }
   }
 

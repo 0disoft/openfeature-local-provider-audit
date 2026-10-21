@@ -134,9 +134,41 @@ export interface LocalProviderOptions {
   readonly auditSink?: AuditSink;
   readonly auditWriteMode?: AuditWriteMode;
   readonly auditRedaction?: AuditRedactionOptions;
+  readonly staleAfterMs?: number;
 }
 
-export interface ReloadableLocalProvider extends Provider {
+export type RefreshFailureKind = "load" | "fetch" | "validation" | "signature" | "persist";
+
+export interface ProviderAuditStatus {
+  readonly enabled: boolean;
+  readonly attemptedWrites: number;
+  readonly resolvedWrites: number;
+  readonly failedWrites: number;
+  readonly pendingWrites: number;
+  readonly lastFailureAt?: number;
+  readonly sinkStats?: FileAuditSinkStats;
+}
+
+export interface ProviderStatus {
+  readonly snapshotHash: string;
+  readonly closed: boolean;
+  readonly lastSuccessfulRefreshAt: number;
+  readonly lastChangedAt: number;
+  readonly successfulRefreshes: number;
+  readonly failedRefreshes: number;
+  readonly consecutiveRefreshFailures: number;
+  readonly lastRefreshFailureAt?: number;
+  readonly lastRefreshFailure?: RefreshFailureKind;
+  readonly stale: boolean;
+  readonly audit: ProviderAuditStatus;
+}
+
+export interface ObservableLocalProvider extends Provider {
+  getStatus(): ProviderStatus;
+  reportRefreshFailure(kind: RefreshFailureKind): void;
+}
+
+export interface ReloadableLocalProvider extends ObservableLocalProvider {
   getSnapshot(): FlagSnapshot;
   updateSnapshot(snapshot: FlagSnapshot): void;
 }

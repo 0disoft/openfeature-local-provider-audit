@@ -38,6 +38,10 @@ keeping application code on the standard OpenFeature evaluation API.
   or explanation output. See `docs/library/flag-file-schema-v2.md` and
   `docs/library/local-inspection.md` for priority, replay, and CLI usage.
 
+Provider factories also expose privacy-safe operational status in the 2.0
+prerelease. Snapshot refresh status is separate from SDK lifecycle events;
+see `docs/library/operational-status.md`.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

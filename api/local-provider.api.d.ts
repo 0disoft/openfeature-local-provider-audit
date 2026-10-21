@@ -169,8 +169,36 @@ interface LocalProviderOptions {
   readonly auditSink?: AuditSink;
   readonly auditWriteMode?: AuditWriteMode;
   readonly auditRedaction?: AuditRedactionOptions;
+  readonly staleAfterMs?: number;
 }
-interface ReloadableLocalProvider extends Provider {
+type RefreshFailureKind = "load" | "fetch" | "validation" | "signature" | "persist";
+interface ProviderAuditStatus {
+  readonly enabled: boolean;
+  readonly attemptedWrites: number;
+  readonly resolvedWrites: number;
+  readonly failedWrites: number;
+  readonly pendingWrites: number;
+  readonly lastFailureAt?: number;
+  readonly sinkStats?: FileAuditSinkStats;
+}
+interface ProviderStatus {
+  readonly snapshotHash: string;
+  readonly closed: boolean;
+  readonly lastSuccessfulRefreshAt: number;
+  readonly lastChangedAt: number;
+  readonly successfulRefreshes: number;
+  readonly failedRefreshes: number;
+  readonly consecutiveRefreshFailures: number;
+  readonly lastRefreshFailureAt?: number;
+  readonly lastRefreshFailure?: RefreshFailureKind;
+  readonly stale: boolean;
+  readonly audit: ProviderAuditStatus;
+}
+interface ObservableLocalProvider extends Provider {
+  getStatus(): ProviderStatus;
+  reportRefreshFailure(kind: RefreshFailureKind): void;
+}
+interface ReloadableLocalProvider extends ObservableLocalProvider {
   getSnapshot(): FlagSnapshot;
   updateSnapshot(snapshot: FlagSnapshot): void;
 }
@@ -336,7 +364,7 @@ export declare function explainEvaluation<T extends FlagValue>(
 ): EvaluationExplanation;
 //#endregion
 //#region src/provider/local-provider.d.ts
-export declare function createLocalProvider(options: LocalProviderOptions): Provider;
+export declare function createLocalProvider(options: LocalProviderOptions): ObservableLocalProvider;
 export declare function createReloadableLocalProvider(
   options: LocalProviderOptions
 ): ReloadableLocalProvider;
@@ -387,8 +415,12 @@ export type {
   LoadFlagSnapshotFileOptions,
   LocalProviderErrorCode,
   LocalProviderOptions,
+  ObservableLocalProvider,
   PercentageRolloutRule,
+  ProviderAuditStatus,
+  ProviderStatus,
   RedactedAuditContext,
+  RefreshFailureKind,
   ReloadableLocalProvider,
   ReplayExpectedResult,
   ReplayFixture,

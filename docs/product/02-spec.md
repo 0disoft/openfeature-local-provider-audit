@@ -47,6 +47,10 @@ opts into the new evaluation rules. See `docs/library/flag-file-schema-v2.md`.
 
 ## Out of Scope
 
+Post-MVP operations and caller-triggered snapshot delivery are accepted through
+`docs/adr/0014-operational-status-and-safe-snapshot-delivery.md`. The full P2
+inventory and delivery evidence live in `07-operations-and-integrity.md`.
+
 - Hosted feature flag SaaS UI.
 - Remote management server or streaming updates.
 - Approval workflow, experiment analytics, or segment database.

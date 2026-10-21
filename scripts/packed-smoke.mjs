@@ -12,6 +12,10 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "ObservableLocalProvider",
+  "ProviderStatus",
+  "ProviderAuditStatus",
+  "RefreshFailureKind",
   "ConditionScalar",
   "TargetingCondition",
   "TargetingRule",
@@ -19,6 +23,10 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "ObservableLocalProvider",
+  "ProviderStatus",
+  "ProviderAuditStatus",
+  "RefreshFailureKind",
   "EvaluationExplanation",
   "RuleExplanation",
   "ConditionScalar",
@@ -414,6 +422,17 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
   }
 
   const reloadableProvider = api.createReloadableLocalProvider({ snapshot: jsonSnapshot });
+  if (${targeting}) {
+    const initial = reloadableProvider.getStatus();
+    reloadableProvider.reportRefreshFailure("load");
+    reloadableProvider.updateSnapshot(jsonSnapshot);
+    const recovered = reloadableProvider.getStatus();
+    if (typeof provider.getStatus !== "function" || initial.successfulRefreshes !== 1 ||
+        recovered.failedRefreshes !== 1 || recovered.consecutiveRefreshFailures !== 0 ||
+        recovered.snapshotHash !== initial.snapshotHash || !Object.isFrozen(recovered.audit)) {
+      throw new Error(moduleKind + " operational status contract failed");
+    }
+  }
   let flagsChanged = [];
   reloadableProvider.events?.addHandler(ProviderEvents.ConfigurationChanged, (details) => {
     flagsChanged = details?.flagsChanged ?? [];
