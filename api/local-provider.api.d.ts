@@ -291,6 +291,7 @@ interface SnapshotRefresherOptions {
   readonly format?: "json" | "yaml";
   readonly maxBytes?: number;
   readonly verifier?: SnapshotVerifier;
+  readonly previous?: SignedSnapshotMetadata;
 }
 interface SignFlagSnapshotOptions {
   readonly snapshot: FlagSnapshot;
@@ -326,6 +327,22 @@ interface VerifiedFlagSnapshot {
 }
 interface SnapshotVerifier {
   verify(content: Uint8Array, previous?: SignedSnapshotMetadata): VerifiedFlagSnapshot;
+}
+interface FileSnapshotStoreOptions {
+  readonly path: string | URL;
+  readonly verification: SnapshotVerificationOptions;
+  readonly maxHistory?: number;
+  readonly maxBytes?: number;
+  readonly createDirectory?: boolean;
+}
+interface SnapshotRecovery {
+  readonly floor: SignedSnapshotMetadata;
+  readonly current?: VerifiedFlagSnapshot;
+  readonly history: readonly VerifiedFlagSnapshot[];
+}
+interface SignedSnapshotStore {
+  load(): Promise<SnapshotRecovery | undefined>;
+  commit(content: Uint8Array): Promise<VerifiedFlagSnapshot>;
 }
 interface SnapshotRefreshResult {
   readonly status: "updated" | "unchanged";
@@ -538,6 +555,11 @@ export declare function createSnapshotRefresher(
   options: SnapshotRefresherOptions
 ): SnapshotRefresher;
 //#endregion
+//#region src/sources/snapshot-store.d.ts
+export declare function createFileSnapshotStore(
+  options: FileSnapshotStoreOptions
+): SignedSnapshotStore;
+//#endregion
 //#region src/sources/signed-snapshot.d.ts
 export declare function signFlagSnapshot(options: SignFlagSnapshotOptions): string;
 export declare function createSnapshotVerifier(
@@ -565,6 +587,7 @@ export type {
   EvaluationSource,
   FileAuditSinkOptions,
   FileAuditSinkStats,
+  FileSnapshotStoreOptions,
   FlagDefinition,
   FlagSnapshot,
   FlagSnapshotFileWatcher,
@@ -595,7 +618,9 @@ export type {
   RuleExplanation,
   SignFlagSnapshotOptions,
   SignedSnapshotMetadata,
+  SignedSnapshotStore,
   SnapshotFileFormat,
+  SnapshotRecovery,
   SnapshotRefreshResult,
   SnapshotRefresher,
   SnapshotRefresherOptions,

@@ -57,6 +57,11 @@ each audit event capture exact artifact provenance atomically; unsigned updates
 clear it. See `docs/library/signed-snapshots.md`. No signing key is needed
 for evaluation or verification, and active last-good values are not disabled at expiry.
 
+Standalone signed recovery returns an optional fresh current snapshot, authenticated
+historical entries and a replay floor. Always seed signed refresh with the recovered
+floor even when using safe bootstrap contents. See `docs/library/snapshot-recovery.md`;
+automatic store/apply coordination is still pending.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

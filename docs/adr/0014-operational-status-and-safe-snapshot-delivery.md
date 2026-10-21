@@ -43,3 +43,8 @@ RFC 9864 `Ed25519` algorithm, a package-specific protected type and bounded
 audience/sequence/millisecond lifetime claims. Trust keys are pinned out of band;
 no dynamic discovery or algorithm negotiation. The detailed signing and
 process-local continuity contract is `docs/library/signed-snapshots.md`.
+
+The standalone signed recovery journal contract is in
+`docs/library/snapshot-recovery.md`: atomic bounded artifact history, authenticated
+historical floor separate from fresh activation, explicit store ownership and
+crash recovery. Automatic persistence/application coordination remains pending.

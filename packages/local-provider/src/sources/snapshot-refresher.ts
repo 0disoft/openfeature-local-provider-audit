@@ -1,3 +1,4 @@
+import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import { createSnapshotHash } from "../audit/audit-event.js";
 import { parseJsonFlagSnapshot } from "../flags/parse-json-snapshot.js";
@@ -16,6 +17,8 @@ import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./https-source.js";
 export function createSnapshotRefresher(options: SnapshotRefresherOptions): SnapshotRefresher {
   const { provider, source, verifier } = options;
   const format = options.format ?? "json";
+  if (options.previous !== undefined && verifier === undefined)
+    throw new TypeError("Recovered provenance requires a signed verifier.");
   if (format !== "json" && format !== "yaml")
     throw new TypeError("Snapshot format must be json or yaml.");
   if (verifier !== undefined && format !== "json")
@@ -31,8 +34,27 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
   let closed = false;
   let active: AbortController | undefined;
   let inFlight: Promise<SnapshotRefreshResult> | undefined;
+  const initial = provider.getStatus().provenance;
+  const recovered =
+    options.previous === undefined
+      ? undefined
+      : captureSnapshotProvenance(
+          options.previous,
+          Object.getOwnPropertyDescriptor(options.previous, "snapshotHash")?.value as string
+        );
   let provenance: SignedSnapshotMetadata | undefined =
-    verifier === undefined ? undefined : provider.getStatus().provenance;
+    verifier === undefined
+      ? undefined
+      : recovered !== undefined && (initial === undefined || recovered.sequence > initial.sequence)
+        ? recovered
+        : initial;
+  if (
+    recovered !== undefined &&
+    initial !== undefined &&
+    (recovered.audience !== initial.audience ||
+      (recovered.sequence === initial.sequence && recovered.artifactHash !== initial.artifactHash))
+  )
+    throw new TypeError("Recovered provenance conflicts with initial provider origin.");
   let committedArtifact: Uint8Array | undefined;
 
   async function performRefresh(): Promise<SnapshotRefreshResult> {

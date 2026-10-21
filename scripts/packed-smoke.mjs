@@ -12,6 +12,9 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "FileSnapshotStoreOptions",
+  "SnapshotRecovery",
+  "SignedSnapshotStore",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -40,6 +43,9 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "FileSnapshotStoreOptions",
+  "SnapshotRecovery",
+  "SignedSnapshotStore",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -391,7 +397,8 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "createHttpsSnapshotSource",
             "createSnapshotRefresher",
             "signFlagSnapshot",
-            "createSnapshotVerifier"
+            "createSnapshotVerifier",
+            "createFileSnapshotStore"
           ]
         : []),
       "isLocalProviderError",
@@ -562,6 +569,17 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     if (offlineProvider.getStatus().provenance !== undefined || signedRefresher.getProvenance() !== undefined) {
       throw new Error(moduleKind + " unsigned update retained signed origin");
     }
+    const recoveryStore = api.createFileSnapshotStore({ path: auditPath + ".snapshots", verification: {
+      audience: "packed", trustedKeys: { packed: signingKeys.publicKey }
+    } });
+    await recoveryStore.commit(Buffer.from(signed));
+    const recoveredSnapshot = await api.createFileSnapshotStore({ path: auditPath + ".snapshots", verification: {
+      audience: "packed", trustedKeys: { packed: signingKeys.publicKey }
+    } }).load();
+    if (recoveredSnapshot?.floor.artifactHash !== signedResult.provenance.artifactHash ||
+        recoveredSnapshot?.current?.snapshot.schemaVersion !== jsonSnapshot.schemaVersion || recoveredSnapshot.history.length !== 1) {
+      throw new Error(moduleKind + " signed recovery contract failed");
+    }
     signedRefresher.close();
   }
   let flagsChanged = [];
@@ -721,6 +739,18 @@ const auditOptions: CreateAuditEventOptions = {
 void originOptions;
 void auditOrigin;
 void auditOptions;
+declare const recoveryStore: SignedSnapshotStore;
+const recoveryPromise: Promise<SnapshotRecovery | undefined> = recoveryStore.load();
+const storeOptions: FileSnapshotStoreOptions = {
+  path: "caller-owned-state.json", verification: { trustedKeys: {}, audience: "typed" }, maxHistory: 5
+};
+const refreshOptions: SnapshotRefresherOptions = {
+  provider: reloadable, source: { async fetch() { return { status: "notModified" }; } },
+  ...(origin ? { previous: origin } : {})
+};
+void refreshOptions;
+void recoveryPromise;
+void storeOptions;
 void confirmedOptions;
 void timedOutWrites;
 const sourceRequest: SnapshotSourceRequest = { etag: '"typed"' };

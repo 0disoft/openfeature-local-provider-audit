@@ -15,6 +15,7 @@ export { createFileAuditSink } from "./audit/audit-sink.js";
 export { createOpenTelemetryMetrics } from "./metrics/opentelemetry.js";
 export { createHttpsSnapshotSource } from "./sources/https-source.js";
 export { createSnapshotRefresher } from "./sources/snapshot-refresher.js";
+export { createFileSnapshotStore } from "./sources/snapshot-store.js";
 export { signFlagSnapshot, createSnapshotVerifier } from "./sources/signed-snapshot.js";
 export {
   LOCAL_PROVIDER_ERROR_CODES,
@@ -60,6 +61,9 @@ export type {
   SignedSnapshotMetadata,
   VerifiedFlagSnapshot,
   SnapshotVerifier,
+  FileSnapshotStoreOptions,
+  SnapshotRecovery,
+  SignedSnapshotStore,
   SnapshotSource,
   SnapshotSourceRequest,
   SnapshotSourceResponse,

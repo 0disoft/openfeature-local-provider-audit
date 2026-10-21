@@ -36,7 +36,14 @@ The signing helper accepts a caller-owned private KeyObject and never reads secr
 Untrusted headers cannot choose another algorithm or discover keys. Expired 304
 responses do not renew freshness. Publisher key security, trusted clocks/floors and
 out-of-band key rotation remain caller responsibilities. Replay continuity is
-process-local until the persistent recovery slice; JWS does not encrypt configuration.
+process-local unless an authenticated durable floor is recovered explicitly.
+The optional standalone file store bounds and re-verifies retained artifacts, exposes
+expired history separately from fresh activation and seeds refresh through `previous`.
+It trusts the full local directory chain, clock and pinned keys. Restoring/deleting an
+entire journal requires an external trusted minimum sequence; file storage is not a
+hardware monotonic counter. Interrupted-writer locks require stopped-owner recovery.
+See `docs/library/snapshot-recovery.md`; automatic persistence/application coordination
+remains pending. JWS does not encrypt configuration.
 
 ## Required Controls
 

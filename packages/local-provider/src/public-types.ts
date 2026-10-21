@@ -256,6 +256,7 @@ export interface SnapshotRefresherOptions {
   readonly format?: "json" | "yaml";
   readonly maxBytes?: number;
   readonly verifier?: SnapshotVerifier;
+  readonly previous?: SignedSnapshotMetadata;
 }
 
 export interface SignFlagSnapshotOptions {
@@ -296,6 +297,25 @@ export interface VerifiedFlagSnapshot {
 
 export interface SnapshotVerifier {
   verify(content: Uint8Array, previous?: SignedSnapshotMetadata): VerifiedFlagSnapshot;
+}
+
+export interface FileSnapshotStoreOptions {
+  readonly path: string | URL;
+  readonly verification: SnapshotVerificationOptions;
+  readonly maxHistory?: number;
+  readonly maxBytes?: number;
+  readonly createDirectory?: boolean;
+}
+
+export interface SnapshotRecovery {
+  readonly floor: SignedSnapshotMetadata;
+  readonly current?: VerifiedFlagSnapshot;
+  readonly history: readonly VerifiedFlagSnapshot[];
+}
+
+export interface SignedSnapshotStore {
+  load(): Promise<SnapshotRecovery | undefined>;
+  commit(content: Uint8Array): Promise<VerifiedFlagSnapshot>;
 }
 
 export interface SnapshotRefreshResult {

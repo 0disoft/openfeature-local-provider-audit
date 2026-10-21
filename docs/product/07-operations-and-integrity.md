@@ -174,7 +174,7 @@ not be claimed as restart protection. Preserve this remaining scope in later sli
 
 ### Exact signed-artifact evaluation linkage completed locally
 
-Alpha.9 captures optional validated, whitelisted, frozen provenance atomically with
+Commit 2151be2 / alpha.9 captures optional validated, whitelisted, frozen provenance atomically with
 provider state and each evaluation audit event. Re-signed identical configurations
 retain distinct artifact identities; asynchronous audit settlement keeps its original
 release. Unsigned equal-hash updates clear provenance. Provenance-only changes do
@@ -202,3 +202,40 @@ Remaining scope is unchanged: persistent verified last-good recovery, durable re
 floor, bounded history and explicit higher-sequence rollback; GitOps recipe; audit
 hash chain, verifier and trusted external checkpoints with explicit rotation,
 concurrent-writer and crash boundaries. No restart protection is claimed yet.
+
+
+### Standalone signed storage and restart recovery completed locally
+
+Alpha.10 adds the bounded atomic `createFileSnapshotStore` journal, native signature
+re-verification, retained newest-first history and higher-sequence signed rollback.
+Recovered fresh `current` is separate from authenticated historical `floor`/entries:
+expired or below-current-policy artifacts cannot silently reactivate. Explicit
+`SnapshotRefresherOptions.previous` seeds replay continuity even with an unsigned
+safe bootstrap. A separate real Node process recovers the exact artifact identity
+and evaluates the restored configuration.
+
+Commits capture input bytes, recheck the durable floor under an exclusive owner
+lock, flush a private temporary file and rename atomically. POSIX also syncs the
+parent; Windows power-loss durability remains filesystem-dependent. Invalid
+artifacts, corruption, size limits, hard links and failed rename preserve the prior
+journal. Abandoned locks require stopped-owner recovery; whole-file deletion/older
+backup restore requires an external trusted floor. Retired older history keys never
+prevent a still-trusted head from recovery, and unverifiable heads never fall back.
+The authoritative contract is `docs/library/snapshot-recovery.md`; API, SDK,
+migration, signed delivery, threat model and ADR 0014 point to that boundary.
+
+`check`, `contract`, format, lint and diff whitespace checks passed. Windows Node
+24.14.0 and 22.23.3 each passed 333 package tests with 6 platform skips (the existing
+5 plus the new POSIX-only permissions/symlink test). Coverage: 94.60% statements,
+92.72% branches, 99.32% functions, 95.53% lines. The 172,286-byte alpha.10 tarball
+passed ESM/CJS store/recovery and existing runtime/CLI contracts, TypeScript 5.9.3
+full-library and 7.0.2 consumer-surface checks. Reviewed API: 91 exports / 25 runtime
+values. No dependency, DB, runner or repository hygiene policy changed. Hosted
+Linux/macOS verification remains deferred because no push is authorized.
+
+Next, before claiming P2 durable delivery complete: integrate persistence with
+refresher/provider application, including rejected application, concurrent/reentrant
+replacement, cancellation, persistence errors and ETag/provenance commit boundaries.
+The standalone store does not claim atomic coordination with independent provider
+updates. Then complete the GitOps recipe and audit hash chain/verifier/checkpoints
+with rotation, concurrent-writer and crash boundaries. Preserve the full P2 scope.

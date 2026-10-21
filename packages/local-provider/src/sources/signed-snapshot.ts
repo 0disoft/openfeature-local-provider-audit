@@ -42,6 +42,20 @@ export function signFlagSnapshot(options: SignFlagSnapshotOptions): string {
 }
 
 export function createSnapshotVerifier(options: SnapshotVerificationOptions): SnapshotVerifier {
+  return createVerifier(options, false);
+}
+
+// Internal recovery-only verifier: never used to decide whether a snapshot is fresh.
+export function createHistoricalSnapshotVerifier(
+  options: SnapshotVerificationOptions
+): SnapshotVerifier {
+  return createVerifier(options, true);
+}
+
+function createVerifier(
+  options: SnapshotVerificationOptions,
+  historical: boolean
+): SnapshotVerifier {
   const audience = options.audience;
   if (!validAudience(audience)) throw new TypeError("Snapshot audience is invalid.");
   const minSequence = sourceInteger(
@@ -102,10 +116,10 @@ export function createSnapshotVerifier(options: SnapshotVerificationOptions): Sn
         if (
           !Number.isSafeInteger(now) ||
           now < 0 ||
-          sequence < minSequence ||
+          (!historical && sequence < minSequence) ||
           issuedAt > now + clockSkewMs ||
-          now >= expiresAt ||
-          now - issuedAt > maxAgeMs ||
+          (!historical && now >= expiresAt) ||
+          (!historical && now - issuedAt > maxAgeMs) ||
           expiresAt - issuedAt > maxLifetimeMs
         )
           throw invalid();

@@ -5,6 +5,7 @@ import {
   createAuditEvent,
   createEnvOverrides,
   createFileAuditSink,
+  createFileSnapshotStore,
   createOpenTelemetryMetrics,
   createHttpsSnapshotSource,
   createSnapshotRefresher,
@@ -35,6 +36,7 @@ describe("package exports", () => {
     expect(typeof replayEvaluationFixture).toBe("function");
     expect(typeof createAuditEvent).toBe("function");
     expect(typeof createFileAuditSink).toBe("function");
+    expect(typeof createFileSnapshotStore).toBe("function");
     expect(typeof createOpenTelemetryMetrics).toBe("function");
     expect(typeof createHttpsSnapshotSource).toBe("function");
     expect(typeof createSnapshotRefresher).toBe("function");

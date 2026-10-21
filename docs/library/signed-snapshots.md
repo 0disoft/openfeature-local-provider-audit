@@ -1,6 +1,6 @@
 # Signed snapshot delivery
 
-Status: implemented locally in the 2.0 prerelease; persistent recovery is the next slice.
+Status: implemented locally in the 2.0 prerelease; see `snapshot-recovery.md` for standalone durable storage.
 
 ```ts
 // Publisher: supply an Ed25519 private KeyObject from caller-owned secure key handling.
@@ -105,8 +105,9 @@ No artifact can authorize its own new key or lower the configured floor.
 
 An authorized rollback is a **new higher sequence** with a current issuance/expiry
 and the desired older flag contents. Replaying an older signed release is not rollback.
-Durable replay floors, restart recovery and history selection remain the next P2
-slice; process-local state does not claim cross-restart protection.
+The optional file store retains authenticated replay floors, supports restart
+recovery and history selection; see `snapshot-recovery.md`. Automatic coordination
+with refresher application remains pending; a refresher alone is process-local.
 
 ## Evaluation audit linkage
 
@@ -135,7 +136,8 @@ reject the refresh, including equal-hash replacement. `getProvenance()` and ETag
 require both active snapshot and artifact identity to match the controller's commit.
 Provenance describes historical acceptance, not current freshness or durable restart
 protection. A newly constructed controller cannot recover a floor that was never
-persisted or supplied; that remains the next slice.
+persisted or supplied. The file store and `previous` refresh option support
+explicit restart recovery; automatic save/apply coordination remains the next slice.
 
 Verification errors are generic `LocalProviderError(SCHEMA_ERROR)` without a raw
 token, key, claim value or nested cause. The publisher helper may throw input

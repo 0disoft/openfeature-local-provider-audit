@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.9` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.10` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -59,6 +59,14 @@ argument. Existing one-argument calls remain valid and clear signed origin, even
 for equal contents. Custom reloadable providers used by signed refreshers must
 atomically expose the supplied provenance; otherwise refresh fails closed. These
 fields validate metadata shape/hash, not signatures. Follow `signed-snapshots.md`.
+
+Alpha.10 adds the optional standalone file snapshot store and three store/recovery
+types. `SnapshotRefresherOptions.previous` restores an authenticated durable floor;
+it requires a verifier and cannot contradict an equal-sequence initial origin.
+`load()` exposes expired history only as historical evidence, with no fresh `current`.
+Existing providers/refresher defaults perform no storage I/O. See
+`snapshot-recovery.md` for bounds, storage trust, crash/lock recovery and the pending
+automatic coordination between persistence and active provider application.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing
