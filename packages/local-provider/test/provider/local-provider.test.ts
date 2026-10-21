@@ -19,6 +19,40 @@ const logger = {
 };
 
 describe("createLocalProvider", () => {
+  it("keeps object overrides and cached audit hashes immutable across returned values", async () => {
+    for (const options of [
+      {
+        overridesJson: JSON.stringify({ "checkout.config": { nested: { limit: 10 }, list: [1] } })
+      },
+      { env: { OPENFEATURE_LOCAL_FLAG_CHECKOUT_CONFIG: '{"nested":{"limit":10},"list":[1]}' } }
+    ]) {
+      const hashes: (string | undefined)[] = [];
+      const provider = createLocalProvider({
+        snapshot: staticSnapshot,
+        ...options,
+        auditSink: {
+          async write(event) {
+            hashes.push(event.overrideHash);
+          }
+        }
+      });
+      const first = await provider.resolveObjectEvaluation("checkout.config", {}, {}, logger);
+      const value = first.value as { nested: { limit: number }; list: number[] };
+      expect(() => {
+        value.nested.limit = 999;
+      }).toThrow(TypeError);
+      expect(() => {
+        value.list.push(2);
+      }).toThrow(TypeError);
+      const second = await provider.resolveObjectEvaluation("checkout.config", {}, {}, logger);
+      expect(second.value).toEqual({ nested: { limit: 10 }, list: [1] });
+      expect(hashes).toHaveLength(2);
+      expect(hashes[0]).toMatch(/^[a-f0-9]{64}$/);
+      expect(hashes[1]).toBe(hashes[0]);
+      await provider.onClose?.();
+    }
+  });
+
   it("creates an OpenFeature provider with metadata", () => {
     const provider = createLocalProvider({ snapshot: staticSnapshot });
 

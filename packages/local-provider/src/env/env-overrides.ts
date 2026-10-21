@@ -35,11 +35,11 @@ export function createEnvOverrides(
       options.maxOverridesJsonBytes ?? DEFAULT_MAX_OVERRIDES_JSON_BYTES
     );
     if (typeof parsed === "string") {
-      return {
+      return freezeOverrides({
         values,
         errors,
         globalError: parsed
-      };
+      });
     }
 
     for (const [flagKey, value] of Object.entries(parsed)) {
@@ -48,10 +48,22 @@ export function createEnvOverrides(
     }
   }
 
-  return {
+  return freezeOverrides({
     values,
     errors
-  };
+  });
+}
+
+function freezeOverrides(state: EnvOverrideState): EnvOverrideState {
+  const pending: object[] = [state];
+  while (pending.length > 0) {
+    const value = pending.pop();
+    if (value === undefined || Object.isFrozen(value)) continue;
+    for (const child of Object.values(value))
+      if (child !== null && typeof child === "object") pending.push(child);
+    Object.freeze(value);
+  }
+  return state;
 }
 
 function applyPerFlagEnvOverrides(

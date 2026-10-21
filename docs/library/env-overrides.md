@@ -21,6 +21,9 @@ The contract must avoid ambiguous automatic environment variable mapping.
   `updateSnapshot()` installs a new snapshot. Create a new provider to refresh overrides.
 - Override values never create new flags. Unknown flag keys still return the caller's
   OpenFeature default value with default reason metadata.
+- Parsed override state and nested values are frozen, like snapshot values. Clone
+  a returned object before modifying it; consumers cannot mutate later evaluations
+  or invalidate the provider's cached override hash through a returned reference.
 
 ## Priority
 
