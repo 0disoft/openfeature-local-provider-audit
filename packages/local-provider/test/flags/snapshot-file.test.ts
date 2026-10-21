@@ -305,13 +305,50 @@ describe("snapshot file helpers", () => {
       await secondCallbackStarted.promise;
       const queuedReload = watcher.reload();
       watcher.close();
+      await rm(path);
       releaseSecondCallback.resolve();
 
       await Promise.all([activeReload, queuedReload]);
+      await expect(watcher.reload()).resolves.toBe(watcher.getSnapshot());
       expect(callbackCount).toBe(2);
       expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(true);
     } finally {
       await rm(tempDirectory, { recursive: true, force: true });
+    }
+  });
+
+  it("coalesces a burst behind a slow callback into one trailing reload", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-coalesce-"));
+    const started = createDeferred();
+    const release = createDeferred();
+    let watcher: Awaited<ReturnType<typeof watchFlagSnapshotFile>> | undefined;
+    let calls = 0;
+    try {
+      const path = join(directory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true));
+      watcher = await watchFlagSnapshotFile({
+        path,
+        debounceMs: 60_000,
+        async onSnapshot() {
+          if (++calls === 2) {
+            started.resolve();
+            await release.promise;
+          }
+        }
+      });
+      const active = watcher.reload();
+      await started.promise;
+      const pending = watcher.reload();
+      for (let i = 0; i < 1000; i++) expect(watcher.reload()).toBe(pending);
+      await writeFile(path, createJsonSnapshot(false));
+      release.resolve();
+      await Promise.all([active, pending]);
+      expect(calls).toBe(3);
+      expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(false);
+    } finally {
+      release.resolve();
+      watcher?.close();
+      await rm(directory, { recursive: true, force: true });
     }
   });
 

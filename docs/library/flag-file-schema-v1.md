@@ -36,6 +36,11 @@ because malformed or changed configuration can alter evaluated flag values.
   when reload fails.
 - Optional consistency polling performs metadata-only idle checks at a caller-selected
   interval of at least 50 ms and reads the snapshot only after its stat fingerprint changes.
+- Reload bursts share one pending operation behind the active reload. A manual
+  request forces delivery even when unchanged; automatic requests retain error
+  reporting. Closing prevents pending/new file reads and returns the last committed
+  snapshot to pending/manual requests; an already-started read/callback may finish
+  but cannot publish a snapshot after close.
 
 ## Failure Behavior
 

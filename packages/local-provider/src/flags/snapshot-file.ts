@@ -106,6 +106,12 @@ export async function watchFlagSnapshotFile(
   let closed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let reloadQueue = Promise.resolve();
+  let queuedReload:
+    | {
+        request: { reportError: boolean; skipUnchanged: boolean };
+        promise: Promise<FlagSnapshot>;
+      }
+    | undefined;
 
   const watcherPath = options.path;
   const target = resolveSnapshotFileTarget(watcherPath);
@@ -140,6 +146,10 @@ export async function watchFlagSnapshotFile(
   });
 
   async function performReload(skipUnchanged: boolean): Promise<FlagSnapshot> {
+    if (closed) {
+      if (currentSnapshot !== undefined) return currentSnapshot;
+      throw new LocalProviderError("PROVIDER_NOT_READY", "Snapshot watcher is closed.");
+    }
     const snapshot = await loadFlagSnapshotFile(options.path, options);
     const serializedSnapshot = JSON.stringify(snapshot);
     if (skipUnchanged && serializedSnapshot === currentSerializedSnapshot) {
@@ -164,11 +174,22 @@ export async function watchFlagSnapshotFile(
     readonly reportError: boolean;
     readonly skipUnchanged: boolean;
   }): Promise<FlagSnapshot> {
-    const reload = reloadQueue.then(() => performReload(skipUnchanged));
+    if (closed) return performReload(skipUnchanged);
+    if (queuedReload !== undefined) {
+      queuedReload.request.reportError ||= reportError;
+      queuedReload.request.skipUnchanged &&= skipUnchanged;
+      return queuedReload.promise;
+    }
+    const request = { reportError, skipUnchanged };
+    const reload = reloadQueue.then(() => {
+      queuedReload = undefined;
+      return performReload(request.skipUnchanged);
+    });
+    queuedReload = { request, promise: reload };
     reloadQueue = reload.then(
       () => undefined,
       async (error: unknown) => {
-        if (reportError) {
+        if (request.reportError) {
           await reportReloadError(error);
         }
       }
@@ -187,6 +208,7 @@ export async function watchFlagSnapshotFile(
   try {
     await enqueueReload({ reportError: false, skipUnchanged: false });
   } catch (error) {
+    closed = true;
     closeWatcher(watcher, timer);
     throw error;
   }
