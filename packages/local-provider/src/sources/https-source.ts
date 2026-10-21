@@ -193,7 +193,7 @@ export function sourceInteger(name: string, value: number, min: number, max: num
   return value;
 }
 
-function validEtag(value: string): boolean {
+export function validEtag(value: string): boolean {
   return value.length <= 1_024 && /^(W\/)?"[\x21\x23-\x7e\x80-\xff]*"$/.test(value);
 }
 

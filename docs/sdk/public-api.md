@@ -63,6 +63,11 @@ Caller-triggered HTTPS sources/refresher are optional, distinct from SDK
 evaluation. The caller owns refreshing/shutdown and trusted URL/CA configuration.
 See `docs/library/https-snapshots.md` for ETag commit, cancellation and last-good behavior.
 
+`createS3SnapshotSource` composes with the same refresher using a caller-owned
+AWS SDK v3 client for S3/R2. Credentials, HTTPS endpoint and client shutdown remain
+caller concerns; no SDK runtime dependency is introduced. See
+`docs/library/s3-snapshots.md` for attempt/byte limits and cancellation boundaries.
+
 Optional signed refresh authenticates audience/sequence/lifetime and snapshot
 before provider application, including 304 freshness checks. Provider status and
 each audit event capture exact artifact provenance atomically; unsigned updates

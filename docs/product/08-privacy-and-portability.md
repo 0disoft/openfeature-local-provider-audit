@@ -117,3 +117,46 @@ CI or production origin/storage validation: no push or deployment is authorized.
 The caller owns clock trust/monotonic floors, external checkpoints and rollout
 business policy. No incomplete scheduled-rollout implementation is left in the
 worktree; start the object-storage slice in the next run.
+
+### S3/R2 snapshot delivery completed locally (2026-10-22 KST)
+
+Contract commit c8c7a93 precedes the alpha.17 implementation. New opt-in
+createS3SnapshotSource captures the caller-owned SDK getObject method and trusted
+bucket/key. It shares ETag syntax and source bounds with HTTPS; actual SDK 304
+exceptions map to notModified, while partial/error statuses, compressed/unsupported
+bodies, invalid lengths and overruns fail without exposing SDK causes or paths.
+Total per-attempt deadlines and abort races also bound clients/iterators that
+ignore cancellation. Late bodies close, backoff cancels, and retries are finite.
+Byte copies coalesce into bounded blocks, preventing tiny chunks from growing
+unbounded bookkeeping and protecting against caller buffer reuse. The source
+starts no workers or evaluation-time requests and never destroys the shared client.
+
+Seven focused tests use the actual AWS SDK v3 anonymous loopback HTTP protocol
+(no fabricated credentials) for addressing, ETag/304 and access-denied parsing.
+They cover Node/Web/Blob byte streaming, length/size/encoding/status failures,
+transport/body stalls, late cleanup, cancellation, transient retries and privacy.
+Signed SDK bytes commit through the existing verifier/store; corrupted responses
+preserve the last accepted ETag, provenance and snapshot, and a reopened file store
+recovers the exact signed artifact. Repeated provider evaluation performs no I/O.
+
+check and contract passed. Windows Node 24.14.0 and 22.23.3 each passed 377 package
+tests, with 6 existing platform skips. Coverage: 94.00% statements / 92.31% branches /
+98.70% functions / 95.61% lines. The actual 237,561-byte tarball passed ESM/CJS object
+source consumers and existing CLI/signed/schedule/audit contracts, TypeScript 5.9.3
+full-library and 7.0.2 consumer-surface checks (documented upstream skipLibCheck
+boundary retained). API baseline: 114 exports / 32 runtime values, adding one
+factory and two structural types. AWS SDK client-s3 ^3.1153.0 (Apache-2.0) is dev-only
+for real compatibility tests; declaration and lockfile agree, supply-chain policies
+passed, and no SDK dependency is imported into library code/public declarations.
+No DB, runner/workflow or hygiene policy changes.
+
+Remaining P3, in order: runtime separation and actual browser/Bun/Deno/Workers
+execution, then adoption material and independently verifiable external use.
+Begin with an explicit minimal portable evaluator/parser contract; inspect current
+Node crypto/Buffer/SDK dependencies before choosing a portable implementation.
+Preserve Node behavior and reviewed root API. No incomplete S3 unit remains.
+Production AWS/R2 credentials, IAM, TLS/account endpoints and hosted cross-platform
+CI remain unverified because no cloud access, push or deployment is authorized.
+A custom SDK client may continue internal work after ignoring abort; callers own
+its lifecycle and must set SDK maxAttempts: 1 to preserve actual attempt bounds.
+No external adoption claim or external message is authorized.

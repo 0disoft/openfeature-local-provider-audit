@@ -38,6 +38,8 @@ const V2_TYPE_EXPORTS = new Set([
   "SnapshotSourceRequest",
   "SnapshotSourceResponse",
   "HttpsSnapshotSourceOptions",
+  "S3SnapshotClient",
+  "S3SnapshotSourceOptions",
   "SnapshotRefresherOptions",
   "SnapshotRefreshResult",
   "SnapshotRefresher",
@@ -83,6 +85,8 @@ const PUBLIC_TYPE_EXPORTS = [
   "SnapshotSourceRequest",
   "SnapshotSourceResponse",
   "HttpsSnapshotSourceOptions",
+  "S3SnapshotClient",
+  "S3SnapshotSourceOptions",
   "SnapshotRefresherOptions",
   "SnapshotRefreshResult",
   "SnapshotRefresher",
@@ -423,6 +427,7 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "explainEvaluation",
             "createOpenTelemetryMetrics",
             "createHttpsSnapshotSource",
+            "createS3SnapshotSource",
             "createSnapshotRefresher",
             "signFlagSnapshot",
             "createSnapshotVerifier",
@@ -575,6 +580,14 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     try { api.createHttpsSnapshotSource({ url: "http://example.test/flags" }); }
     catch { rejectedInsecure = true; }
     if (!rejectedInsecure) throw new Error(moduleKind + " source HTTPS validation failed");
+    const objectSource = api.createS3SnapshotSource({ bucket: "packed", key: "flags.json",
+      client: { async getObject(input) {
+        if (input.Bucket !== "packed" || input.Key !== "flags.json") throw new Error("object addressing");
+        return { Body: require("node:stream").Readable.from([Buffer.from("{}")]), ContentLength: 2, ETag: '"object"' };
+      } }
+    });
+    const objectBytes = await objectSource.fetch();
+    if (objectBytes.status !== "content" || Buffer.from(objectBytes.content).toString() !== "{}") throw new Error(moduleKind + " object source failed");
     const signingKeys = require("node:crypto").generateKeyPairSync("ed25519");
     const signed = api.signFlagSnapshot({
       snapshot: jsonSnapshot, privateKey: signingKeys.privateKey, keyId: "packed",
@@ -827,6 +840,9 @@ const auditOptions: CreateAuditEventOptions = {
 void originOptions;
 void auditOrigin;
 void auditOptions;
+declare const objectClient: S3SnapshotClient;
+const objectSourceOptions: S3SnapshotSourceOptions = { client: objectClient, bucket: "typed", key: "flags.json" };
+void objectSourceOptions;
 declare const recoveryStore: SignedSnapshotStore;
 const recoveryPromise: Promise<SnapshotRecovery | undefined> = recoveryStore.load();
 const storeOptions: FileSnapshotStoreOptions = {

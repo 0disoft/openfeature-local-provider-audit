@@ -52,6 +52,10 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+P3 object delivery adds `createS3SnapshotSource`, `S3SnapshotClient` and
+`S3SnapshotSourceOptions`; see `s3-snapshots.md`. Caller-owned AWS SDK v3 clients
+provide S3/R2 transport and credentials, without a library SDK runtime dependency.
+
 P3 scheduled rollout adds `ScheduledRollout`, `ScheduleEvaluation`, optional v2 flag
 `schedule`, request `evaluationTime`, provider `clock`, and optional schedule
 decision metadata on evaluation/explanation/audit/replay. No new runtime export or
@@ -112,7 +116,7 @@ The package-root runtime value surface is exactly:
 - `replayEvaluationFixture`.
 - `createAuditEvent`, `serializeAuditEvent`, `redactContext`, and `createFileAuditSink`.
 - `createOpenTelemetryMetrics`.
-- `createHttpsSnapshotSource` and `createSnapshotRefresher`.
+- `createHttpsSnapshotSource`, `createS3SnapshotSource` and `createSnapshotRefresher`.
 - `signFlagSnapshot` and `createSnapshotVerifier`.
 - `createFileSnapshotStore` and `createChainedFileAuditSink`.
 - `createAuditChainCheckpoint`, `createChainedAuditEvent`, `verifyAuditChainRecord`
@@ -147,7 +151,7 @@ The package-root type surface is exactly:
 - `OpenTelemetryMeter`, `ProviderMetrics`, `ProviderMetricsSession`, and
   `ProviderEvaluationMetric`.
 - `SnapshotSource`, `SnapshotSourceRequest`, `SnapshotSourceResponse`,
-  `HttpsSnapshotSourceOptions`, `SnapshotRefresherOptions`,
+  `HttpsSnapshotSourceOptions`, `S3SnapshotClient`, `S3SnapshotSourceOptions`, `SnapshotRefresherOptions`,
   `SnapshotRefreshResult`, and `SnapshotRefresher`.
 - `SignFlagSnapshotOptions`, `SnapshotVerificationOptions`, `SignedSnapshotMetadata`,
   `VerifiedFlagSnapshot`, and `SnapshotVerifier`.

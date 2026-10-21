@@ -124,3 +124,10 @@ Partial committed history fails closed; plain file writers remain compatible.
 - Automatic stale-lock takeover is described as race-free or owner-fenced.
 - A writable parent directory or Windows path is described as safe merely because the
   final component was checked before open.
+
+S3/R2 delivery trusts the caller-owned SDK client, HTTPS endpoint, credential
+provider and read permissions. The source bounds its own waiting and byte copies,
+not custom client work that ignores cancellation. Configure SDK maxAttempts: 1.
+ETags are conditional validators, not integrity evidence; pinned verification and
+durable sequence floors remain necessary across origins/restarts. SDK response
+content, bucket/key, causes and credentials are excluded from adapter errors.

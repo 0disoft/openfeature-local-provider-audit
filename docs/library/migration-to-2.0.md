@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.16` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.17` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -126,3 +126,8 @@ require deliberate review. Audit the declaration and lockfile together.
 Rollback: first deploy v1 configuration, then revert to the previous provider.
 Older providers reject v2; they must never silently evaluate it as v1. No push,
 tag, npm publication, or hosted compatibility result is implied by local verification.
+
+Alpha.17 adds opt-in `createS3SnapshotSource`, `S3SnapshotClient` and
+`S3SnapshotSourceOptions`. Callers own their SDK client, credentials and HTTPS
+endpoint. No SDK runtime dependency or automatic I/O is introduced; existing
+refresher/verifier/store composition is unchanged. See `s3-snapshots.md`.

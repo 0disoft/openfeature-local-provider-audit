@@ -1,6 +1,6 @@
 {
   "name": "@0disoft/openfeature-local-provider",
-  "version": "2.0.0-alpha.16",
+  "version": "2.0.0-alpha.17",
   "description": "Local OpenFeature provider for JSON/YAML flag snapshots, CLI validation, file reload/watch, typed evaluation, environment overrides, bucketing, replay fixtures, redacted audit events, and lockable rotating file audit sinks.",
   "license": "Apache-2.0",
   "repository": {
@@ -47,6 +47,7 @@
     "@openfeature/server-sdk": "^1.22.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.1153.0",
     "@openfeature/core": "^1.12.0",
     "@openfeature/server-sdk": "^1.23.0",
     "@opentelemetry/api": "^1.9.1",

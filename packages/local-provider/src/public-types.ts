@@ -277,6 +277,29 @@ export interface HttpsSnapshotSourceOptions {
   readonly retryDelayMs?: number;
 }
 
+export interface S3SnapshotClient {
+  getObject(
+    input: { Bucket: string; Key: string; IfNoneMatch?: string },
+    options: { abortSignal: AbortSignal }
+  ): Promise<{
+    Body?: unknown;
+    ContentLength?: number | undefined;
+    ContentEncoding?: string | undefined;
+    ETag?: string | undefined;
+    $metadata?: { httpStatusCode?: number | undefined } | undefined;
+  }>;
+}
+
+export interface S3SnapshotSourceOptions {
+  readonly client: S3SnapshotClient;
+  readonly bucket: string;
+  readonly key: string;
+  readonly maxBytes?: number;
+  readonly timeoutMs?: number;
+  readonly maxAttempts?: number;
+  readonly retryDelayMs?: number;
+}
+
 export interface SnapshotRefresherOptions {
   readonly provider: ReloadableLocalProvider;
   readonly source: SnapshotSource;

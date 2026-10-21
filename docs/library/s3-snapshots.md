@@ -1,6 +1,6 @@
 # Bounded S3-compatible snapshot source
 
-Status: accepted P3 implementation contract under ADR 0015.
+Status: implemented locally in 2.0.0-alpha.17 under ADR 0015.
 
 `createS3SnapshotSource({ client, bucket, key, maxBytes?, timeoutMs?, maxAttempts?,
 retryDelayMs? })` returns the existing SnapshotSource. The caller owns the real SDK
@@ -51,3 +51,25 @@ unverified without separately authorized access; no cloud resources are provisio
 
 Protocol references: [AWS GetObject](https://docs.aws.amazon.com/AmazonS3/latest/API/API_GetObject.html),
 [Cloudflare R2 SDK configuration](https://developers.cloudflare.com/r2/examples/aws/aws-sdk-js-v3/).
+
+## Usage
+
+Install the AWS SDK in the consuming application; it is not a library dependency.
+The SDK resolves the deployment's real credential provider chain. Keep its endpoint
+HTTPS and set maxAttempts: 1 to avoid multiplying adapter retries.
+
+```ts
+import { S3 } from "@aws-sdk/client-s3";
+import { createS3SnapshotSource, createSnapshotRefresher } from "@0disoft/openfeature-local-provider";
+
+const client = new S3({ region: process.env.AWS_REGION, maxAttempts: 1 });
+const source = createS3SnapshotSource({ client, bucket: deployment.bucket, key: "flags.json" });
+const refresher = createSnapshotRefresher({ provider, source, verifier, store });
+await refresher.refresh(); // caller schedules refreshes outside evaluation
+// Shutdown: refresher.close(); client.destroy();
+```
+
+For R2 configure region "auto", the account HTTPS endpoint and a real R2
+credential provider on this same client. For command-based S3Client use
+`client: { getObject: (input, options) => sdk.send(new GetObjectCommand(input), options) }`.
+No credentials belong in snapshots, evaluation contexts, logs or source options.

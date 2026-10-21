@@ -312,6 +312,37 @@ interface HttpsSnapshotSourceOptions {
   readonly maxAttempts?: number;
   readonly retryDelayMs?: number;
 }
+interface S3SnapshotClient {
+  getObject(
+    input: {
+      Bucket: string;
+      Key: string;
+      IfNoneMatch?: string;
+    },
+    options: {
+      abortSignal: AbortSignal;
+    }
+  ): Promise<{
+    Body?: unknown;
+    ContentLength?: number | undefined;
+    ContentEncoding?: string | undefined;
+    ETag?: string | undefined;
+    $metadata?:
+      | {
+          httpStatusCode?: number | undefined;
+        }
+      | undefined;
+  }>;
+}
+interface S3SnapshotSourceOptions {
+  readonly client: S3SnapshotClient;
+  readonly bucket: string;
+  readonly key: string;
+  readonly maxBytes?: number;
+  readonly timeoutMs?: number;
+  readonly maxAttempts?: number;
+  readonly retryDelayMs?: number;
+}
 interface SnapshotRefresherOptions {
   readonly provider: ReloadableLocalProvider;
   readonly source: SnapshotSource;
@@ -669,6 +700,9 @@ export declare function createHttpsSnapshotSource(
   options: HttpsSnapshotSourceOptions
 ): SnapshotSource;
 //#endregion
+//#region src/sources/s3-source.d.ts
+export declare function createS3SnapshotSource(options: S3SnapshotSourceOptions): SnapshotSource;
+//#endregion
 //#region src/sources/snapshot-refresher.d.ts
 export declare function createSnapshotRefresher(
   options: SnapshotRefresherOptions
@@ -745,6 +779,8 @@ export type {
   ReplayOverrideInput,
   ReplayResult,
   RuleExplanation,
+  S3SnapshotClient,
+  S3SnapshotSourceOptions,
   ScheduleEvaluation,
   ScheduledRollout,
   SignFlagSnapshotOptions,

@@ -343,3 +343,8 @@ one process. Separate processes or duplicate installed package instances still r
 
 Browser, Bun, Deno, hosted flag services, control-plane APIs, and remote streaming are
 outside the current package boundary.
+
+Caller-triggered S3/R2 delivery uses `createS3SnapshotSource` with a caller-owned
+AWS SDK v3 client; credentials and transport remain application concerns. Compose
+with the existing signed refresher and recovery store. See
+[bounded object snapshots](https://github.com/0disoft/openfeature-local-provider-audit/blob/main/docs/library/s3-snapshots.md).
