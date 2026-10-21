@@ -1,0 +1,12 @@
+{
+  "name": "openfeature-local-provider-core-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@0disoft/openfeature-local-provider": "workspace:*"
+  }
+}

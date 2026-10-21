@@ -205,6 +205,12 @@ importers:
         specifier: ^1.20261019.1
         version: 1.20261019.1
 
+  examples/core-basic:
+    dependencies:
+      '@0disoft/openfeature-local-provider':
+        specifier: workspace:*
+        version: link:../../packages/local-provider
+
   examples/node-basic:
     dependencies:
       '@0disoft/openfeature-local-provider':

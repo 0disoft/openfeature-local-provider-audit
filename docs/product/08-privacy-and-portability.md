@@ -258,3 +258,41 @@ and whitespace checks passed. Missing-browser ENOENT also failed visibly and
 cleaned its fixture/listener. Existing packed Node/CJS/strict type consumers were
 verified in the preceding implementation; this unit changes no library API/code.
 No additional hosted/OS/browser production claims or adoption claim is made.
+
+### Adoption example and reproducible material completed locally (2026-10-22 KST)
+
+The private core-basic workspace consumer now exercises the public packed /core
+API with a fixed synthetic 200-member cohort. Scheduled release grows 0 -> 51 ->
+200 members without losing existing members; internal targeting works before
+launch and the emergency disabled variant wins over targeting and overrides.
+Output contains aggregate counts/reasons, not targeting identifiers. Its source
+also runs unchanged inside the existing actual-tarball consumer contract, so
+workspace resolution alone cannot satisfy acceptance. The new smoke:core-example
+runner is opt-in; packed consumer verification includes the same example.
+
+docs/sdk/adoption-guide.md provides copy-ready local/packed usage, security and
+operating boundaries, performance/runtime reproduction, and an external adopter
+evidence/consent template. docs/testing/p3-adoption-status.md distinguishes the
+maintainer-owned examples from actual independent use. Its committed raw Node
+benchmark report records the exact source/runtime and all ten cases (2,000
+iterations each); single-host timings do not establish production guarantees,
+cross-runtime performance or regression improvements.
+
+Validation: smoke:core-example, actual alpha.18 tarball contract (398,768 bytes),
+benchmark correctness/queue/refresh checks and full check passed. The latter
+passed 379 package tests with 6 existing platform skips plus API/type/coverage,
+migration/stable/package gates. Library runtime sources did not change; prior
+Node 22 and real four-runtime acceptance receipts were retained rather than
+rerun. Public APIs, DB, runtime dependencies, CI and hygiene policy are unchanged.
+The private workspace importer adds no third-party package; runner and consumer
+contract changes are described above. Source-of-truth SDK compatibility and
+validation instructions now link the adoption material.
+
+Bounded read-only GitHub searches and registry dist-tag reads found no verifiable
+consented independent adoption record. This does not prove there are no external
+users. Existing same-maintainer integrations retain their original scope. All P3
+local implementation and reproducible material are complete; the remaining
+condition is real independent use with owner consent and inspectable evidence.
+Review incoming evidence using the guide; do not replace this condition with
+another local smoke, contact third parties, publish or deploy to obtain it.
+No push, tag, remote write or deployment was performed.

@@ -1,6 +1,16 @@
 import { exec, execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { access, mkdtemp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import {
+  access,
+  copyFile,
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -303,6 +313,21 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
   );
 
   if (installedPackageJson.exports?.["./core"] !== undefined) {
+    await copyFile(
+      path.join(ROOT, "examples/core-basic/index.mjs"),
+      path.join(consumerDirectory, "core-example.mjs")
+    );
+    const exampleRun = JSON.parse(
+      (await run("node", ["core-example.mjs"], consumerDirectory)).stdout
+    );
+    if (
+      exampleRun.cohortSize !== 200 ||
+      exampleRun.internalPreview !== "TARGETING_MATCH" ||
+      exampleRun.emergencyStop !== "DISABLED" ||
+      exampleRun.stages?.[2]?.enabled !== 200
+    ) {
+      throw new Error("Packed core adoption example failed.");
+    }
     await access(
       path.join(
         consumerDirectory,

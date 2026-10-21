@@ -43,6 +43,9 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - stable-release-gate: `pnpm run stable-release-gate`
 - registry-smoke: `pnpm run registry-smoke`
 - smoke: `pnpm run build` and `pnpm run pack:check`
+- Portable adoption example: `pnpm run smoke:core-example`; builds and runs the
+  private core-basic preview. The existing contract also copies its unchanged
+  source into a real tarball-installed consumer and executes it there.
 - Portable runtime smoke: `pnpm run smoke:core-runtimes`; serially packs and runs
   the same artifact/corpus on Bun, sandboxed Deno, real headless Chromium and local
   workerd without Node compatibility flags. Requires installed Bun, Deno and Chromium;

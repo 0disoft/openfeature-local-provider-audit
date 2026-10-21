@@ -52,3 +52,9 @@ local workerd 2026-10-19 on Windows x64. This is the platform-neutral JSON/evalu
 surface, not SDK provider registration, file/audit APIs or a hosted Worker
 integration. Exact versions, disabled Node modes, case counts and restrictions are
 in `docs/library/compatibility.md` and `docs/testing/core-runtime-acceptance.md`.
+
+The private core-basic example executes against the workspace and, through the
+existing contract runner, unchanged in a real tarball-installed consumer. See
+`docs/sdk/adoption-guide.md` and `docs/testing/p3-adoption-status.md` for reproducible
+commands and the still-unmet independent-use requirement. It is not a published
+SDK package or external adopter.

@@ -1,0 +1,128 @@
+{
+  "sourceCommit": "69c1651f926c9c18d3e126b3998d6f5844e6c83c",
+  "packageVersion": "2.0.0-alpha.18",
+  "measurementScope": "workspace-built Node root; single local informational run; not a registry or portable-runtime benchmark",
+  "measurement": {
+    "schemaVersion": 1,
+    "node": "v24.14.0",
+    "platform": "win32",
+    "arch": "x64",
+    "iterations": 2000,
+    "capturedAt": "2026-10-21T16:17:07.952Z",
+    "cases": [
+      {
+        "name": "pure-static-1-flags",
+        "elapsedMs": 1.9029999999999916,
+        "p50Microseconds": 0.5000000000165983,
+        "p95Microseconds": 0.7999999999981355,
+        "heapDeltaBytes": 786144,
+        "rssDeltaBytes": -106496
+      },
+      {
+        "name": "pure-rollout-1-flags",
+        "elapsedMs": 14.826999999999998,
+        "p50Microseconds": 4.900000000020555,
+        "p95Microseconds": 10.699999999985721,
+        "heapDeltaBytes": 3346464,
+        "rssDeltaBytes": 2744320
+      },
+      {
+        "name": "pure-static-1000-flags",
+        "elapsedMs": 1.870900000000006,
+        "p50Microseconds": 0.5999999999630745,
+        "p95Microseconds": 0.9000000000014552,
+        "heapDeltaBytes": 538672,
+        "rssDeltaBytes": 32768
+      },
+      {
+        "name": "pure-rollout-1000-flags",
+        "elapsedMs": 13.472499999999968,
+        "p50Microseconds": 5.6000000000153705,
+        "p95Microseconds": 10.000000000047748,
+        "heapDeltaBytes": 2981384,
+        "rssDeltaBytes": 729088
+      },
+      {
+        "name": "pure-targeting-1-rules-1000-flags",
+        "elapsedMs": 3.779800000000023,
+        "p50Microseconds": 1.1000000000080945,
+        "p95Microseconds": 2.4000000000228283,
+        "heapDeltaBytes": 1441864,
+        "rssDeltaBytes": -12288
+      },
+      {
+        "name": "pure-targeting-100-rules-1000-flags",
+        "elapsedMs": 24.556100000000015,
+        "p50Microseconds": 8.800000000007913,
+        "p95Microseconds": 17.300000000034288,
+        "heapDeltaBytes": 3609912,
+        "rssDeltaBytes": -561152
+      },
+      {
+        "name": "pure-targeting-semver-conditional-rollout",
+        "elapsedMs": 18.79879999999997,
+        "p50Microseconds": 8.199999999987995,
+        "p95Microseconds": 12.800000000027012,
+        "heapDeltaBytes": 6367424,
+        "rssDeltaBytes": 528384
+      },
+      {
+        "name": "provider-audit-off",
+        "elapsedMs": 5.127999999999986,
+        "p50Microseconds": 1.599999999996271,
+        "p95Microseconds": 3.100000000017644,
+        "heapDeltaBytes": 3973680,
+        "rssDeltaBytes": 1335296,
+        "flushMs": 0.008499999999969532
+      },
+      {
+        "name": "provider-audit-nonBlocking",
+        "elapsedMs": 26.605100000000107,
+        "p50Microseconds": 9.40000000002783,
+        "p95Microseconds": 14.000000000010004,
+        "heapDeltaBytes": 6969952,
+        "rssDeltaBytes": 606208,
+        "flushMs": 2037.0612,
+        "beforeFlush": {
+          "pendingWrites": 2000,
+          "droppedWrites": 0,
+          "rejectedWrites": 0,
+          "maxQueueSize": 2001
+        },
+        "afterFlush": {
+          "pendingWrites": 0,
+          "droppedWrites": 0,
+          "rejectedWrites": 0,
+          "maxQueueSize": 2001
+        }
+      },
+      {
+        "name": "provider-audit-blocking",
+        "elapsedMs": 1960.4903,
+        "p50Microseconds": 959.2000000002372,
+        "p95Microseconds": 1115.099999999984,
+        "heapDeltaBytes": 7681056,
+        "rssDeltaBytes": 331776,
+        "flushMs": 0.011199999999917054,
+        "beforeFlush": {
+          "pendingWrites": 0,
+          "droppedWrites": 0,
+          "rejectedWrites": 0,
+          "maxQueueSize": 2001
+        },
+        "afterFlush": {
+          "pendingWrites": 0,
+          "droppedWrites": 0,
+          "rejectedWrites": 0,
+          "maxQueueSize": 2001
+        }
+      }
+    ],
+    "propagation": {
+      "milliseconds": 74.3152,
+      "debounceMs": 10,
+      "consistencyPollIntervalMs": 50
+    },
+    "notes": "Sequential per-call wall-time samples; heap/RSS deltas are not peaks. Informational, not a CI gate. File sink queue sized to avoid saturation; use benchmark:audit-queue for stalls."
+  }
+}

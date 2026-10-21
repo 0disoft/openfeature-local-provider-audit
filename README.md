@@ -120,3 +120,8 @@ The opt-in `/core` JSON/evaluation subpath has actual local runtime evidence on
 Chromium, Bun, Deno and workerd. See [the scoped compatibility matrix](docs/library/compatibility.md)
 and [the repeatable runtime smoke](docs/testing/core-runtime-acceptance.md).
 Root provider/file/audit APIs remain Node 22/24 only.
+
+For a complete runnable preview and stable-versus-local installation steps, see
+[the adoption guide](docs/sdk/adoption-guide.md) and
+[core-basic](examples/core-basic/README.md). Local examples and performance/runtime
+receipts are maintainer evidence; independent external adoption remains unverified.
