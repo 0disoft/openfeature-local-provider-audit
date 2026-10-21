@@ -93,3 +93,35 @@ test("added exports are additive and version policy is conservative", () => {
   assert.equal(isVersionSufficient("1.0.0-rc.1", "1.0.0-rc.2", "breaking"), true);
   assert.equal(isVersionSufficient("1.0.0-rc.1", "1.0.0", "breaking"), false);
 });
+
+test("inline exports and trailing export lists have identical declaration surfaces", async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), "api-export-style-"));
+  try {
+    const oldPath = path.join(directory, "old.d.ts");
+    const newPath = path.join(directory, "new.d.ts");
+    await writeFile(
+      oldPath,
+      "declare class ErrorType extends Error {}\ndeclare function run(value: string): ErrorType;\nexport { ErrorType, run };\n"
+    );
+    await writeFile(
+      newPath,
+      "export declare class ErrorType extends Error {}\nexport declare function run(value: string): ErrorType;\n"
+    );
+    const oldSurface = await analyzeDeclarationFile(oldPath);
+    assert.deepEqual(
+      compareDeclarationSurfaces(oldSurface, await analyzeDeclarationFile(newPath)),
+      []
+    );
+    await writeFile(
+      newPath,
+      "export declare class ErrorType extends Error {}\nexport declare function run(value: number): ErrorType;\n"
+    );
+    assert.ok(
+      compareDeclarationSurfaces(oldSurface, await analyzeDeclarationFile(newPath)).some(
+        (change) => change.name === "run" && change.kind === "changed"
+      )
+    );
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});

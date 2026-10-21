@@ -596,7 +596,7 @@ function checkApiSurfaceContract({
     "API baseline declaration path"
   );
   expectIncludes(apiBaselineDeclarations, "export {", "API declaration baseline export surface");
-  expectIncludes(apiSurfaceScript, 'from "typescript"', "API surface TypeScript compiler API");
+  expectIncludes(apiSurfaceScript, 'from "typescript-api"', "API surface TypeScript compiler API");
   expectIncludes(
     apiSurfaceScript,
     "compareDeclarationSurfaces",

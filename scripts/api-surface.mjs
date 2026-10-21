@@ -2,7 +2,7 @@ import { createRequire } from "node:module";
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import ts from "typescript";
+import ts from "typescript-api";
 
 const ROOT = process.cwd();
 const PACKAGE_JSON = path.join(ROOT, "packages", "local-provider", "package.json");
@@ -259,11 +259,21 @@ function collectNormalizedDeclarations(rootSymbol, sourceFile, checker) {
 
   const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed, removeComments: true });
   return [...declarations]
-    .map((declaration) =>
-      normalizePrintedDeclaration(
-        printer.printNode(ts.EmitHint.Unspecified, declaration, sourceFile)
-      )
-    )
+    .map((declaration) => {
+      // The checker already records the export name and type/value spaces. Inline
+      // `export declare` and a trailing export list describe the same public API.
+      const canonical = ts.canHaveModifiers(declaration)
+        ? ts.factory.replaceModifiers(
+            declaration,
+            ts
+              .getModifiers(declaration)
+              ?.filter((modifier) => modifier.kind !== ts.SyntaxKind.ExportKeyword)
+          )
+        : declaration;
+      return normalizePrintedDeclaration(
+        printer.printNode(ts.EmitHint.Unspecified, canonical, sourceFile)
+      );
+    })
     .sort(compareText);
 }
 

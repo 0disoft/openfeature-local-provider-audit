@@ -141,6 +141,17 @@ cross-platform CI lanes. The canary alone is insufficient promotion evidence.
 - Provider close removes its event handlers. Existing consumers that do not enable polling or
   subscribe to events keep their prior behavior.
 
+## TypeScript 7 Build Compatibility
+
+The declaration build now uses TypeScript 7 through tsdown's native generator. Package
+root exports, the ES2022 target, `.js`/`.cjs` runtime entry points, `.d.ts`/`.d.cts`
+declarations, and the public API baseline are preserved. Declaration maps are added;
+private chunk filenames may change. Consumers must continue using the package root.
+TypeScript 5.9.3 strict and TypeScript 7 consumer fixtures cover every public type in
+ESM and CJS. No runtime behavior or consumer migration is required by this tool change.
+See [ADR 0012](../adr/0012-typescript-7-toolchain.md) for native dependency review,
+validation boundaries, the development-host minimum, and rollback.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

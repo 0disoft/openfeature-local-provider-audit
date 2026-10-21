@@ -33,7 +33,7 @@ on the supported Node.js runtime matrix.
 - Packed declaration consumption runs twice: TypeScript 5.9.3 checks the complete dependency
   declaration graph with `skipLibCheck: false`, while the repository TypeScript version checks
   the package consumer surface with `skipLibCheck: true`. The latter isolates the package contract
-  from the known TypeScript 6 incompatibility inside `@openfeature/server-sdk@1.22.0` declarations;
+  from the known newer-compiler incompatibility inside `@openfeature/server-sdk@1.22.0` declarations;
   it must not be described as a complete dependency-library type check.
 - Packed smoke rejects release tarballs larger than 1 MiB (1,048,576 bytes). This is a
   compressed artifact budget intended to catch accidentally shipped fixtures, caches, or
@@ -82,3 +82,11 @@ on the supported Node.js runtime matrix.
 - Release blocker status: public behavior changes without docs/check/test coverage.
 - Remaining operational risk: workflow success depends on GitHub-hosted Ubuntu, Windows,
   and macOS runners and official GitHub Actions availability.
+
+## TypeScript 7 Toolchain
+
+The package build uses tsdown and the native TypeScript 7 declaration generator with
+`skipLibCheck: false`. `typescript-api` is an explicit TypeScript 6 development alias
+used only by the public API comparator. The consumer-surface fixture uses TypeScript 7;
+the separate strict TypeScript 5.9.3 fixture still checks the full dependency graph.
+See `docs/adr/0012-typescript-7-toolchain.md` for rollback and native package review.

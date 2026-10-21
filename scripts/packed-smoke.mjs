@@ -67,7 +67,10 @@ try {
   const rootPackageJson = JSON.parse(await readFile(path.join(ROOT, "package.json"), "utf8"));
   const openFeatureServerSdkSpec = resolveOpenFeatureServerSdkSpec(packageJson);
   const nodeTypesSpec = requirePinnedDependency(rootPackageJson, "@types/node");
-  const latestTypescriptSpec = requirePinnedDependency(rootPackageJson, "typescript");
+  requirePinnedDependency(rootPackageJson, "typescript");
+  const latestTypescriptSpec = JSON.parse(
+    await readFile(path.join(ROOT, "node_modules", "typescript", "package.json"), "utf8")
+  ).version;
   const installTarget = await resolveInstallTarget(
     packDirectory,
     packageJson,
@@ -248,7 +251,7 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
     );
   } else {
     console.log(
-      `Packed smoke passed for ${packageJson.name}@${packageJson.version} (${installTarget.tarballBytes} bytes) with TypeScript ${STRICT_CONSUMER_TYPESCRIPT_VERSION} (full library check) and ${latestTypescriptSpec} (consumer surface check).`
+      `Packed smoke passed for ${packageJson.name}@${packageJson.version} (${installTarget.tarballBytes} bytes) on Node.js ${process.version} (${process.platform}-${process.arch}) with TypeScript ${STRICT_CONSUMER_TYPESCRIPT_VERSION} (full library check) and ${latestTypescriptSpec} (consumer surface check).`
     );
   }
 } finally {
