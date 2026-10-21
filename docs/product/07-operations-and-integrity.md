@@ -287,7 +287,7 @@ No push, tag, release or remote workflow is authorized. P3 remains separate.
 
 ### Executable GitOps recipe completed locally
 
-Alpha.12 adds `docs/library/gitops-snapshots.md` and executable SDK composition in
+Commit 5755489 / alpha.12 adds `docs/library/gitops-snapshots.md` and executable SDK composition in
 `examples/node-basic/src/gitops.ts`: native JSON/YAML validation/signing, explicit
 first-installation authorization, public-key-only durable HTTPS consumer recovery,
 and higher-sequence rollback from authenticated retained history. The recipe keeps
@@ -320,3 +320,37 @@ with explicit rotation, concurrent-writer and crash boundaries; then requirement
 requirement completion audit of every P2 slice. A valid unanchored hash chain cannot
 prove authenticity, absence of whole-file rewrite or tail truncation. Retain that
 boundary and keep the deferred P3 work separate. No push, tag or release.
+
+
+### Audit chain primitives and streaming verification completed locally
+
+Alpha.13 adds domain-separated native SHA-256 chain/checkpoint primitives and
+strict redacted-event capture. Number/hash continuity detects modification, gaps,
+reorder and duplication. Explicit prefix/head checkpoints bound suffix and exact-tip
+claims; absence of a trusted external head does not claim tail/whole-log protection.
+Captured fields/arrays/provenance are immutable; unknown/raw fields and getters are
+rejected. Canonical semantics, ECMAScript duplicate-member behavior and byte/record
+limits are explicit in `docs/library/audit-chain.md` and API/SDK/migration/security
+contracts. No custom cryptographic primitive or signing identity is implied.
+
+Read-only `audit-verify` streams ordered UTF-8 JSON Lines from bounded no-follow
+regular-file handles, handles split multibyte sequences/CRLF, rejects partial final
+records and enforces total/per-record/count/file limits. Output is a checkpoint-only
+summary, with generic failures that do not echo records or paths. Independent native
+hash/canonical-byte tests cover the format; CLI tests cover suffix/head anchors,
+invalid input, Unicode chunking and limit behavior.
+
+`check`, `contract`, typecheck, format, lint and diff whitespace checks passed.
+Windows Node 24.14.0 and 22.23.3 each passed 352 package tests with 6 existing platform
+skips. The actual alpha.13 tarball passed ESM/CJS chain operations and its real
+packaged `audit-verify` CLI with a head checkpoint, plus existing runtime/CLI checks,
+TypeScript 5.9.3 full-library and 7.0.2 consumer-surface validation. Reviewed API:
+101 exports / 29 runtime values. No dependency, DB, runner, repository hygiene
+policy or remote state changed. Hosted Linux/macOS remain unverified without push.
+
+Remaining P2: integrate chained writes into the file sink under the existing path/
+process coordination, preserve sequence/hash over rotation and retained prefixes,
+reject incompatible modes, define durable checkpoint export and crash/partial-append
+recovery, and verify cooperating concurrent writers. The plain file sink is unchanged
+and does not yet emit chain envelopes. Then audit the entire P2 acceptance list.
+External checkpoint trust/storage remains operator-owned. No push, tag or release.

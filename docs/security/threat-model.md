@@ -46,6 +46,13 @@ See `docs/library/snapshot-recovery.md` for ordered durable acceptance and atomi
 provider activation. Prepared updates reserve mutation while old evaluations remain
 available; close/reentrant callbacks cannot undo an already accepted durable floor. JWS does not encrypt configuration.
 
+Optional audit chain verification authenticates consecutive hash relationships,
+not a writer identity. Trusted external prefix/head checkpoints are necessary to
+bound claims about retention, whole-file rewrite and tail truncation. Checkpoints
+beside a writable log are not independent trust. Strict bounded captures reject
+unknown fields/getters and preserve explicit context-name disclosure policy. See
+`docs/library/audit-chain.md`; plain file writers are unchanged in this slice.
+
 ## Required Controls
 
 - Validate flag snapshots before accepting them.

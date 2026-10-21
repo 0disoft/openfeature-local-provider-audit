@@ -16,6 +16,11 @@ const V2_TYPE_EXPORTS = new Set([
   "SnapshotRecovery",
   "SignedSnapshotStore",
   "SnapshotUpdateTransaction",
+  "AuditChainCheckpoint",
+  "ChainedAuditEvent",
+  "AuditChainOptions",
+  "VerifyAuditChainOptions",
+  "AuditChainVerification",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -48,6 +53,11 @@ const PUBLIC_TYPE_EXPORTS = [
   "SnapshotRecovery",
   "SignedSnapshotStore",
   "SnapshotUpdateTransaction",
+  "AuditChainCheckpoint",
+  "ChainedAuditEvent",
+  "AuditChainOptions",
+  "VerifyAuditChainOptions",
+  "AuditChainVerification",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -400,7 +410,11 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "createSnapshotRefresher",
             "signFlagSnapshot",
             "createSnapshotVerifier",
-            "createFileSnapshotStore"
+            "createFileSnapshotStore",
+            "createAuditChainCheckpoint",
+            "createChainedAuditEvent",
+            "verifyAuditChainRecord",
+            "verifyAuditChain"
           ]
         : []),
       "isLocalProviderError",
@@ -648,6 +662,21 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     timestamp: "2026-01-01T00:00:00.000Z",
     redaction: { contextKeys: "none" }
   });
+  if (${targeting}) {
+    const anchor = api.createAuditChainCheckpoint("packed");
+    const chained = api.createChainedAuditEvent(auditEvent, anchor);
+    const head = api.verifyAuditChainRecord(chained, anchor);
+    if (!api.verifyAuditChain([chained], { start: anchor, expectedHead: head }).checkpointMatched) {
+      throw new Error(moduleKind + " audit chain verification failed");
+    }
+    const fs = require("node:fs/promises");
+    await fs.writeFile(auditPath + ".chain", JSON.stringify(chained) + "\\n");
+    await fs.writeFile(auditPath + ".head", JSON.stringify(head));
+    const binary = require("node:path").join(process.cwd(), "node_modules", "@0disoft/openfeature-local-provider", "bin", "openfeature-local-provider.js");
+    const verified = JSON.parse(require("node:child_process").execFileSync(process.execPath,
+      [binary, "audit-verify", auditPath + ".chain", "--chain-id", "packed", "--expect-head", auditPath + ".head"], { encoding: "utf8" }));
+    if (!verified.checkpointMatched || verified.records !== 1) throw new Error(moduleKind + " packed audit CLI verification failed");
+  }
   const serializedAuditEvent = JSON.parse(api.serializeAuditEvent(auditEvent));
   if (serializedAuditEvent.eventId !== moduleKind.toLowerCase() + "-event") {
     throw new Error(moduleKind + " audit serialization drifted.");
@@ -763,6 +792,13 @@ if (reloadable.prepareSnapshot !== undefined) {
   const transaction: SnapshotUpdateTransaction = reloadable.prepareSnapshot(snapshot, origin);
   transaction.cancel();
 }
+declare const chainCheckpoint: AuditChainCheckpoint;
+declare const chainRecord: ChainedAuditEvent;
+const chainOptions: AuditChainOptions = { maxRecordBytes: 1024 };
+const verifyOptions: VerifyAuditChainOptions = { ...chainOptions, start: chainCheckpoint, expectedHead: chainCheckpoint, maxRecords: 1 };
+declare const chainVerification: AuditChainVerification;
+const verifiedHead: AuditChainCheckpoint = chainVerification.head;
+void chainRecord; void verifyOptions; void verifiedHead;
 void refreshOptions;
 void recoveryPromise;
 void storeOptions;

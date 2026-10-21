@@ -11,6 +11,12 @@ export { explainEvaluation } from "./evaluator/explain.js";
 export { createLocalProvider, createReloadableLocalProvider } from "./provider/local-provider.js";
 export { replayEvaluationFixture } from "./replay/replay-fixture.js";
 export { createAuditEvent, redactContext, serializeAuditEvent } from "./audit/audit-event.js";
+export {
+  createAuditChainCheckpoint,
+  createChainedAuditEvent,
+  verifyAuditChainRecord,
+  verifyAuditChain
+} from "./audit/audit-chain.js";
 export { createFileAuditSink } from "./audit/audit-sink.js";
 export { createOpenTelemetryMetrics } from "./metrics/opentelemetry.js";
 export { createHttpsSnapshotSource } from "./sources/https-source.js";
@@ -38,6 +44,11 @@ export type {
   EnvOverrideState,
   EnvSource,
   AuditEvent,
+  AuditChainCheckpoint,
+  ChainedAuditEvent,
+  AuditChainOptions,
+  VerifyAuditChainOptions,
+  AuditChainVerification,
   AuditContextKeyMode,
   AuditQueueOverflowPolicy,
   AuditRedactionOptions,

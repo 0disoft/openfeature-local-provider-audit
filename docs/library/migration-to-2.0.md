@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.12` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.13` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -81,6 +81,13 @@ Alpha.12 adds an executable SDK GitOps recipe and targeted `smoke:gitops` runner
 Package-root exports and existing consumer behavior are unchanged. See
 `gitops-snapshots.md` for publisher ownership, first-start/recovery policy, history
 rollback, public-key rotation and the local-only delivery proof.
+
+Alpha.13 adds opt-in audit chain primitives and `audit-verify` without changing
+plain AuditEvent/file sink output. Four helpers and five contract types capture
+redacted events, verify consecutive links and compare explicit trusted checkpoints.
+Unknown/accessor/raw fields are rejected. See `audit-chain.md` for canonical bytes,
+bounds and authenticity/truncation limits. Chained file writing/rotation remains
+pending; ordinary sinks do not automatically acquire a chain.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

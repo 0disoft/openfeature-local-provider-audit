@@ -71,6 +71,12 @@ helpers, not new package exports. `smoke:gitops` runs real loopback TLS/OpenFeat
 checks without external upload or an added CI workflow. See
 `docs/library/gitops-snapshots.md` for release and shutdown ownership.
 
+Opt-in audit chain wrappers accept redacted AuditEvent v1 and an explicit starting
+checkpoint; verification returns a checkpoint-only summary. Independent checkpoint
+trust is caller-owned. No raw event fields are printed by `audit-verify`, and plain
+file sinks remain unchanged until the writer integration slice. See
+`docs/library/audit-chain.md` for bounds and retained-prefix verification.
+
 ## Review Blockers
 
 - SDK examples drift from public API.

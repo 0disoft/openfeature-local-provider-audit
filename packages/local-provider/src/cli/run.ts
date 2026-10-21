@@ -1,6 +1,7 @@
 import { resolve } from "node:path";
 import { loadFlagSnapshotFile, resolveSnapshotFileFormat } from "../flags/snapshot-file.js";
 import type { SnapshotFileFormat } from "../public-types.js";
+import { AUDIT_CHAIN_HELP, runAuditVerification } from "./audit-verification.js";
 import { INSPECTION_HELP, runInspection } from "./inspection.js";
 
 export interface CliIo {
@@ -28,6 +29,8 @@ export async function runCli(args: readonly string[], io: CliIo): Promise<number
     io.stdout(`${io.packageVersion ?? "unknown"}\n`);
     return 0;
   }
+
+  if (command === "audit-verify") return runAuditVerification(rest, io);
 
   if (["evaluate", "explain", "simulate", "compare"].includes(command)) {
     return runInspection(command, rest, io);
@@ -164,12 +167,14 @@ function helpText(): string {
   openfeature-local-provider --help
 
 Commands:
+  audit-verify  Verify chained audit JSON Lines and optional trusted checkpoints.
   validate  Load and validate a local JSON or YAML flag snapshot.
   evaluate  Explain a local evaluation without raw values (alias: explain).
   simulate  Aggregate a local request set.
   compare   Compare the same requests against two snapshots.
 
 ${INSPECTION_HELP}
+${AUDIT_CHAIN_HELP}
 `;
 }
 

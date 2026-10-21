@@ -191,6 +191,13 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
 The GitOps recipe in `gitops-snapshots.md` composes existing public APIs; its
 executable SDK helpers do not add package-root exports or background scheduling.
 
+Opt-in audit integrity adds `createAuditChainCheckpoint`, `createChainedAuditEvent`,
+`verifyAuditChainRecord`, `verifyAuditChain`, `AuditChainCheckpoint`,
+`ChainedAuditEvent`, `AuditChainOptions`, `VerifyAuditChainOptions` and
+`AuditChainVerification`. Read-only `audit-verify` checks ordered JSON Lines against
+an explicit genesis/prefix and optional exact trusted head. Plain sinks remain
+unchanged. See `audit-chain.md`; chain-file writer integration is still pending.
+
 ## Review Blockers
 
 - Public exports change without semver and migration notes.

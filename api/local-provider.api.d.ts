@@ -470,6 +470,33 @@ interface CreateAuditEventOptions {
   readonly timestamp?: string;
   readonly redaction?: AuditRedactionOptions;
 }
+interface AuditChainCheckpoint {
+  readonly schemaVersion: 1;
+  readonly chainId: string;
+  readonly sequence: number;
+  readonly hash: string;
+}
+interface ChainedAuditEvent {
+  readonly schemaVersion: 1;
+  readonly chainId: string;
+  readonly sequence: number;
+  readonly previousHash: string;
+  readonly event: AuditEvent;
+  readonly hash: string;
+}
+interface AuditChainOptions {
+  readonly maxRecordBytes?: number;
+}
+interface VerifyAuditChainOptions extends AuditChainOptions {
+  readonly start: AuditChainCheckpoint;
+  readonly expectedHead?: AuditChainCheckpoint;
+  readonly maxRecords?: number;
+}
+interface AuditChainVerification {
+  readonly records: number;
+  readonly head: AuditChainCheckpoint;
+  readonly checkpointMatched: boolean;
+}
 interface AuditSink {
   write(event: AuditEvent): Promise<void>;
   writeConfirmed?(event: AuditEvent): Promise<void>;
@@ -547,6 +574,23 @@ export declare function redactContext(
   options?: AuditRedactionOptions
 ): RedactedAuditContext;
 //#endregion
+//#region src/audit/audit-chain.d.ts
+export declare function createAuditChainCheckpoint(chainId: string): AuditChainCheckpoint;
+export declare function createChainedAuditEvent(
+  event: AuditEvent,
+  previous: AuditChainCheckpoint,
+  options?: AuditChainOptions
+): ChainedAuditEvent;
+export declare function verifyAuditChainRecord(
+  input: unknown,
+  previous: AuditChainCheckpoint,
+  options?: AuditChainOptions
+): AuditChainCheckpoint;
+export declare function verifyAuditChain(
+  records: Iterable<unknown>,
+  options: VerifyAuditChainOptions
+): AuditChainVerification;
+//#endregion
 //#region src/audit/audit-sink.d.ts
 export declare function createFileAuditSink(options: FileAuditSinkOptions): AuditSink;
 //#endregion
@@ -576,6 +620,9 @@ export declare function createSnapshotVerifier(
 ): SnapshotVerifier;
 //#endregion
 export type {
+  AuditChainCheckpoint,
+  AuditChainOptions,
+  AuditChainVerification,
   AuditContextKeyMode,
   AuditEvent,
   AuditFailurePolicy,
@@ -583,6 +630,7 @@ export type {
   AuditRedactionOptions,
   AuditSink,
   AuditWriteMode,
+  ChainedAuditEvent,
   ConditionScalar,
   CreateAuditEventOptions,
   CreateEnvOverridesOptions,
@@ -642,6 +690,7 @@ export type {
   TargetingCondition,
   TargetingRule,
   VerifiedFlagSnapshot,
+  VerifyAuditChainOptions,
   WatchFlagSnapshotFileOptions
 };
 //# sourceMappingURL=index.d.ts.map

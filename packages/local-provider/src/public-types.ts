@@ -466,6 +466,38 @@ export interface CreateAuditEventOptions {
   readonly redaction?: AuditRedactionOptions;
 }
 
+export interface AuditChainCheckpoint {
+  readonly schemaVersion: 1;
+  readonly chainId: string;
+  readonly sequence: number;
+  readonly hash: string;
+}
+
+export interface ChainedAuditEvent {
+  readonly schemaVersion: 1;
+  readonly chainId: string;
+  readonly sequence: number;
+  readonly previousHash: string;
+  readonly event: AuditEvent;
+  readonly hash: string;
+}
+
+export interface AuditChainOptions {
+  readonly maxRecordBytes?: number;
+}
+
+export interface VerifyAuditChainOptions extends AuditChainOptions {
+  readonly start: AuditChainCheckpoint;
+  readonly expectedHead?: AuditChainCheckpoint;
+  readonly maxRecords?: number;
+}
+
+export interface AuditChainVerification {
+  readonly records: number;
+  readonly head: AuditChainCheckpoint;
+  readonly checkpointMatched: boolean;
+}
+
 export interface AuditSink {
   write(event: AuditEvent): Promise<void>;
   writeConfirmed?(event: AuditEvent): Promise<void>;
