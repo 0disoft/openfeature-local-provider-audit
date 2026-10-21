@@ -1,5 +1,5 @@
 import { SemVer } from "semver";
-import type { EvaluationRequest, FlagValue, TargetingCondition } from "../public-types.js";
+import type { EvaluationRequest, FlagValue, TargetingCondition } from "../core-types.js";
 
 export function strictSemver(value: unknown): SemVer | undefined {
   if (

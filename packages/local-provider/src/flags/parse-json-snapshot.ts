@@ -1,6 +1,6 @@
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
-import type { FlagSnapshot } from "../public-types.js";
+import type { FlagSnapshot } from "../core-types.js";
 import { validateFlagSnapshot } from "./validate-snapshot.js";
 
 export function parseJsonFlagSnapshot(json: string): FlagSnapshot {

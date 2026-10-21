@@ -7,7 +7,7 @@ import type {
   FlagValue,
   JsonValue,
   PercentageRolloutRule
-} from "../public-types.js";
+} from "../core-types.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
 import { validateTargetingRules } from "./validate-targeting.js";
 import { validateScheduledRollout } from "./validate-schedule.js";

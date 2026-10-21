@@ -231,3 +231,11 @@ add opt-in segmented storage and verified checkpoint capture.
 - Compatibility claims lack runtime or consumer evidence.
 - Package artifacts drift from documented public API.
 - Package metadata drifts from the accepted package identity.
+
+## Portable subpath
+
+The additive `/core` entry exposes only the evaluation/JSON/error/reason surface
+and platform-neutral types in `portable-core.md`, with its separate reviewed
+`api/local-provider-core.api.d.ts` baseline. The root surface above is unchanged.
+Core has no Node/OpenFeature SDK imports in runtime code or declarations. This
+boundary alone does not establish browser/Bun/Deno/Workers runtime support.

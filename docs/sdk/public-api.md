@@ -99,3 +99,8 @@ and mandatory shared lock, with bounded segments and verified checkpoint capture
 
 - SDK examples drift from public API.
 - Compatibility claims lack runtime or consumer evidence.
+
+The additive package `/core` subpath exposes pure JSON/evaluation contracts without
+provider registration or Node SDK types. Keep provider, file, audit and inspection
+APIs on the existing Node root. See `docs/library/portable-core.md`; other runtime
+support requires real execution evidence and is not established by this split.

@@ -6,7 +6,7 @@ import type {
   TargetingCondition,
   TargetingRule,
   PercentageRolloutRule
-} from "../public-types.js";
+} from "../core-types.js";
 
 export function validateTargetingRules(
   value: unknown,

@@ -348,3 +348,9 @@ Caller-triggered S3/R2 delivery uses `createS3SnapshotSource` with a caller-owne
 AWS SDK v3 client; credentials and transport remain application concerns. Compose
 with the existing signed refresher and recovery store. See
 [bounded object snapshots](https://github.com/0disoft/openfeature-local-provider-audit/blob/main/docs/library/s3-snapshots.md).
+
+The opt-in `/core` subpath provides synchronous `evaluateFlag` and
+`parseJsonFlagSnapshot` without Node/SDK imports. Its portable runtime support is
+still being validated; root provider and audit APIs remain Node-only. See
+[portable core contract](https://github.com/0disoft/openfeature-local-provider-audit/blob/main/docs/library/portable-core.md).
+Bundled MIT/ISC dependency notices are in THIRD_PARTY_NOTICES.

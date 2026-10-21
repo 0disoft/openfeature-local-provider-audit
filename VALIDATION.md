@@ -73,3 +73,8 @@ library, sdk validation must stay repository-shape focused and must not imply ge
 - security: privacy and threat-model docs confirm raw context, secrets, and evaluated object values are not logged by default.
 - test: contract and replay tests cover default-return behavior, redaction, and deterministic bucketing.
 - check: repository hygiene confirms no unowned API server, DB schema, secret, or generated output is treated as source truth.
+
+The build command serially builds the Node package and the neutral `/core` entry.
+The existing contract gate also checks the reviewed core ESM/CJS API baseline and
+actual packed core consumers with strict ES2022-only (no Node ambient types)
+TypeScript 5.9.3 and 7.0.2. This is package/Node evidence, not non-Node runtime proof.

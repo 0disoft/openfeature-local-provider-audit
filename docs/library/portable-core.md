@@ -1,6 +1,6 @@
 # Portable evaluation core
 
-Status: accepted P3 implementation contract under ADR 0015; runtime support pending.
+Status: implemented locally in alpha.18 under ADR 0015; non-Node runtime support pending.
 
 Expose @0disoft/openfeature-local-provider/core as a deliberate ESM/CJS subpath.
 It provides synchronous evaluateFlag and parseJsonFlagSnapshot, LocalProviderError,
@@ -32,3 +32,41 @@ sandbox or Node test alone is insufficient. Browser/Worker visibility and runtim
 version evidence belong in an explicit update to ADR 0004 and the compatibility
 matrix. Production Cloudflare account deployment is not authorized or required
 for a local workerd execution claim. Independent adoption remains separate.
+
+## Types and use
+
+The subpath exports FlagType, JsonValue, JsonObject, FlagValue,
+PercentageRolloutRule, FlagDefinition, ConditionScalar, ScheduledRollout,
+ScheduleEvaluation, TargetingCondition, TargetingRule, FlagSnapshot,
+EvaluationRequest, EvaluationContext, EvaluationResult, EnvOverrideState,
+LocalProviderErrorCode, EvaluationReason and EvaluationSource. LocalProviderError
+also occupies the type namespace. Root types remain structurally identical.
+
+```ts
+import { parseJsonFlagSnapshot, evaluateFlag } from "@0disoft/openfeature-local-provider/core";
+const snapshot = parseJsonFlagSnapshot(configJson);
+const result = evaluateFlag(snapshot, {
+  flagKey: "checkout.enabled", expectedType: "boolean", defaultValue: false,
+  targetingKey: explicitSubject, evaluationTime: Date.now()
+});
+```
+
+Callers bound/verify config bytes before JSON parsing, own time and targeting trust,
+and pass already-loaded snapshot/request objects. No implicit environment access
+or remote fetching occurs. The whole package retains its existing Node engines
+and server-SDK peer declaration; the subpath's runtime and declarations do not
+load that peer. Provider registration still imports the package root on Node.
+
+The configured build runs the existing Node build first, then a separate neutral
+core build serially. This keeps Node dependencies/native hashing separate and
+emits self-contained core ESM/CJS declarations and code. Core bundles noble hashes
+and semver; THIRD_PARTY_NOTICES ships their MIT/ISC notices. Root YAML/SDK behavior
+and dependencies remain unchanged. api/local-provider-core.api.d.ts is reviewed
+with the existing api:check gate; package-root API remains 114 exports / 32 values,
+core is 26 exports / 7 values. Packed consumers compile core with ES2022 and
+no Node type libraries using strict TypeScript 5.9.3 and 7.0.2.
+
+The bundled hash package is a development dependency; Node consumers acquire no
+new runtime dependency. Legacy TypeScript subpath resolution is covered by the
+package typesVersions mapping. Runtime-specific execution evidence remains the
+next acceptance step; no non-Node support is claimed yet.

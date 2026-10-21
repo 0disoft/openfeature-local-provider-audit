@@ -33,3 +33,11 @@ OpenFeature SDK dependency policy.
 - The provider declares `@openfeature/server-sdk` as a regular dependency instead of a peer dependency.
 - Browser, Bun, Deno, or Node versions outside the accepted matrix are documented as supported without tests.
 - Release metadata omits Apache-2.0 license information.
+
+## P3 portable boundary (alpha.18)
+
+ADR 0015 authorizes a separate `/core` evaluation/JSON entry with platform-neutral
+types and a bundled maintained SHA-256 implementation. The package root and
+OpenFeature provider remain Node 22/24 only. Separating this code does not itself
+promote browser, Bun, Deno or Workers into the support matrix; each requires actual
+packaged runtime execution. The existing peer policy and Node engines stay intact.

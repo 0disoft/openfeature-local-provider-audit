@@ -40,7 +40,7 @@ export declare const EVALUATION_SOURCES: {
 };
 type EvaluationSource = (typeof EVALUATION_SOURCES)[keyof typeof EVALUATION_SOURCES];
 //#endregion
-//#region src/public-types.d.ts
+//#region src/core-types.d.ts
 type FlagType = "boolean" | "string" | "number" | "object";
 type JsonValue = string | number | boolean | null | JsonObject | readonly JsonValue[];
 type JsonObject = {
@@ -178,6 +178,16 @@ interface EvaluationExplanation {
   readonly errorCode?: LocalProviderErrorCode;
   readonly rules: readonly RuleExplanation[];
 }
+interface EnvOverrideState {
+  readonly values: Readonly<Record<string, FlagValue>>;
+  readonly errors: Readonly<Record<string, string>>;
+  readonly globalError?: string;
+}
+//#endregion
+//#region src/flags/parse-json-snapshot.d.ts
+export declare function parseJsonFlagSnapshot(json: string): FlagSnapshot;
+//#endregion
+//#region src/public-types.d.ts
 interface LocalProviderOptions {
   readonly clock?: () => number;
   readonly snapshot: FlagSnapshot;
@@ -440,11 +450,6 @@ interface AuditRedactionOptions {
   readonly contextKeys?: AuditContextKeyMode;
 }
 type EnvSource = Readonly<Record<string, string | undefined>>;
-interface EnvOverrideState {
-  readonly values: Readonly<Record<string, FlagValue>>;
-  readonly errors: Readonly<Record<string, string>>;
-  readonly globalError?: string;
-}
 interface CreateEnvOverridesOptions {
   readonly overridesJson?: string;
   readonly maxOverridesJsonBytes?: number;
@@ -608,9 +613,6 @@ interface FileAuditSinkOptions {
   readonly maxQueueSize?: number | null;
   readonly queueOverflowPolicy?: AuditQueueOverflowPolicy;
 }
-//#endregion
-//#region src/flags/parse-json-snapshot.d.ts
-export declare function parseJsonFlagSnapshot(json: string): FlagSnapshot;
 //#endregion
 //#region src/flags/parse-yaml-snapshot.d.ts
 export declare function parseYamlFlagSnapshot(yaml: string): FlagSnapshot;

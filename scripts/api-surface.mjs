@@ -426,10 +426,59 @@ async function main(args) {
     throw new Error("Usage: node scripts/api-surface.mjs --check|--write");
   }
   if (args[0] === "--write") {
+    const previousVersion = (await readJson(BASELINE_METADATA)).version;
     await writeBaseline();
+    await coreSurface(true, previousVersion);
     return;
   }
   await checkApiSurface();
+  await coreSurface(false);
+}
+
+async function coreSurface(write, previousVersion) {
+  const directory = path.join(ROOT, "packages", "local-provider", "dist");
+  const declaration = path.join(directory, "core.d.ts");
+  const baseline = path.join(ROOT, "api", "local-provider-core.api.d.ts");
+  const esm = await analyzeDeclarationFile(declaration);
+  const cjs = await analyzeDeclarationFile(path.join(directory, "core.d.cts"));
+  const expected = valueExportNames(esm);
+  const runtime = await import(pathToFileURL(path.join(directory, "core.js")).href);
+  const changes = [
+    ...compareDeclarationSurfaces(esm, cjs),
+    ...compareRuntimeExports(expected, Object.keys(runtime).sort(compareText), "core ESM"),
+    ...compareRuntimeExports(
+      expected,
+      Object.keys(require(path.join(directory, "core.cjs"))).sort(compareText),
+      "core CJS"
+    )
+  ];
+  let previous;
+  try {
+    await readFile(baseline, "utf8");
+    previous = await analyzeDeclarationFile(baseline);
+  } catch (error) {
+    if (!write || error.code !== "ENOENT") throw error;
+  }
+  const baselineChanges = compareDeclarationSurfaces(previous ?? [], esm);
+  if (!write) changes.push(...baselineChanges);
+  if (
+    write &&
+    !isVersionSufficient(
+      previousVersion,
+      (await readJson(PACKAGE_JSON)).version,
+      classifySurfaceChanges(baselineChanges)
+    )
+  ) {
+    throw new Error("Refusing core API rebaseline without a sufficient package version change.");
+  }
+  const declarations = await readFile(declaration, "utf8");
+  if (/node:|@openfeature|\bBuffer\b|\bProvider\b/.test(declarations))
+    throw new Error("Core declarations depend on Node or SDK types.");
+  if (changes.length) throw new Error(`Core API drift: ${JSON.stringify(changes)}`);
+  if (write) await writeFile(baseline, declarations, "utf8");
+  console.log(
+    `Core API ${write ? "baselined" : "matched"}: ${esm.length} exports (${expected.length} runtime values).`
+  );
 }
 
 const entryPath = process.argv[1];

@@ -1,4 +1,4 @@
-import type { FlagType, FlagValue, JsonObject, JsonValue } from "../public-types.js";
+import type { FlagType, FlagValue, JsonObject, JsonValue } from "../core-types.js";
 
 export function isJsonObject(value: unknown): value is JsonObject {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {

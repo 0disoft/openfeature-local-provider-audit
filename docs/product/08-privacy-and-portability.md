@@ -160,3 +160,56 @@ CI remain unverified because no cloud access, push or deployment is authorized.
 A custom SDK client may continue internal work after ignoring abort; callers own
 its lifecycle and must set SDK maxAttempts: 1 to preserve actual attempt bounds.
 No external adoption claim or external message is authorized.
+
+### Portable evaluation boundary completed locally (2026-10-22 KST)
+
+Contract commit b6fbf6f precedes alpha.18. The additive /core subpath provides
+synchronous evaluateFlag, JSON snapshot parsing, errors/reasons and their deliberate
+platform-neutral types. Shared evaluation, rollout rules and core types now have
+no Node/SDK imports. The Node wrapper retains native SHA-256; the portable wrapper
+injects maintained noble SHA-256 with the exact UTF-8 / first-eight-byte / modulo
+contract. Nothing about the hash is configurable by evaluation inputs. Root
+provider/inspection/audit/file APIs and compatibility remain Node-only.
+
+Two focused tests compare 4,096 native/portable requests plus 128 override cases
+across seeds, Unicode (including malformed UTF-16), v1/v2 rules, semver, rollout,
+schedule/time, missing flags, errors and immutability. Existing behavior tests also
+cover the shared engine. A separate neutral build follows the existing Node build
+serially, avoiding shared Node declaration chunks and leaving native dependency
+resolution intact. Core ESM is 99,318 bytes (about 23 KiB gzip); bundled noble/semver
+MIT/ISC notices are shipped in THIRD_PARTY_NOTICES. Noble hashes ^2.4.0 is dev-only;
+the declaration and lockfile agree and install supply-chain checks passed. Runtime
+package dependencies remain unchanged. typesVersions preserves legacy TypeScript
+subpath resolution instead of disabling the existing package compatibility gate.
+
+check, contract, format, lint and whitespace checks passed. Windows Node 24.14.0 and
+22.23.3 each passed 379 package tests with 6 existing platform skips. Coverage:
+93.97% statements / 92.27% branches / 98.71% functions / 95.58% lines. The actual
+398,708-byte alpha.18 tarball passed existing root/CLI consumers and core ESM/CJS
+schedule/bucket parity. Core strict consumer compilation uses only ES2022 and no
+Node ambient types, with skipLibCheck false under both TypeScript 5.9.3 and 7.0.2.
+The existing root's documented latest-compiler SDK skipLibCheck boundary remains.
+Reviewed root API stays 114 exports / 32 values; core has its own 26-export / 7-value
+declaration baseline, runtime parity and version-aware rebaseline gate.
+
+The configured Node evaluation benchmark ran 2,000 iterations per case on Windows
+Node 24.14.0, with all correctness/refresh checks passing. First two informational
+samples: pure-static-1-flags p95 1.50 us; pure-rollout-1-flags p95 16.90 us. These samples do not establish a baseline comparison or
+cross-runtime performance guarantee. No DB, CI workflow or hygiene policy changed;
+the existing build/API/packed-consumer runners now include core validation.
+
+The documentation append helper briefly truncated existing document bodies. The
+release-readiness check caught the missing queue contract; originals were restored
+from the current commit, additions reapplied and full checks passed. No original
+tracked document content was intentionally removed.
+
+Remaining P3, in order: execute the actual packaged core in browser, Bun, Deno and
+local workerd with a shared deterministic corpus and no Node polyfills, then update
+ADR 0004/compatibility matrix only to match real evidence. Build success and Node
+checks do not prove those runtimes. Bun is installed on this host; Deno/workerd
+availability and a real browser still need inspection. Keep verification local,
+one process at a time, clean up fixtures and do not deploy Cloudflare resources.
+After runtime acceptance, prepare reproducible adoption material; actual independent
+adoption still needs a consenting external user and verifiable usage. Do not message
+or publish to obtain it. No incomplete core code is left; runtime evidence remains
+explicitly unfinished. No push, tag, deployment or hosted CI run was performed.

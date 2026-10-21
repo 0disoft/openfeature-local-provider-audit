@@ -302,6 +302,73 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
     "utf8"
   );
 
+  if (installedPackageJson.exports?.["./core"] !== undefined) {
+    await access(
+      path.join(
+        consumerDirectory,
+        "node_modules",
+        "@0disoft",
+        "openfeature-local-provider",
+        "THIRD_PARTY_NOTICES"
+      )
+    );
+    await writeFile(
+      path.join(consumerDirectory, "core-smoke.mjs"),
+      `
+import * as core from "${PACKAGE_NAME}/core";
+import * as native from "${PACKAGE_NAME}";
+import { createRequire } from "node:module";
+import assert from "node:assert/strict";
+const cjs = createRequire(import.meta.url)("${PACKAGE_NAME}/core");
+const snapshot = core.parseJsonFlagSnapshot(JSON.stringify({schemaVersion:2,flags:{feature:{type:"boolean",defaultVariant:"off",variants:{on:true,off:false},schedule:{variant:"on",seed:"한국어",stages:[{at:10,percentage:50},{at:20,percentage:100}]}}}}));
+assert.deepEqual(Object.keys(core).sort(), ["EVALUATION_REASONS","EVALUATION_SOURCES","LOCAL_PROVIDER_ERROR_CODES","LocalProviderError","evaluateFlag","isLocalProviderError","parseJsonFlagSnapshot"].sort());
+for (let index=0;index<200;index++) {
+  const request={flagKey:"feature",expectedType:"boolean",defaultValue:false,targetingKey:"😀"+index,evaluationTime:index%30};
+  const expected=native.evaluateFlag(snapshot,request);
+  assert.deepEqual(core.evaluateFlag(snapshot,request),expected);
+  assert.deepEqual(cjs.evaluateFlag(snapshot,request),expected);
+}
+`,
+      "utf8"
+    );
+    await writeFile(
+      path.join(consumerDirectory, "core-types.mts"),
+      `
+import { evaluateFlag, parseJsonFlagSnapshot, type FlagSnapshot, type EvaluationRequest, type EvaluationResult } from "${PACKAGE_NAME}/core";
+const snapshot: FlagSnapshot = parseJsonFlagSnapshot('{"schemaVersion":1,"flags":{}}');
+const request: EvaluationRequest<boolean> = {flagKey:"missing",expectedType:"boolean",defaultValue:false};
+const result: EvaluationResult<boolean> = evaluateFlag(snapshot,request);
+void result;
+`,
+      "utf8"
+    );
+    await writeFile(
+      path.join(consumerDirectory, "tsconfig.core.json"),
+      JSON.stringify({
+        compilerOptions: {
+          exactOptionalPropertyTypes: true,
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          noEmit: true,
+          skipLibCheck: false,
+          strict: true,
+          target: "ES2022",
+          lib: ["ES2022"],
+          types: []
+        },
+        files: ["core-types.mts"]
+      }),
+      "utf8"
+    );
+    await run("pnpm", ["exec", "tsc", "-p", "tsconfig.core.json"], consumerDirectory);
+    await run(
+      "pnpm",
+      ["exec", "tsc", "-p", path.join(consumerDirectory, "tsconfig.core.json")],
+      ROOT
+    );
+    await run("node", ["core-smoke.mjs"], consumerDirectory);
+  }
+
   await run("pnpm", ["exec", "tsc", "-p", "tsconfig.strict.json"], consumerDirectory);
   await run(
     "pnpm",

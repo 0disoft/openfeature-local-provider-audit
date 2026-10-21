@@ -1,5 +1,5 @@
-import type { ScheduledRollout, ScheduleEvaluation } from "../public-types.js";
-import { computeBucket, percentageToBucketCount } from "./bucketing.js";
+import type { ScheduledRollout, ScheduleEvaluation } from "../core-types.js";
+import { percentageToBucketCount, type ComputeBucket } from "./bucketing-rules.js";
 
 export const validScheduleTime = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
@@ -14,7 +14,8 @@ export function selectScheduledVariant(
   schedule: ScheduledRollout,
   flagKey: string,
   targetingKey: string,
-  evaluatedAt: number
+  evaluatedAt: number,
+  computeBucket: ComputeBucket
 ) {
   let stage: number | null = null;
   let percentage = 0;

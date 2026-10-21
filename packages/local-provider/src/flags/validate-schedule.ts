@@ -1,6 +1,6 @@
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import { validScheduleTime, validSchedulePercentage } from "../evaluator/schedule.js";
-import type { ScheduledRollout } from "../public-types.js";
+import type { ScheduledRollout } from "../core-types.js";
 
 export function validateScheduledRollout(
   input: unknown,
