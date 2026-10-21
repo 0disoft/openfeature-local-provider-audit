@@ -1,5 +1,3 @@
-import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
-import { LocalProviderError } from "../errors/local-provider-error.js";
 import type {
   FlagDefinition,
   FlagSnapshot,
@@ -8,9 +6,12 @@ import type {
   JsonValue,
   PercentageRolloutRule
 } from "../core-types.js";
+import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
+import { LocalProviderError } from "../errors/local-provider-error.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
-import { validateTargetingRules } from "./validate-targeting.js";
+import { captureSnapshotInput } from "./capture-snapshot-input.js";
 import { validateScheduledRollout } from "./validate-schedule.js";
+import { validateTargetingRules } from "./validate-targeting.js";
 
 const FLAG_TYPES = new Set<FlagType>(["boolean", "string", "number", "object"]);
 const SNAPSHOT_KEYS = new Set(["schemaVersion", "flags", "metadata"]);
@@ -26,6 +27,7 @@ const V2_FLAG_KEYS = new Set([...FLAG_DEFINITION_KEYS, "rules", "disabledVariant
 const ROLLOUT_RULE_KEYS = new Set(["variant", "percentage", "seed"]);
 
 export function validateFlagSnapshot(value: unknown): FlagSnapshot {
+  value = captureSnapshotInput(value);
   if (!isJsonObject(value)) {
     throw schemaError("Flag snapshot must be a JSON object.");
   }
@@ -317,7 +319,13 @@ function defineRecordEntry<T>(record: Record<string, T>, key: string, value: T):
 
 function cloneJsonValue(value: FlagValue): FlagValue {
   if (Array.isArray(value)) {
-    return value.map(cloneJsonValue);
+    const cloned: JsonValue[] = [];
+    for (let index = 0; index < value.length; index++) {
+      const entry = Object.getOwnPropertyDescriptor(value, String(index));
+      if (entry === undefined || !("value" in entry)) throw schemaError("Invalid array entry.");
+      cloned.push(cloneJsonValue(entry.value));
+    }
+    return cloned;
   }
 
   if (value !== null && typeof value === "object") {
@@ -332,7 +340,7 @@ function cloneJsonValue(value: FlagValue): FlagValue {
 }
 
 function deepFreeze<T>(value: T): T {
-  if (value === null || typeof value !== "object" || Object.isFrozen(value)) {
+  if (value === null || typeof value !== "object") {
     return value;
   }
 

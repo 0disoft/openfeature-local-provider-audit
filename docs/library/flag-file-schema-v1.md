@@ -32,6 +32,11 @@ because malformed or changed configuration can alter evaluated flag values.
 - Object values in either schema version are limited to 128 nested edges and
   100,000 visited values per tree. Cycles and accessor properties in direct object
   inputs are rejected without invoking getters, with SCHEMA_ERROR.
+- Before schema validation, both versions capture only own enumerable data properties
+  into fresh containers. Hidden/symbol properties, accessors and sparse or extended
+  arrays are rejected. Capture is bounded to 100,000 visited values and 136 edges
+  including schema containers; the per-value 128-edge limit still applies. Caller
+  array methods and shallow freezing cannot bypass copying or descendant freezing.
 - File watching must keep evaluation file-I/O free and preserve the last valid snapshot
   when reload fails.
 - Optional consistency polling performs metadata-only idle checks at a caller-selected
