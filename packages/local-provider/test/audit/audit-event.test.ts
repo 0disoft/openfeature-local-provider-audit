@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { execFile } from "node:child_process";
 import {
   mkdir,
   link,
@@ -14,6 +15,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
 import { acquireFileLock, createFileAuditSink } from "../../src/audit/audit-sink.js";
 import {
@@ -28,6 +30,47 @@ import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
 
 describe("audit events", () => {
+  it.skipIf(process.platform === "win32")(
+    "rejects real FIFOs in a child with a hard deadline",
+    async () => {
+      const directory = await mkdtemp(join(tmpdir(), "openfeature-audit-fifo-"));
+      try {
+        const path = join(directory, "audit.jsonl");
+        await promisify(execFile)("mkfifo", [path], { timeout: 2000, killSignal: "SIGKILL" });
+        const script = `
+        import assert from 'node:assert/strict';
+        import { unlink } from 'node:fs/promises';
+        const api = await import(${JSON.stringify(new URL("../../dist/index.js", import.meta.url).href)});
+        const path = ${JSON.stringify(path)};
+        const event = ${JSON.stringify(createTestAuditEvent("fifo"))};
+        for (const extra of [{}, {maxBytes: 1, maxFiles: 0}]) {
+          const sink = api.createFileAuditSink({path, createDirectory: false, ...extra});
+          await assert.rejects(sink.write(event), /must be a regular file/);
+          await assert.rejects(sink.flush(), /must be a regular file/);
+          await sink.flush();
+          assert.equal(sink.getStats().pendingWrites, 0);
+        }
+        await unlink(path);
+        const sink = api.createFileAuditSink({path});
+        await sink.write(event);
+        await sink.flush();
+        console.log('fifo rejected and queue drained');
+      `;
+        const { stdout } = await promisify(execFile)(
+          process.execPath,
+          ["--input-type=module", "-e", script],
+          {
+            timeout: 3000,
+            killSignal: "SIGKILL"
+          }
+        );
+        expect(stdout.trim()).toBe("fifo rejected and queue drained");
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    }
+  );
+
   it("preserves legacy key names without inserting a mode while enforcing explicit privacy modes", async () => {
     const directory = await mkdtemp(join(tmpdir(), "openfeature-audit-legacy-"));
     try {

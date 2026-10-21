@@ -12,7 +12,11 @@ import { captureFileAuditEvent, serializeAuditEvent } from "./audit-event.js";
 const AUDIT_FILE_MODE = 0o600;
 const AUDIT_DIRECTORY_MODE = 0o700;
 const AUDIT_OPEN_FLAGS =
-  constants.O_APPEND | constants.O_CREAT | constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0);
+  constants.O_APPEND |
+  constants.O_CREAT |
+  constants.O_WRONLY |
+  (constants.O_NOFOLLOW ?? 0) |
+  (constants.O_NONBLOCK ?? 0);
 const processWriteQueues = new Map<string, Promise<void>>();
 
 export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
@@ -68,7 +72,7 @@ async function rotateAndAppend(
   rotation: RotationOptions | undefined,
   auditLine: string
 ): Promise<void> {
-  await assertPathIsNotSymbolicLink(toPathString(auditPath));
+  await assertPathIsRegularFile(toPathString(auditPath));
   if (rotation !== undefined) {
     await rotateIfNeeded(auditPath, rotation, Buffer.byteLength(auditLine, "utf8"));
   }
@@ -77,7 +81,7 @@ async function rotateAndAppend(
 }
 
 async function appendAuditLine(path: string, auditLine: string): Promise<void> {
-  await assertPathIsNotSymbolicLink(path);
+  await assertPathIsRegularFile(path);
   const handle = await open(path, AUDIT_OPEN_FLAGS, AUDIT_FILE_MODE);
 
   try {
@@ -97,10 +101,14 @@ async function appendAuditLine(path: string, auditLine: string): Promise<void> {
   }
 }
 
-async function assertPathIsNotSymbolicLink(path: string): Promise<void> {
+async function assertPathIsRegularFile(path: string): Promise<void> {
   try {
-    if ((await lstat(path)).isSymbolicLink()) {
+    const before = await lstat(path);
+    if (before.isSymbolicLink()) {
       throw new Error(`Audit path must not be a symbolic link: ${path}`);
+    }
+    if (!before.isFile()) {
+      throw new Error(`Audit path must be a regular file: ${path}`);
     }
   } catch (error) {
     if (!isNotFoundError(error)) {

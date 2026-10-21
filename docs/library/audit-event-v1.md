@@ -81,6 +81,9 @@ raw user context by default.
   file count with `maxFiles`.
 - New POSIX audit directories and files use `0700` and `0600`. The final path rejects
   symbolic links, non-regular files, foreign ownership on POSIX, and multiple hard links.
+  Existing non-regular paths are rejected before rotation/open. Where supported,
+  nonblocking open also prevents a concurrent FIFO replacement from hanging the queue;
+  the opened handle is still checked before writing.
 - Sinks from one loaded package instance serialize writes by audit path, including
   rotation. Cross-process and duplicate-package-instance writers remain caller-owned
   coordination and require `lock: true` when sharing a rotating path.
