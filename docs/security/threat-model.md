@@ -32,7 +32,10 @@ Owner: 0disoft
 - Keep audit failure behavior separate from value resolution behavior.
 - Keep audit serialization redacted before sink writes.
 - Catch provider audit sink write failures so local I/O failures cannot change resolved
-  values in the current implementation.
+  values under the default best-effort policy. The explicit 2.0 `returnDefault`
+  policy requires confirmed writing and returns a safe caller default/error on
+  failure or timeout. This is not authorization or enforcement of a business audit
+  requirement; applications must inspect errors and refuse sensitive actions.
 - Keep provider audit writes non-blocking by default so slow local I/O does not delay
   resolved values.
 - Provide an explicit flush path for short-lived local processes that need to drain

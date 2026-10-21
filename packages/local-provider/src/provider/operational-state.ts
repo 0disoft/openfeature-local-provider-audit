@@ -24,6 +24,7 @@ export class OperationalState {
   private attemptedWrites = 0;
   private resolvedWrites = 0;
   private failedWrites = 0;
+  private timedOutWrites = 0;
   private pendingWrites = 0;
   private lastAuditFailureAt: number | undefined;
 
@@ -65,6 +66,10 @@ export class OperationalState {
     }
   }
 
+  auditTimedOut(): void {
+    this.timedOutWrites++;
+  }
+
   read(snapshotHash: string, closed: boolean, sink: AuditSink | undefined): ProviderStatus {
     const sinkStats = readSinkStats(sink);
     return Object.freeze({
@@ -89,6 +94,7 @@ export class OperationalState {
         attemptedWrites: this.attemptedWrites,
         resolvedWrites: this.resolvedWrites,
         failedWrites: this.failedWrites,
+        timedOutWrites: this.timedOutWrites,
         pendingWrites: this.pendingWrites,
         ...(this.lastAuditFailureAt !== undefined
           ? { lastFailureAt: this.lastAuditFailureAt }

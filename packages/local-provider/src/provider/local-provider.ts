@@ -18,7 +18,6 @@ import { validateFlagSnapshot } from "../flags/validate-snapshot.js";
 import type {
   AuditSink,
   AuditContextKeyMode,
-  AuditWriteMode,
   CreateEnvOverridesOptions,
   EnvOverrideState,
   EnvSource,
@@ -36,6 +35,7 @@ import type {
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
 import { OperationalState } from "./operational-state.js";
+import { resolveAuditPolicy, waitForAudit, type AuditPolicy } from "./audit-policy.js";
 
 const DEFAULT_PROVIDER_NAME = "openfeature-local-provider";
 
@@ -69,7 +69,7 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     overrideOptions,
     options.name ?? DEFAULT_PROVIDER_NAME,
     options.auditSink,
-    options.auditWriteMode ?? "nonBlocking",
+    resolveAuditPolicy(options),
     resolveAuditContextKeyMode(options.auditRedaction),
     options.staleAfterMs
   );
@@ -110,7 +110,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     private readonly overrideOptions: OverrideOptions,
     name: string,
     private readonly auditSink: AuditSink | undefined,
-    private readonly auditWriteMode: AuditWriteMode,
+    private readonly auditPolicy: AuditPolicy,
     private readonly auditContextKeyMode: AuditContextKeyMode,
     staleAfterMs: number | undefined
   ) {
@@ -213,12 +213,25 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       context,
       state
     );
-    const result = this.evaluateSafely(request, state, logger);
+    let result = this.evaluateSafely(request, state, logger);
 
     const auditWrite = this.writeAuditEvent(request, result, state, logger);
 
-    if (this.auditWriteMode === "blocking") {
-      await auditWrite;
+    if (this.auditPolicy.writeMode === "blocking") {
+      const confirmed = await waitForAudit(auditWrite, this.auditPolicy.timeoutMs, () => {
+        this.operational.auditTimedOut();
+      });
+      if (!confirmed && this.auditPolicy.failurePolicy === "returnDefault") {
+        result = {
+          flagKey,
+          value: defaultValue,
+          reason: EVALUATION_REASONS.ERROR,
+          source: EVALUATION_SOURCES.ERROR,
+          errorCode: LOCAL_PROVIDER_ERROR_CODES.AUDIT_SINK_ERROR,
+          errorMessage: "Audit confirmation failed or timed out.",
+          flagMetadata: {}
+        };
+      }
     }
 
     return toOpenFeatureResolution(result) as ResolutionDetails<T>;
@@ -271,28 +284,37 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     result: EvaluationResult<T>,
     state: ProviderState,
     logger: Logger
-  ): Promise<void> {
+  ): Promise<boolean> {
     if (this.auditSink === undefined) {
-      return;
+      return true;
     }
 
     this.operational.auditStarted();
     let failed = false;
     try {
-      await this.auditSink.write(
-        createAuditEvent({
-          providerName: this.metadata.name,
-          snapshot: state.snapshot,
-          snapshotHash: state.snapshotHash,
-          ...(state.overrideHash !== undefined ? { overrideHash: state.overrideHash } : {}),
-          request,
-          result,
-          redaction: { contextKeys: this.auditContextKeyMode }
-        })
-      );
+      const event = createAuditEvent({
+        providerName: this.metadata.name,
+        snapshot: state.snapshot,
+        snapshotHash: state.snapshotHash,
+        ...(state.overrideHash !== undefined ? { overrideHash: state.overrideHash } : {}),
+        request,
+        result,
+        redaction: { contextKeys: this.auditContextKeyMode }
+      });
+      if (this.auditPolicy.failurePolicy === "returnDefault") {
+        // Validated at construction; keep the receiver for stateful custom sinks.
+        if (this.auditSink.writeConfirmed === undefined) {
+          throw new Error("Audit confirmation is unavailable.");
+        }
+        await this.auditSink.writeConfirmed(event);
+      } else {
+        await this.auditSink.write(event);
+      }
+      return true;
     } catch (error) {
       failed = true;
       this.warn(logger, "openfeature-local-provider audit sink write failed", error);
+      return false;
     } finally {
       this.operational.auditFinished(failed);
     }

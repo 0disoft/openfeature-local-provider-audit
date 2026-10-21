@@ -38,6 +38,7 @@ export type {
   AuditRedactionOptions,
   AuditSink,
   AuditWriteMode,
+  AuditFailurePolicy,
   CreateEnvOverridesOptions,
   CreateAuditEventOptions,
   EvaluationContext,

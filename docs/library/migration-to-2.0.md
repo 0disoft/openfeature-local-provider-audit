@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.4` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.5` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -16,6 +16,13 @@ Alpha.4 adds operational status. Provider factories now return
 Custom implementations of `ReloadableLocalProvider` must add `getStatus()` and
 `reportRefreshFailure(kind)`. Existing constructor options and evaluation behavior
 are unchanged; `staleAfterMs` is optional. See `operational-status.md`.
+
+Alpha.5 adds optional audit failure policy and asynchronous wait limits. Defaults
+are unchanged. Custom sinks only need the new optional `writeConfirmed` capability
+when opting into `returnDefault`; ordinary `write` keeps its `Promise<void>` type
+and overflow policy. Custom operational status implementations add the
+`timedOutWrites` counter. See `audit-failure-policy.md` before selecting a safe
+caller default or assuming any durability/business-enforcement guarantee.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

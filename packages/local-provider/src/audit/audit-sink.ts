@@ -31,41 +31,47 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   let writeQueue = Promise.resolve();
   let flushQueue = Promise.resolve();
 
-  return {
-    async write(event: AuditEvent): Promise<void> {
-      if (queue.maxSize !== undefined && queuedWrites >= queue.maxSize) {
-        if (queue.overflowPolicy === "dropNewest") {
-          droppedWrites += 1;
-          return;
-        }
-
-        rejectedWrites += 1;
-        throw new Error(`Audit write queue is full: maxQueueSize=${queue.maxSize}`);
+  async function enqueueWrite(event: AuditEvent, requireConfirmation: boolean): Promise<void> {
+    if (queue.maxSize !== undefined && queuedWrites >= queue.maxSize) {
+      if (queue.overflowPolicy === "dropNewest" && !requireConfirmation) {
+        droppedWrites += 1;
+        return;
       }
 
-      queuedWrites += 1;
-      const writeOperation = writeQueue.then(() =>
-        writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
-      );
-      writeQueue = writeOperation.catch(() => undefined);
-      const trackedWrite = writeOperation
-        .catch((error: unknown) => {
-          unreportedFailureCount += 1;
-          if (failureCauses.length < MAX_RETAINED_FAILURE_CAUSES) {
-            failureCauses.push(error);
-          }
-          throw error;
-        })
-        .finally(() => {
-          queuedWrites -= 1;
-          pendingWrites.delete(trackedWrite);
-        });
+      rejectedWrites += 1;
+      throw new Error(`Audit write queue is full: maxQueueSize=${queue.maxSize}`);
+    }
 
-      pendingWrites.add(trackedWrite);
+    queuedWrites += 1;
+    const writeOperation = writeQueue.then(() =>
+      writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
+    );
+    writeQueue = writeOperation.catch(() => undefined);
+    const trackedWrite = writeOperation
+      .catch((error: unknown) => {
+        unreportedFailureCount += 1;
+        if (failureCauses.length < MAX_RETAINED_FAILURE_CAUSES) {
+          failureCauses.push(error);
+        }
+        throw error;
+      })
+      .finally(() => {
+        queuedWrites -= 1;
+        pendingWrites.delete(trackedWrite);
+      });
 
-      await trackedWrite;
+    pendingWrites.add(trackedWrite);
+
+    await trackedWrite;
+  }
+
+  return {
+    write(event) {
+      return enqueueWrite(event, false);
     },
-
+    writeConfirmed(event) {
+      return enqueueWrite(event, true);
+    },
     async flush(): Promise<void> {
       const flushOperation = flushQueue.then(async () => {
         while (pendingWrites.size > 0) {

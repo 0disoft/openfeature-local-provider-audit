@@ -133,6 +133,8 @@ export interface LocalProviderOptions {
   readonly env?: EnvSource;
   readonly auditSink?: AuditSink;
   readonly auditWriteMode?: AuditWriteMode;
+  readonly auditFailurePolicy?: AuditFailurePolicy;
+  readonly auditTimeoutMs?: number;
   readonly auditRedaction?: AuditRedactionOptions;
   readonly staleAfterMs?: number;
 }
@@ -144,6 +146,7 @@ export interface ProviderAuditStatus {
   readonly attemptedWrites: number;
   readonly resolvedWrites: number;
   readonly failedWrites: number;
+  readonly timedOutWrites: number;
   readonly pendingWrites: number;
   readonly lastFailureAt?: number;
   readonly sinkStats?: FileAuditSinkStats;
@@ -198,6 +201,8 @@ export interface FlagSnapshotFileWatcher {
 }
 
 export type AuditWriteMode = "nonBlocking" | "blocking";
+
+export type AuditFailurePolicy = "bestEffort" | "returnDefault";
 
 export type AuditContextKeyMode = "names" | "count" | "none";
 
@@ -297,6 +302,7 @@ export interface CreateAuditEventOptions {
 
 export interface AuditSink {
   write(event: AuditEvent): Promise<void>;
+  writeConfirmed?(event: AuditEvent): Promise<void>;
   flush?(): Promise<void>;
   getStats?(): FileAuditSinkStats;
 }

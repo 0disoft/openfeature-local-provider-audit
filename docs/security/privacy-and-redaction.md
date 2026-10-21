@@ -41,7 +41,9 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
   the original sanitized inputs; audit records alone do not retain those inputs.
 - JSON Lines serialization is explicit.
 - File audit sinks append only serialized redacted events.
-- Provider audit sink failures are logged without changing the evaluated result.
+- Provider audit sink failures are logged without changing the evaluated result
+  by default. Opt-in `returnDefault` emits generic failure details without the
+  sink exception or selected candidate metadata; see the audit failure contract.
 - Provider warnings include the original error object for operator diagnosis. Logger
   destinations must remain operator-controlled because filesystem errors may include
   trusted local paths.

@@ -12,6 +12,7 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "AuditFailurePolicy",
   "ObservableLocalProvider",
   "ProviderStatus",
   "ProviderAuditStatus",
@@ -23,6 +24,7 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "AuditFailurePolicy",
   "ObservableLocalProvider",
   "ProviderStatus",
   "ProviderAuditStatus",
@@ -432,6 +434,23 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
         recovered.snapshotHash !== initial.snapshotHash || !Object.isFrozen(recovered.audit)) {
       throw new Error(moduleKind + " operational status contract failed");
     }
+    const strictAuditProvider = api.createLocalProvider({
+      snapshot: jsonSnapshot,
+      env: {},
+      auditFailurePolicy: "returnDefault",
+      auditSink: {
+        async write() { throw new Error("Unconfirmed write must not be selected"); },
+        async writeConfirmed() { throw new Error("expected storage failure"); }
+      }
+    });
+    const auditFallback = await strictAuditProvider.resolveBooleanEvaluation(
+      "checkout.enabled", false, {}, { debug() {}, info() {}, warn() {}, error() {} }
+    );
+    if (auditFallback.value !== false || auditFallback.reason !== "ERROR" ||
+        auditFallback.errorCode !== "GENERAL" ||
+        strictAuditProvider.getStatus().audit.failedWrites !== 1) {
+      throw new Error(moduleKind + " audit failure policy contract failed");
+    }
   }
   let flagsChanged = [];
   reloadableProvider.events?.addHandler(ProviderEvents.ConfigurationChanged, (details) => {
@@ -559,6 +578,28 @@ const request: EvaluationRequest<boolean> = {
 const provider = ${createProvider};
 const providerName: string = provider.metadata.name;
 const publicTypeSurface: PublicTypeSurface | undefined = undefined;
+${
+  targeting
+    ? `
+const observable: ObservableLocalProvider = provider;
+const status: ProviderStatus = observable.getStatus();
+const auditStatus: ProviderAuditStatus = status.audit;
+const failureKind: RefreshFailureKind = "load";
+observable.reportRefreshFailure(failureKind);
+const failurePolicy: AuditFailurePolicy = "returnDefault";
+const confirmedSink: AuditSink = {
+  async write() {},
+  async writeConfirmed() {}
+};
+const confirmedOptions: LocalProviderOptions = {
+  snapshot, auditSink: confirmedSink, auditFailurePolicy: failurePolicy, auditTimeoutMs: 250
+};
+const timedOutWrites: number = auditStatus.timedOutWrites;
+void confirmedOptions;
+void timedOutWrites;
+`
+    : ""
+}
 
 void request;
 void providerName;

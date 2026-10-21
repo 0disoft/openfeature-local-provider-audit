@@ -56,6 +56,10 @@ The P2 prerelease adds `ObservableLocalProvider`, `ProviderStatus`,
 `ProviderAuditStatus` and `RefreshFailureKind`. Both factories expose
 `getStatus()` and `reportRefreshFailure(kind)`; `LocalProviderOptions.staleAfterMs`
 opts into age reporting. See `operational-status.md` for counter and privacy semantics.
+The audit policy adds `AuditFailurePolicy`, optional
+`LocalProviderOptions.auditFailurePolicy` / `auditTimeoutMs`, optional
+`AuditSink.writeConfirmed` and `ProviderAuditStatus.timedOutWrites`.
+See `audit-failure-policy.md` for the default-preserving opt-in contract.
 
 The unpublished 2.0 prerelease adds the root types `ConditionScalar`,
 `TargetingCondition`, and `TargetingRule`, snapshot version `1 | 2`, optional
@@ -98,6 +102,7 @@ The package-root type surface is exactly:
 - `AuditEvent`, `AuditContextKeyMode`, `AuditQueueOverflowPolicy`,
   `AuditRedactionOptions`, `AuditSink`, `AuditWriteMode`, `CreateAuditEventOptions`,
   `FileAuditSinkOptions`, `FileAuditSinkStats`, and `RedactedAuditContext`.
+- `AuditFailurePolicy`.
 - `ReplayExpectedResult`, `ReplayFixture`, `ReplayMismatch`, `ReplayOverrideInput`,
   and `ReplayResult`.
 

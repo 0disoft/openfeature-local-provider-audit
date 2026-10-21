@@ -16,7 +16,9 @@ raw user context by default.
 - Raw targeting keys, emails, user IDs, IP addresses, tokens, passwords, authorization claims, and tenant identifiers must not be written by default.
 - Evaluated flag values are excluded by default, especially object values.
 - Cross-event correlation requires an explicit future opt-in design such as keyed HMAC, not plain hashing of personal identifiers.
-- Audit sink failures must not change the evaluated flag value.
+- Audit sink failures do not change the evaluated flag value by default.
+  The 2.0 prerelease adds an explicit opt-in failure response; see
+  `audit-failure-policy.md` for confirmation, timeout and candidate-record semantics.
 
 ## Event Fields
 

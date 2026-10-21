@@ -60,3 +60,6 @@ can be shared with other providers. Missing or throwing diagnostics are omitted.
 Audit event creation errors count as failures too. No counter resets or per-user
 history are retained. Sink flush errors retain their existing propagation behavior
 and are not write failures. Counters are JavaScript numbers, not durable accounting.
+
+Alpha.5 adds `timedOutWrites`, counting evaluation waits whose configured deadline
+expired, independently of write settlement. See `audit-failure-policy.md`.

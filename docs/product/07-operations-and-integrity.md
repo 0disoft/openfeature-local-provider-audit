@@ -47,7 +47,8 @@ No push, tag, release, remote branch update or hosted run is part of this task.
 
 ### Operational status completed locally
 
-Alpha.4 adds the observable provider interfaces and `operational-status.md` contract.
+Commit f8cb6af / alpha.4 adds the observable provider interfaces and
+`operational-status.md` contract.
 Rejected updates preserve the active state; repeated identical updates renew
 freshness; external failures and audit pending/failed/resolved calls are visible
 without exception data. Sink queue counters are copied and validated separately
@@ -61,5 +62,27 @@ evaluation, targeting, replay and CLI, TypeScript 5.9.3 full library validation 
 7.0.2 consumer surface validation. The latter retains the documented SDK skipLibCheck
 boundary. Hosted Linux/macOS verification is deferred because no push is authorized.
 
-Remaining: audit failure policy and OpenTelemetry adapter, HTTPS delivery,
-signatures/persistent recovery, GitOps recipe, audit chain/checkpoint verification.
+### Audit failure policy completed locally
+
+Alpha.5 preserves default best effort and adds opt-in `returnDefault`, confirmed
+sink writes and bounded asynchronous waiting. File confirmation rejects a full
+queue even if ordinary writes use dropNewest. Pending writes remain visible after
+timeout; eventual settlement and timeout counts are independent. The contract in
+`audit-failure-policy.md` explicitly separates candidate evaluation, SDK response,
+application enforcement and storage durability.
+
+`check`, `contract`, format and lint passed on Windows Node 24.14.0. Node 22.23.3
+also passed the full package suite: each runtime passed 262 tests with 5 existing
+platform skips. Coverage: 93.94% statements, 91.54% branches, 99.15% functions,
+94.49% lines. The reviewed API has 66 exports and 19 runtime values. The actual
+OpenFeature SDK failure/default flow, file append/overflow, asynchronous timeout,
+late rejection and unchanged legacy defaults are covered.
+
+The 124,287-byte alpha.5 tarball passed ESM/CJS runtime failure policy checks and
+TypeScript 5.9.3 full library / 7.0.2 consumer surface validation, including typed
+status, confirmation options and timeout counters. No dependency, DB, runner,
+repository hygiene policy or remote state changed. Hosted Linux/macOS evidence
+remains deferred; no push is authorized.
+
+Remaining, in order: OpenTelemetry adapter; HTTPS delivery; signatures and
+persistent recovery; GitOps recipe; audit chain/checkpoint verification.
