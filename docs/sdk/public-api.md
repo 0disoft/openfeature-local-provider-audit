@@ -16,6 +16,12 @@ keeping application code on the standard OpenFeature evaluation API.
 
 ## Required Decisions
 
+Scheduled schema-v2 flags evaluate against provider `clock` (default Date.now),
+captured once per evaluation of a scheduled flag. SDK context cannot override this
+clock. Pure requests/replay/CLI supply `evaluationTime` explicitly. No timer or
+automatic refresh is installed. See `docs/library/scheduled-rollout.md` for priority,
+audit metadata and backwards wall-clock behavior.
+
 The unpublished P3 checkout adds optional `auditPseudonymizer` on both provider
 factories and `pseudonymizer` on event creation. Construct it through
 `createHmacAuditPseudonymizer` with a real caller-owned secret, nonpersonal keyId

@@ -12,6 +12,8 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "ScheduledRollout",
+  "ScheduleEvaluation",
   "AuditPseudonym",
   "AuditPseudonymizer",
   "HmacAuditPseudonymizerOptions",
@@ -55,6 +57,8 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "ScheduledRollout",
+  "ScheduleEvaluation",
   "AuditPseudonym",
   "AuditPseudonymizer",
   "HmacAuditPseudonymizerOptions",
@@ -678,9 +682,20 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
   });
   if (${targeting}) {
     const anchor = api.createAuditChainCheckpoint("packed");
+    const scheduledSnapshot = api.parseJsonFlagSnapshot(JSON.stringify({ schemaVersion: 2, flags: { feature: {
+      type: "boolean", variants: { on: true, off: false }, defaultVariant: "off",
+      schedule: { variant: "on", stages: [{ at: 1000, percentage: 0 }, { at: 2000, percentage: 100 }] }
+    } } }));
+    const scheduleRequest = { flagKey: "feature", expectedType: "boolean", defaultValue: false, targetingKey: "private-subject", evaluationTime: 2000 };
+    const scheduleResult = api.evaluateFlag(scheduledSnapshot, scheduleRequest);
+    if (scheduleResult.value !== true || scheduleResult.schedule.stage !== 1 ||
+      !api.replayEvaluationFixture({ schemaVersion: 1, name: "schedule", snapshot: scheduledSnapshot, request: scheduleRequest,
+        expected: { value: true, variant: "on", bucket: scheduleResult.bucket, reason: "SPLIT", source: "file", schedule: scheduleResult.schedule } }).passed) {
+      throw new Error(moduleKind + " scheduled rollout/replay failed");
+    }
     const pseudonymizer = api.createHmacAuditPseudonymizer({ key: require("node:crypto").randomBytes(32), keyId: "packed-key", scope: "packed" });
-    const pseudonymous = api.createAuditEvent({ providerName: "packed-consumer", snapshot: jsonSnapshot,
-      request: { ...request, targetingKey: "private-subject" }, result, pseudonymizer });
+    const pseudonymous = api.createAuditEvent({ providerName: "packed-consumer", snapshot: scheduledSnapshot,
+      request: scheduleRequest, result: scheduleResult, pseudonymizer });
     if (pseudonymous.pseudonym.hash !== pseudonymizer.pseudonymize("private-subject").hash || JSON.stringify(pseudonymous).includes("private-subject")) {
       throw new Error(moduleKind + " audit pseudonym contract failed");
     }
@@ -699,6 +714,13 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     await fs.writeFile(auditPath + ".chain", JSON.stringify(chained) + "\\n");
     await fs.writeFile(auditPath + ".head", JSON.stringify(head));
     const binary = require("node:path").join(process.cwd(), "node_modules", "@0disoft/openfeature-local-provider", "bin", "openfeature-local-provider.js");
+    await fs.writeFile(auditPath + ".schedule.json", JSON.stringify(scheduledSnapshot));
+    await fs.writeFile(auditPath + ".schedule.request.json", JSON.stringify(scheduleRequest));
+    const scheduleExplanation = JSON.parse(require("node:child_process").execFileSync(process.execPath,
+      [binary, "explain", auditPath + ".schedule.json", "--request", auditPath + ".schedule.request.json"], { encoding: "utf8" }));
+    if (scheduleExplanation.schedule.evaluatedAt !== 2000 || scheduleExplanation.schedule.stage !== 1 || JSON.stringify(scheduleExplanation).includes("private-subject")) {
+      throw new Error(moduleKind + " packed scheduled inspection failed");
+    }
     const verified = JSON.parse(require("node:child_process").execFileSync(process.execPath,
       [binary, "audit-verify", auditPath + ".chain", "--chain-id", "packed", "--expect-head", auditPath + ".head"], { encoding: "utf8" }));
     if (!verified.checkpointMatched || verified.records !== 1) throw new Error(moduleKind + " packed audit CLI verification failed");
@@ -819,6 +841,9 @@ if (reloadable.prepareSnapshot !== undefined) {
   transaction.cancel();
 }
 declare const chainCheckpoint: AuditChainCheckpoint;
+const scheduleOptions: ScheduledRollout = { variant: "on", stages: [{ at: 0, percentage: 100 }] };
+const scheduleDecision: ScheduleEvaluation = { evaluatedAt: 0, stage: 0, percentage: 100 };
+void scheduleOptions; void scheduleDecision;
 declare const pseudonymizer: AuditPseudonymizer;
 const pseudonym: AuditPseudonym | undefined = pseudonymizer.pseudonymize("subject");
 const pseudonymOptions: HmacAuditPseudonymizerOptions = { key: new Uint8Array(32), keyId: "typed", scope: "typed" };

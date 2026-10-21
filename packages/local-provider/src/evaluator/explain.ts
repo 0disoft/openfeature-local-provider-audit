@@ -22,6 +22,7 @@ export function explainEvaluation<T extends FlagValue>(
     source: result.source,
     snapshotHash: createSnapshotHash(snapshot),
     rules,
+    ...(result.schedule !== undefined ? { schedule: result.schedule } : {}),
     ...(request.overrides !== undefined
       ? { overrideHash: createOverrideHash(request.overrides) }
       : {}),

@@ -2,6 +2,12 @@
 
 Source: ADR 0013. All inspection is local and read-only.
 
+ADR 0015 scheduled flags additionally use per-request `evaluationTime` (nonnegative
+safe-integer epoch milliseconds). No implicit current time is read. Explanations
+include optional `schedule: { evaluatedAt, stage, percentage }`; simulation accepts
+different explicit times per row and comparison includes schedule metadata in
+changedDecisions. See `scheduled-rollout.md` for stages and clock rollback.
+
 `explainEvaluation(snapshot, request)` uses the same evaluator as provider resolution.
 It returns `EvaluationExplanation`: flag key, reason, source, snapshot hash, optional
 override hash, selected variant/rule ID, optional bucket/error code, and ordered
@@ -62,7 +68,7 @@ default types are rejected. Object defaults may be null.
 Simulation returns total requests, snapshot hash, errors, and grouped counts by flag,
 reason, variant, rule ID and error code. Comparison returns the same summaries for both
 snapshots plus `changedValues` (structural JSON equality, ignoring object key order)
-and `changedDecisions` (variant, rule, reason, source, error or bucket changed). Counts
+and `changedDecisions` (variant, rule, reason, source, error, bucket or schedule changed). Counts
 may reveal small cohorts: use synthetic inputs or appropriately restricted reports.
 No per-request rows, raw values or user context are returned. Group ordering follows
 first encounter in the request file. Invalid input errors do not echo raw input.

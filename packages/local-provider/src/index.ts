@@ -69,6 +69,8 @@ export type {
   FileAuditSinkOptions,
   FileAuditSinkStats,
   FlagDefinition,
+  ScheduledRollout,
+  ScheduleEvaluation,
   FlagSnapshot,
   FlagType,
   FlagValue,

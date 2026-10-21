@@ -2,6 +2,12 @@
 
 Status: Draft
 
+Scheduled rollout uses an explicit trusted provider clock, not request-context
+time. Pure/offline callers supply evaluationTime themselves. Stateless wall-clock
+rollback can select an earlier stage; the caller owns any monotonic floor policy.
+Schedule metadata exposes time/stage/percentage without user context. This is
+deployment policy, not authorization. See `docs/library/scheduled-rollout.md`.
+
 P3 HMAC correlation is opt-in under `docs/library/audit-pseudonyms.md`. It captures
 caller-owned secrets and domain-separates explicit subject/key ID/scope, while
 default events remain uncorrelated. Pseudonyms are linkable sensitive data; key

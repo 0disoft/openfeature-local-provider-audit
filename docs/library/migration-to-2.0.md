@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.15` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.16` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -103,6 +103,13 @@ three contract types, `LocalProviderOptions.auditPseudonymizer`, event options
 chain bytes remain unchanged. When opting in, upgrade chain verification with the
 writer: old alpha verifiers reject unknown pseudonym fields. See
 `audit-pseudonyms.md` for key/scope isolation, rotation, Unicode limits and privacy.
+
+Alpha.16 adds optional schema-v2 `schedule`, request `evaluationTime`, provider
+`clock`, two contract types and schedule metadata on results/explanations/audit/
+replay. Existing snapshot behavior is unchanged when schedule is absent. Pure
+scheduled evaluation requires explicit time; providers default to Date.now and
+never use a context-supplied clock. Upgrade chain verification alongside opt-in
+writers. See `scheduled-rollout.md` before using stages, replay or clock rollback.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

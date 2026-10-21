@@ -10,6 +10,7 @@ import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { selectRolloutVariant } from "./bucketing.js";
 import { matchesCondition } from "./conditions.js";
 import { flagValueMatchesType } from "./type-guards.js";
+import { selectScheduledVariant, validScheduleTime } from "./schedule.js";
 
 export function evaluateFlag<T extends FlagValue>(
   snapshot: FlagSnapshot,
@@ -126,6 +127,39 @@ export function evaluateWithTrace<T extends FlagValue>(
         bucket: selection.bucket
       };
     }
+  }
+
+  if (snapshot.schemaVersion === 2 && flag.schedule !== undefined) {
+    if (
+      !validScheduleTime(request.evaluationTime) ||
+      request.targetingKey === undefined ||
+      !request.targetingKey.trim()
+    )
+      return {
+        flagKey: request.flagKey,
+        value: request.defaultValue,
+        reason: EVALUATION_REASONS.ERROR,
+        source: EVALUATION_SOURCES.ERROR,
+        errorCode: LOCAL_PROVIDER_ERROR_CODES.INVALID_CONTEXT,
+        errorMessage: "Scheduled rollout requires valid evaluationTime and targetingKey.",
+        flagMetadata: flag.metadata ?? {}
+      };
+    const selection = selectScheduledVariant(
+      flag.schedule,
+      request.flagKey,
+      request.targetingKey,
+      request.evaluationTime
+    );
+    return {
+      ...selectedVariant(
+        flag,
+        request,
+        selection.variant ?? flag.defaultVariant,
+        selection.variant === undefined ? EVALUATION_REASONS.STATIC : EVALUATION_REASONS.SPLIT
+      ),
+      bucket: selection.bucket,
+      schedule: selection.schedule
+    };
   }
 
   if (flag.rollout !== undefined) {

@@ -87,7 +87,8 @@ export async function runInspection(
           previous.reason,
           previous.source,
           previous.errorCode ?? null,
-          previous.bucket ?? null
+          previous.bucket ?? null,
+          previous.schedule ?? null
         ]) !==
         canonical([
           next.variant ?? null,
@@ -95,7 +96,8 @@ export async function runInspection(
           next.reason,
           next.source,
           next.errorCode ?? null,
-          next.bucket ?? null
+          next.bucket ?? null,
+          next.schedule ?? null
         ])
       )
         changedDecisions++;
@@ -152,7 +154,8 @@ function parseRequest(raw: unknown, snapshot: FlagSnapshot): EvaluationRequest {
       "defaultValue",
       "targetingKey",
       "context",
-      "overrides"
+      "overrides",
+      "evaluationTime"
     ])
   )
     throw new Error("Invalid request");
@@ -196,11 +199,17 @@ function parseRequest(raw: unknown, snapshot: FlagSnapshot): EvaluationRequest {
     overrideInput = raw.overrides as ReplayOverrideInput;
   }
   const context = raw.context as Record<string, unknown> | undefined;
+  if (
+    raw.evaluationTime !== undefined &&
+    (!Number.isSafeInteger(raw.evaluationTime) || (raw.evaluationTime as number) < 0)
+  )
+    throw new Error("Invalid evaluation time");
   const contextKey = context?.targetingKey;
   const targetingKey =
     raw.targetingKey ?? (typeof contextKey === "string" ? contextKey : undefined);
   return {
     flagKey: raw.flagKey,
+    ...(raw.evaluationTime !== undefined ? { evaluationTime: raw.evaluationTime as number } : {}),
     defaultValue: raw.defaultValue,
     expectedType: type,
     ...(context ? { context } : {}),

@@ -1,5 +1,6 @@
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { captureAuditPseudonym } from "./pseudonym.js";
+import { captureScheduleEvaluation } from "../evaluator/schedule.js";
 import { createHash, randomUUID } from "node:crypto";
 import type {
   AuditContextKeyMode,
@@ -23,6 +24,9 @@ export function createAuditEvent(options: CreateAuditEventOptions): AuditEvent {
       ? undefined
       : options.pseudonymizer?.pseudonymize(subject);
   return {
+    ...(options.result.schedule !== undefined
+      ? { schedule: captureScheduleEvaluation(options.result.schedule) }
+      : {}),
     ...(pseudonym !== undefined ? { pseudonym: captureAuditPseudonym(pseudonym) } : {}),
     ...(provenance !== undefined ? { provenance } : {}),
     schemaVersion: 1,

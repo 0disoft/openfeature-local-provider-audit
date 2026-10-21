@@ -1,6 +1,6 @@
 # Scheduled local rollout
 
-Status: accepted implementation contract under ADR 0015; delivery evidence belongs
+Status: implemented locally in unpublished alpha.16 under ADR 0015; delivery evidence belongs
 to `docs/product/08-privacy-and-portability.md`.
 
 Schema v2 optionally adds flag `schedule: { variant, seed?, stages }`, mutually
@@ -10,13 +10,15 @@ bucketing seed. stages has 1..100 entries `{ at, percentage }`: at is nonnegativ
 safe-integer epoch milliseconds, strictly increasing; percentage is 0..100 with
 at most three decimals and is nondecreasing. Configuration is copied and frozen.
 Schema v1 rejects this field. Old v2 snapshots without it retain their behavior.
+Older alpha providers reject schedule fields; upgrade consumers before delivering
+scheduled snapshots. Reverting to schedule-free configuration restores the old path.
 
 ## Time and precedence
 
 Pure evaluation, explanation, replay and CLI requests use optional `evaluationTime`
 in epoch milliseconds. A reached schedule requires a nonnegative safe integer and
 a nonempty targetingKey, otherwise returns caller default/INVALID_CONTEXT. No
-ambient clock is read by the pure evaluator. Unsheduled flags ignore evaluationTime.
+ambient clock is read by the pure evaluator. Unscheduled flags ignore evaluationTime.
 
 Provider option `clock?: () => number` defaults to Date.now. A scheduled flag
 captures it once per evaluation; context fields cannot supply a trusted clock.

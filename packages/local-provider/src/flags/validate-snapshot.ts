@@ -10,6 +10,7 @@ import type {
 } from "../public-types.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
 import { validateTargetingRules } from "./validate-targeting.js";
+import { validateScheduledRollout } from "./validate-schedule.js";
 
 const FLAG_TYPES = new Set<FlagType>(["boolean", "string", "number", "object"]);
 const SNAPSHOT_KEYS = new Set(["schemaVersion", "flags", "metadata"]);
@@ -21,7 +22,7 @@ const FLAG_DEFINITION_KEYS = new Set([
   "envVar",
   "metadata"
 ]);
-const V2_FLAG_KEYS = new Set([...FLAG_DEFINITION_KEYS, "rules", "disabledVariant"]);
+const V2_FLAG_KEYS = new Set([...FLAG_DEFINITION_KEYS, "rules", "disabledVariant", "schedule"]);
 const ROLLOUT_RULE_KEYS = new Set(["variant", "percentage", "seed"]);
 
 export function validateFlagSnapshot(value: unknown): FlagSnapshot {
@@ -106,6 +107,12 @@ function validateFlagDefinition(flagKey: string, value: unknown, version: 1 | 2)
     return validateRollout(flagKey, input, variants);
   };
   const rollout = parseRollout(value.rollout);
+  const schedule =
+    version === 2
+      ? validateScheduledRollout(value.schedule, (name) => hasOwn(variants, name))
+      : undefined;
+  if (schedule !== undefined && rollout !== undefined)
+    throw schemaError("schedule and rollout are mutually exclusive.");
   const rules =
     version === 2
       ? validateTargetingRules(value.rules, (name) => hasOwn(variants, name), parseRollout)
@@ -120,6 +127,7 @@ function validateFlagDefinition(flagKey: string, value: unknown, version: 1 | 2)
 
   return {
     ...flag,
+    ...(schedule !== undefined ? { schedule } : {}),
     ...(envVar !== undefined ? { envVar } : {}),
     ...(rollout !== undefined ? { rollout } : {}),
     ...(rules !== undefined ? { rules } : {}),

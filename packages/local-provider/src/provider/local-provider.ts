@@ -57,6 +57,8 @@ export function createReloadableLocalProvider(
 }
 
 function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeatureProvider {
+  if (options.clock !== undefined && typeof options.clock !== "function")
+    throw new TypeError("clock must be a function.");
   if (
     options.auditPseudonymizer !== undefined &&
     typeof options.auditPseudonymizer.pseudonymize !== "function"
@@ -86,7 +88,8 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     options.staleAfterMs,
     options.metrics,
     options.provenance,
-    options.auditPseudonymizer
+    options.auditPseudonymizer,
+    options.clock ?? Date.now
   );
 }
 
@@ -133,7 +136,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     staleAfterMs: number | undefined,
     metrics: ProviderMetrics | undefined,
     provenance: SignedSnapshotMetadata | undefined,
-    private readonly auditPseudonymizer: AuditPseudonymizer | undefined
+    private readonly auditPseudonymizer: AuditPseudonymizer | undefined,
+    private readonly clock: () => number
   ) {
     this.operational = new OperationalState(staleAfterMs);
     this.state = this.createState(snapshot, provenance);
@@ -365,7 +369,20 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     const descriptor = Object.getOwnPropertyDescriptor(context, "targetingKey");
     const targetingKey =
       descriptor !== undefined && "value" in descriptor ? descriptor.value : undefined;
+    let evaluationTime: number | undefined;
+    if (
+      state.snapshot.schemaVersion === 2 &&
+      Object.hasOwn(state.snapshot.flags, flagKey) &&
+      state.snapshot.flags[flagKey]?.schedule !== undefined
+    ) {
+      try {
+        evaluationTime = this.clock();
+      } catch {
+        evaluationTime = Number.NaN;
+      }
+    }
     return {
+      ...(evaluationTime !== undefined ? { evaluationTime } : {}),
       flagKey,
       defaultValue,
       expectedType,

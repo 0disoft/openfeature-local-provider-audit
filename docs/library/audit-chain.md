@@ -18,6 +18,11 @@ Checkpoint matching is false when no expected head was required.
 
 ## Bytes and schema
 
+Alpha.16 also captures optional `event.schedule` under `scheduled-rollout.md`;
+evaluatedAt, stage and percentage are strictly captured and included in the hash.
+Schedule-free records retain their canonical bytes. Opt-in writers/verifiers must
+upgrade together because older verifiers reject unknown fields.
+
 Alpha.15 optionally captures `event.pseudonym` under `audit-pseudonyms.md`. All four
 fields are frozen and hash-covered. Old records without it retain their canonical
 bytes. Older alpha verifiers reject the new field; upgrade alongside opt-in writers.

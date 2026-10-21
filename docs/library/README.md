@@ -27,6 +27,7 @@ formatting, and replay fixture helpers.
 - GitOps composition: gitops-snapshots.md
 - Audit integrity and trust: audit-chain.md
 - Opt-in HMAC subject correlation: audit-pseudonyms.md
+- Scheduled local rollout and explicit replay time: scheduled-rollout.md
 - P2 acceptance evidence: docs/testing/p2-acceptance.md
 
 ## Required Decisions

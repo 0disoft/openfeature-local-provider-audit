@@ -38,7 +38,9 @@ instead of drifting into a feature flag platform.
 ADR 0013 accepts bounded attribute comparisons (including caller-supplied region,
 tenant, and app version), emergency variant selection and local inspection as a
 post-MVP extension. General-purpose languages, regex, stored segments, automatic
-schedules and remote management remain deferred.
+scheduling workers and remote management remain deferred. ADR 0015 accepts bounded
+per-evaluation time/percentage stages as an opt-in v2 extension; see
+`docs/library/scheduled-rollout.md`. It starts no timer or background worker.
 
 ## Deferred Extension Rule
 

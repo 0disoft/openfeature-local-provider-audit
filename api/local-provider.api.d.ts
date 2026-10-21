@@ -53,6 +53,7 @@ interface PercentageRolloutRule {
   readonly seed?: string;
 }
 interface FlagDefinition {
+  readonly schedule?: ScheduledRollout;
   readonly type: FlagType;
   readonly variants: Readonly<Record<string, FlagValue>>;
   readonly defaultVariant: string;
@@ -63,6 +64,19 @@ interface FlagDefinition {
   readonly disabledVariant?: string;
 }
 type ConditionScalar = string | number | boolean | null;
+interface ScheduledRollout {
+  readonly variant: string;
+  readonly seed?: string;
+  readonly stages: readonly {
+    readonly at: number;
+    readonly percentage: number;
+  }[];
+}
+interface ScheduleEvaluation {
+  readonly evaluatedAt: number;
+  readonly stage: number | null;
+  readonly percentage: number;
+}
 type TargetingCondition =
   | {
       readonly all: readonly TargetingCondition[];
@@ -109,6 +123,7 @@ interface FlagSnapshot {
   readonly metadata?: Readonly<Record<string, string | number | boolean>>;
 }
 interface EvaluationRequestBase {
+  readonly evaluationTime?: number;
   readonly flagKey: string;
   readonly targetingKey?: string;
   readonly context?: EvaluationContext;
@@ -134,6 +149,7 @@ type EvaluationRequestByType<T extends FlagValue> =
 type EvaluationRequest<T extends FlagValue = FlagValue> = EvaluationRequestByType<T>;
 type EvaluationContext = Readonly<Record<string, unknown>>;
 interface EvaluationResult<T extends FlagValue = FlagValue> {
+  readonly schedule?: ScheduleEvaluation;
   readonly flagKey: string;
   readonly value: T;
   readonly variant?: string;
@@ -150,6 +166,7 @@ interface RuleExplanation {
   readonly matched: boolean;
 }
 interface EvaluationExplanation {
+  readonly schedule?: ScheduleEvaluation;
   readonly flagKey: string;
   readonly reason: EvaluationReason;
   readonly source: EvaluationSource;
@@ -162,6 +179,7 @@ interface EvaluationExplanation {
   readonly rules: readonly RuleExplanation[];
 }
 interface LocalProviderOptions {
+  readonly clock?: () => number;
   readonly snapshot: FlagSnapshot;
   readonly provenance?: SignedSnapshotMetadata;
   readonly name?: string;
@@ -414,6 +432,7 @@ interface ReplayOverrideInput {
   readonly env?: EnvSource;
 }
 interface ReplayExpectedResult<T extends FlagValue = FlagValue> {
+  readonly schedule?: ScheduleEvaluation;
   readonly value: T;
   readonly variant?: string;
   readonly ruleId?: string;
@@ -449,6 +468,7 @@ interface HmacAuditPseudonymizerOptions {
   readonly scope: string;
 }
 interface AuditEvent {
+  readonly schedule?: ScheduleEvaluation;
   readonly pseudonym?: AuditPseudonym;
   readonly provenance?: SignedSnapshotMetadata;
   readonly schemaVersion: 1;
@@ -725,6 +745,8 @@ export type {
   ReplayOverrideInput,
   ReplayResult,
   RuleExplanation,
+  ScheduleEvaluation,
+  ScheduledRollout,
   SignFlagSnapshotOptions,
   SignedSnapshotMetadata,
   SignedSnapshotStore,

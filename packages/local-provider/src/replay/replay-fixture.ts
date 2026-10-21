@@ -12,6 +12,7 @@ import type {
 } from "../public-types.js";
 
 const REPLAY_FIELDS = [
+  "schedule",
   "value",
   "variant",
   "ruleId",
@@ -61,6 +62,7 @@ function toReplayExpectedResult<T extends FlagValue>(
 ): ReplayExpectedResult<T> {
   return {
     value: result.value,
+    ...(result.schedule !== undefined ? { schedule: result.schedule } : {}),
     reason: result.reason,
     source: result.source,
     ...(result.variant !== undefined ? { variant: result.variant } : {}),
@@ -77,7 +79,12 @@ function collectMismatches<T extends FlagValue>(
   const mismatches: ReplayMismatch[] = [];
 
   for (const field of REPLAY_FIELDS) {
-    if (!jsonValuesEqual(expected[field], actual[field])) {
+    if (
+      !jsonValuesEqual(
+        expected[field] as JsonValue | undefined,
+        actual[field] as JsonValue | undefined
+      )
+    ) {
       mismatches.push({
         field,
         expected: expected[field] as JsonValue | undefined,

@@ -3,7 +3,7 @@
 Status: Accepted contract; implementation delivered in the P1 slices.
 Source: ADR 0013. JSON and YAML share this contract.
 
-V2 retains all v1 fields and adds `rules` and `disabledVariant` to flag definitions.
+V2 retains all v1 fields and adds `rules`, `disabledVariant` and optional `schedule` to flag definitions.
 `schemaVersion: 2` is required for those fields. V1 stays supported and rejects them.
 Snapshot, flag, rule and condition objects reject unknown fields. Validation clones
 and freezes accepted input. Existing value and rollout validation still applies.
@@ -56,7 +56,9 @@ personal data or secrets. Flags are not authorization or tenant isolation bounda
 Percentage expansion preserves buckets when flag key, targeting key, seed, and the
 start of the variant interval stay fixed. Reordering variants or changing a seed can
 reassign users; no universal monotonicity claim is made for arbitrary multi-variant
-changes. Schema v2 does not add automatic schedules.
+changes. ADR 0015 adds the opt-in bounded `schedule` contract in
+`scheduled-rollout.md`, after first-match rules and before static fallback. It is
+mutually exclusive with flag-level rollout and never installs a timer or worker.
 
 ## Propagation
 

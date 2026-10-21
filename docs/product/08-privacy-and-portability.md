@@ -45,7 +45,7 @@ All five priorities above remain tracked until their own acceptance is establish
 
 ### HMAC pseudonyms completed locally (2026-10-22 KST)
 
-Planning/ADR commit: 323df30. Alpha.15 implements native domain-separated HMAC,
+Planning/ADR commit: 323df30. Implementation commit: 008153c. Alpha.15 implements native domain-separated HMAC,
 copied 32..128-byte secrets, isolated key IDs/scopes, bounded well-formed UTF-8
 subjects and immutable metadata. Both providers/direct event creation opt in;
 default or missing-subject records remain unchanged. Strict chain capture preserves
@@ -73,3 +73,47 @@ adoption material/evidence. Start the schedule contract next; define time input,
 stable percentage stages, emergency/override precedence and replay semantics before
 editing evaluation. External adoption itself remains unverified and cannot be
 claimed by local smoke tests. No push, deployment or external messages performed.
+
+### Scheduled rollout completed locally (2026-10-22 KST)
+
+Contract commit 40157c7 defines the opt-in v2 stage/time/priority contract before
+implementation. Alpha.16 adds bounded strictly ordered 1..100 time/percentage
+stages, nondecreasing percentages, existing deterministic seeded buckets, explicit
+pure evaluationTime and a caller-owned provider clock. Before-first/final stage,
+stateless clock rollback and emergency/override/targeting precedence are explicit.
+Unscheduled v1/v2 flags keep existing behavior and acquire no new clock reads.
+No timer, watcher, delayed job or background worker is created.
+
+Schedule decision time/stage/percentage reaches explanations, audit/strict chained
+records and replay. Offline CLI evaluate/explain/simulate/compare accepts explicit
+per-request times; comparison detects schedule decision changes even when values
+agree. Authoritative contract: `docs/library/scheduled-rollout.md`, with schema,
+scope, API/SDK, migration, replay, inspection, chain and threat-model updates.
+
+Tests prove exact boundaries, backwards time, final stage, invalid time/key,
+nonempty 200-subject expanding cohorts and equivalence to existing seeded buckets,
+default seed, priority, immutable JSON/YAML validation and size/precision/order limits.
+Real OpenFeature SDK/durable chain output proves a single trusted clock read and
+rejects context time injection; direct/default/throwing clocks are covered. Fixed
+offline requests prove explanation, aggregate on/off counts and schedule-only
+comparison drift. Replay detects time/stage drift; chain capture rejects invalid
+schedule metadata. Default audits and existing chain/replay fixtures stay compatible.
+
+`check`, `contract`, format, lint and diff whitespace checks passed. Windows Node
+24.14.0 and 22.23.3 each passed 370 package tests with 6 existing platform skips.
+Coverage: 94.07% statements / 92.41% branches / 99.46% functions / 95.69% lines.
+The actual 229,500-byte alpha.16 tarball passed ESM/CJS scheduled evaluation/replay,
+HMAC + schedule chain storage/verification, actual packaged schedule explanation
+and audit verification CLI, and existing
+consumer contracts. TypeScript 5.9.3 full-library and 7.0.2 consumer-surface checks
+passed (the latter retains the documented upstream SDK skipLibCheck boundary).
+Reviewed API: 111 exports / 31 runtime values, with two new type exports. No
+dependency, DB, runner/workflow, hygiene policy or remote state changed.
+
+Remaining P3: bounded S3/R2 delivery contract and implementation next; runtime
+separation with actual browser/Bun/Deno/Workers execution; independent adoption
+material and verifiable external use. No claim of hosted Linux/macOS/current-source
+CI or production origin/storage validation: no push or deployment is authorized.
+The caller owns clock trust/monotonic floors, external checkpoints and rollout
+business policy. No incomplete scheduled-rollout implementation is left in the
+worktree; start the object-storage slice in the next run.

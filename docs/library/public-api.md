@@ -52,6 +52,11 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+P3 scheduled rollout adds `ScheduledRollout`, `ScheduleEvaluation`, optional v2 flag
+`schedule`, request `evaluationTime`, provider `clock`, and optional schedule
+decision metadata on evaluation/explanation/audit/replay. No new runtime export or
+timer is added. See `scheduled-rollout.md` for priority, bounds and clock trust.
+
 P3 adds `createHmacAuditPseudonymizer`, `AuditPseudonym`, `AuditPseudonymizer` and
 `HmacAuditPseudonymizerOptions`. Provider option `auditPseudonymizer` and event
 option `pseudonymizer` opt into optional `AuditEvent.pseudonym`; defaults stay
@@ -133,6 +138,7 @@ The package-root type surface is exactly:
   `FileAuditSinkOptions`, `FileAuditSinkStats`, and `RedactedAuditContext`.
 - `AuditFailurePolicy`.
 - `AuditPseudonym`, `AuditPseudonymizer`, `HmacAuditPseudonymizerOptions`.
+- `ScheduledRollout`, `ScheduleEvaluation`.
 - `AuditChainCheckpoint`, `ChainedAuditEvent`, `AuditChainOptions`,
   `VerifyAuditChainOptions`, `AuditChainVerification`, `ChainedFileAuditSinkOptions`,
   `AuditChainFileCheckpoint`, and `ChainedFileAuditSink`.
