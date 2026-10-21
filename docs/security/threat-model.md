@@ -51,7 +51,9 @@ not a writer identity. Trusted external prefix/head checkpoints are necessary to
 bound claims about retention, whole-file rewrite and tail truncation. Checkpoints
 beside a writable log are not independent trust. Strict bounded captures reject
 unknown fields/getters and preserve explicit context-name disclosure policy. See
-`docs/library/audit-chain.md`; plain file writers are unchanged in this slice.
+`docs/library/audit-chain.md`; the opt-in segmented writer uses a dedicated
+trusted directory, mandatory owner lock, data/manifest sync and verified recovery.
+Partial committed history fails closed; plain file writers remain compatible.
 
 ## Required Controls
 

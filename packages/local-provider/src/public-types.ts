@@ -514,6 +514,28 @@ export interface FileAuditSinkStats {
   readonly maxQueueSize: number | null;
 }
 
+export interface ChainedFileAuditSinkOptions {
+  readonly directory: string | URL;
+  readonly chainId: string;
+  readonly initialCheckpoint?: AuditChainCheckpoint;
+  readonly maxSegmentBytes?: number;
+  readonly maxSegments?: number;
+  readonly maxRecordBytes?: number;
+  readonly maxVerificationBytes?: number;
+  readonly maxQueueSize?: number | null;
+  readonly lockTimeoutMs?: number;
+}
+
+export interface AuditChainFileCheckpoint {
+  readonly start: AuditChainCheckpoint;
+  readonly head: AuditChainCheckpoint;
+  readonly files: readonly string[];
+}
+
+export interface ChainedFileAuditSink extends AuditSink {
+  getCheckpoint(): Promise<AuditChainFileCheckpoint>;
+}
+
 export interface FileAuditSinkOptions {
   readonly path: string | URL;
   readonly createDirectory?: boolean;

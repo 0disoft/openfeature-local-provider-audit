@@ -354,3 +354,37 @@ reject incompatible modes, define durable checkpoint export and crash/partial-ap
 recovery, and verify cooperating concurrent writers. The plain file sink is unchanged
 and does not yet emit chain envelopes. Then audit the entire P2 acceptance list.
 External checkpoint trust/storage remains operator-owned. No push, tag or release.
+
+### Segmented chained audit storage completed locally
+
+Alpha.14 adds the optional `createChainedFileAuditSink` without changing the plain
+file format. Shared bounded queues and mandatory owner locks serialize cooperating
+writers, including independent processes. Stable segment names and an atomically
+replaced manifest preserve sequence/hash across retention. Data is flushed before
+metadata commits; rotation commits retained history before removing old segments.
+Complete unacknowledged tails and rotation orphans are verified and adopted; partial
+tails, missing/truncated committed files and lost manifests fail closed and preserve
+evidence. Checkpoint export drains, locks and fully verifies retained history.
+
+Authoritative contracts are `docs/library/audit-chain.md`, public API/SDK, migration
+and threat-model documents. External checkpoint authentication/retention and consistent
+export copies remain operator-owned. Caller retries can duplicate accepted events;
+abandoned locks are not stolen. Windows ACLs and power-loss behavior remain storage
+boundaries, not guarantees inferred from POSIX directory synchronization.
+
+`check`, `contract`, format, lint and diff whitespace checks passed.
+Windows Node 24.14.0 and 22.23.3 each passed 359 package tests with 6 existing platform
+skips. Focused cases cover actual two-process writes, retention, immutable capture,
+large Unicode records, restart, complete-tail/orphan recovery, injected metadata
+failure, partial/truncated data, unsafe modes and queue/lock rejection. Coverage:
+93.84% statements, 91.80% branches, 99.43% functions, 95.47% lines.
+The 218,131-byte alpha.14 tarball passed ESM/CJS chained storage/checkpoint use,
+existing runtime/CLI checks and TypeScript 5.9.3 full-library / 7.0.2 consumer-surface
+checks. Reviewed API: 105 exports / 30 runtime values. The release-readiness queue
+checks now inspect the extracted shared queue source. No dependency, DB, runner,
+repository hygiene policy or remote state changed.
+
+Remaining P2: audit every acceptance item above against actual implementation and
+evidence, reconcile stale scope/status descriptions and record any concrete gaps.
+Hosted Linux/macOS/current-source CI and remote issue/PR reconciliation remain
+unverified without an authorized push. P3 stays separate. No push, tag or release.

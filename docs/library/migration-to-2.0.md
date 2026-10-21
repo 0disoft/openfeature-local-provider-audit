@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.13` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.14` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.4 adds operational status. Provider factories now return
@@ -88,6 +88,14 @@ redacted events, verify consecutive links and compare explicit trusted checkpoin
 Unknown/accessor/raw fields are rejected. See `audit-chain.md` for canonical bytes,
 bounds and authenticity/truncation limits. Chained file writing/rotation remains
 pending; ordinary sinks do not automatically acquire a chain.
+
+Alpha.14 adds `createChainedFileAuditSink` and three options/checkpoint/sink types.
+Its dedicated directory/manifest/segments are separate from the plain file format.
+Mandatory advisory locking, bounded rejecting queues, atomic manifest retention,
+fsynced records and full retained checkpoint verification define the opt-in contract.
+Complete unacknowledged records can be adopted after interruption; partial data
+fails closed. See `audit-chain.md` for recovery, external checkpoint trust and
+filesystem durability. Existing plain sink queue behavior is shared unchanged.
 
 V2 `disabledVariant` outranks overrides, including malformed overrides. V1 has no
 emergency field and keeps its old precedence. Targeting first-match order, missing

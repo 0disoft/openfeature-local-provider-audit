@@ -510,6 +510,25 @@ interface FileAuditSinkStats {
   readonly rejectedWrites: number;
   readonly maxQueueSize: number | null;
 }
+interface ChainedFileAuditSinkOptions {
+  readonly directory: string | URL;
+  readonly chainId: string;
+  readonly initialCheckpoint?: AuditChainCheckpoint;
+  readonly maxSegmentBytes?: number;
+  readonly maxSegments?: number;
+  readonly maxRecordBytes?: number;
+  readonly maxVerificationBytes?: number;
+  readonly maxQueueSize?: number | null;
+  readonly lockTimeoutMs?: number;
+}
+interface AuditChainFileCheckpoint {
+  readonly start: AuditChainCheckpoint;
+  readonly head: AuditChainCheckpoint;
+  readonly files: readonly string[];
+}
+interface ChainedFileAuditSink extends AuditSink {
+  getCheckpoint(): Promise<AuditChainFileCheckpoint>;
+}
 interface FileAuditSinkOptions {
   readonly path: string | URL;
   readonly createDirectory?: boolean;
@@ -591,6 +610,11 @@ export declare function verifyAuditChain(
   options: VerifyAuditChainOptions
 ): AuditChainVerification;
 //#endregion
+//#region src/audit/chained-file-sink.d.ts
+export declare function createChainedFileAuditSink(
+  options: ChainedFileAuditSinkOptions
+): ChainedFileAuditSink;
+//#endregion
 //#region src/audit/audit-sink.d.ts
 export declare function createFileAuditSink(options: FileAuditSinkOptions): AuditSink;
 //#endregion
@@ -621,6 +645,7 @@ export declare function createSnapshotVerifier(
 //#endregion
 export type {
   AuditChainCheckpoint,
+  AuditChainFileCheckpoint,
   AuditChainOptions,
   AuditChainVerification,
   AuditContextKeyMode,
@@ -631,6 +656,8 @@ export type {
   AuditSink,
   AuditWriteMode,
   ChainedAuditEvent,
+  ChainedFileAuditSink,
+  ChainedFileAuditSinkOptions,
   ConditionScalar,
   CreateAuditEventOptions,
   CreateEnvOverridesOptions,

@@ -196,7 +196,9 @@ Opt-in audit integrity adds `createAuditChainCheckpoint`, `createChainedAuditEve
 `ChainedAuditEvent`, `AuditChainOptions`, `VerifyAuditChainOptions` and
 `AuditChainVerification`. Read-only `audit-verify` checks ordered JSON Lines against
 an explicit genesis/prefix and optional exact trusted head. Plain sinks remain
-unchanged. See `audit-chain.md`; chain-file writer integration is still pending.
+unchanged. See `audit-chain.md`. `createChainedFileAuditSink`,
+`ChainedFileAuditSinkOptions`, `AuditChainFileCheckpoint` and `ChainedFileAuditSink`
+add opt-in segmented storage and verified checkpoint capture.
 
 ## Review Blockers
 

@@ -21,6 +21,9 @@ const V2_TYPE_EXPORTS = new Set([
   "AuditChainOptions",
   "VerifyAuditChainOptions",
   "AuditChainVerification",
+  "ChainedFileAuditSinkOptions",
+  "AuditChainFileCheckpoint",
+  "ChainedFileAuditSink",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -58,6 +61,9 @@ const PUBLIC_TYPE_EXPORTS = [
   "AuditChainOptions",
   "VerifyAuditChainOptions",
   "AuditChainVerification",
+  "ChainedFileAuditSinkOptions",
+  "AuditChainFileCheckpoint",
+  "ChainedFileAuditSink",
   "SignFlagSnapshotOptions",
   "SnapshotVerificationOptions",
   "SignedSnapshotMetadata",
@@ -414,7 +420,8 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "createAuditChainCheckpoint",
             "createChainedAuditEvent",
             "verifyAuditChainRecord",
-            "verifyAuditChain"
+            "verifyAuditChain",
+            "createChainedFileAuditSink"
           ]
         : []),
       "isLocalProviderError",
@@ -669,6 +676,12 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     if (!api.verifyAuditChain([chained], { start: anchor, expectedHead: head }).checkpointMatched) {
       throw new Error(moduleKind + " audit chain verification failed");
     }
+    const chainedSink = api.createChainedFileAuditSink({ directory: auditPath + ".chain-store", chainId: "packed-store", maxSegmentBytes: 1, maxSegments: 2 });
+    await chainedSink.write(auditEvent); await chainedSink.writeConfirmed(auditEvent); await chainedSink.write(auditEvent);
+    const fileCheckpoint = await chainedSink.getCheckpoint();
+    if (fileCheckpoint.start.sequence !== 1 || fileCheckpoint.head.sequence !== 3 || fileCheckpoint.files.length !== 2) {
+      throw new Error(moduleKind + " chained file checkpoint failed");
+    }
     const fs = require("node:fs/promises");
     await fs.writeFile(auditPath + ".chain", JSON.stringify(chained) + "\\n");
     await fs.writeFile(auditPath + ".head", JSON.stringify(head));
@@ -798,6 +811,10 @@ const chainOptions: AuditChainOptions = { maxRecordBytes: 1024 };
 const verifyOptions: VerifyAuditChainOptions = { ...chainOptions, start: chainCheckpoint, expectedHead: chainCheckpoint, maxRecords: 1 };
 declare const chainVerification: AuditChainVerification;
 const verifiedHead: AuditChainCheckpoint = chainVerification.head;
+declare const chainedFileSink: ChainedFileAuditSink;
+const fileCheckpointPromise: Promise<AuditChainFileCheckpoint> = chainedFileSink.getCheckpoint();
+const chainedFileOptions: ChainedFileAuditSinkOptions = { directory: "caller-owned-audit", chainId: "typed", maxSegments: 5 };
+void fileCheckpointPromise; void chainedFileOptions;
 void chainRecord; void verifyOptions; void verifiedHead;
 void refreshOptions;
 void recoveryPromise;

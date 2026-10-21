@@ -1,3 +1,4 @@
+import { createQueuedAuditSink } from "./queued-sink.js";
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
@@ -10,8 +11,6 @@ import { serializeAuditEvent } from "./audit-event.js";
 
 const AUDIT_FILE_MODE = 0o600;
 const AUDIT_DIRECTORY_MODE = 0o700;
-const DEFAULT_AUDIT_QUEUE_SIZE = 5_000;
-const MAX_RETAINED_FAILURE_CAUSES = 16;
 const AUDIT_OPEN_FLAGS =
   constants.O_APPEND | constants.O_CREAT | constants.O_WRONLY | (constants.O_NOFOLLOW ?? 0);
 const processWriteQueues = new Map<string, Promise<void>>();
@@ -21,89 +20,9 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   const shouldCreateDirectory = options.createDirectory !== false;
   const rotation = createRotationOptions(options);
   const lock = createLockOptions(options, auditPath);
-  const queue = createQueueOptions(options);
-  const pendingWrites = new Set<Promise<void>>();
-  const failureCauses: unknown[] = [];
-  let unreportedFailureCount = 0;
-  let queuedWrites = 0;
-  let droppedWrites = 0;
-  let rejectedWrites = 0;
-  let writeQueue = Promise.resolve();
-  let flushQueue = Promise.resolve();
-
-  async function enqueueWrite(event: AuditEvent, requireConfirmation: boolean): Promise<void> {
-    if (queue.maxSize !== undefined && queuedWrites >= queue.maxSize) {
-      if (queue.overflowPolicy === "dropNewest" && !requireConfirmation) {
-        droppedWrites += 1;
-        return;
-      }
-
-      rejectedWrites += 1;
-      throw new Error(`Audit write queue is full: maxQueueSize=${queue.maxSize}`);
-    }
-
-    queuedWrites += 1;
-    const writeOperation = writeQueue.then(() =>
-      writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
-    );
-    writeQueue = writeOperation.catch(() => undefined);
-    const trackedWrite = writeOperation
-      .catch((error: unknown) => {
-        unreportedFailureCount += 1;
-        if (failureCauses.length < MAX_RETAINED_FAILURE_CAUSES) {
-          failureCauses.push(error);
-        }
-        throw error;
-      })
-      .finally(() => {
-        queuedWrites -= 1;
-        pendingWrites.delete(trackedWrite);
-      });
-
-    pendingWrites.add(trackedWrite);
-
-    await trackedWrite;
-  }
-
-  return {
-    write(event) {
-      return enqueueWrite(event, false);
-    },
-    writeConfirmed(event) {
-      return enqueueWrite(event, true);
-    },
-    async flush(): Promise<void> {
-      const flushOperation = flushQueue.then(async () => {
-        while (pendingWrites.size > 0) {
-          await Promise.allSettled(Array.from(pendingWrites));
-        }
-
-        const failureCount = unreportedFailureCount;
-        const retainedCauses = failureCauses.splice(0);
-        unreportedFailureCount = 0;
-        if (failureCount === 1) {
-          throw retainedCauses[0];
-        }
-        if (failureCount > 1) {
-          throw new AggregateError(
-            retainedCauses,
-            `${failureCount} audit writes failed before flush; retained up to ${MAX_RETAINED_FAILURE_CAUSES} causes.`
-          );
-        }
-      });
-      flushQueue = flushOperation.catch(() => undefined);
-      await flushOperation;
-    },
-
-    getStats() {
-      return {
-        pendingWrites: queuedWrites,
-        droppedWrites,
-        rejectedWrites,
-        maxQueueSize: queue.maxSize ?? null
-      };
-    }
-  };
+  return createQueuedAuditSink(options, (event) =>
+    writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
+  );
 }
 
 async function writeAuditEvent(
@@ -181,7 +100,10 @@ async function assertPathIsNotSymbolicLink(path: string): Promise<void> {
   }
 }
 
-async function serializeProcessWrite(path: string, operation: () => Promise<void>): Promise<void> {
+export async function serializeProcessWrite(
+  path: string,
+  operation: () => Promise<void>
+): Promise<void> {
   const previous = processWriteQueues.get(path) ?? Promise.resolve();
   const current = previous.then(operation, operation);
   const tail = current.then(
@@ -211,11 +133,6 @@ interface LockOptions {
   readonly retryMs: number;
 }
 
-interface QueueOptions {
-  readonly maxSize: number | undefined;
-  readonly overflowPolicy: NonNullable<FileAuditSinkOptions["queueOverflowPolicy"]>;
-}
-
 function createRotationOptions(options: FileAuditSinkOptions): RotationOptions | undefined {
   if (options.maxBytes === undefined) {
     return undefined;
@@ -235,35 +152,7 @@ function createRotationOptions(options: FileAuditSinkOptions): RotationOptions |
   };
 }
 
-function createQueueOptions(options: FileAuditSinkOptions): QueueOptions {
-  if (
-    options.queueOverflowPolicy !== undefined &&
-    options.queueOverflowPolicy !== "reject" &&
-    options.queueOverflowPolicy !== "dropNewest"
-  ) {
-    throw new TypeError("queueOverflowPolicy must be reject or dropNewest");
-  }
-
-  if (options.maxQueueSize === null) {
-    return {
-      maxSize: undefined,
-      overflowPolicy: options.queueOverflowPolicy ?? "reject"
-    };
-  }
-
-  const maxQueueSize = options.maxQueueSize ?? DEFAULT_AUDIT_QUEUE_SIZE;
-  assertNonNegativeInteger(maxQueueSize, "maxQueueSize");
-  if (maxQueueSize === 0) {
-    throw new RangeError("maxQueueSize must be greater than 0");
-  }
-
-  return {
-    maxSize: maxQueueSize,
-    overflowPolicy: options.queueOverflowPolicy ?? "reject"
-  };
-}
-
-function createLockOptions(
+export function createLockOptions(
   options: FileAuditSinkOptions,
   auditPath: string | URL
 ): LockOptions | undefined {
@@ -286,7 +175,10 @@ function createLockOptions(
   };
 }
 
-async function withFileLock(lock: LockOptions, operation: () => Promise<void>): Promise<void> {
+export async function withFileLock(
+  lock: LockOptions,
+  operation: () => Promise<void>
+): Promise<void> {
   const release = await acquireFileLock(lock);
 
   try {

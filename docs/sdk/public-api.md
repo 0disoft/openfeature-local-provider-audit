@@ -74,7 +74,8 @@ checks without external upload or an added CI workflow. See
 Opt-in audit chain wrappers accept redacted AuditEvent v1 and an explicit starting
 checkpoint; verification returns a checkpoint-only summary. Independent checkpoint
 trust is caller-owned. No raw event fields are printed by `audit-verify`, and plain
-file sinks remain unchanged until the writer integration slice. See
+file sinks remain unchanged. The opt-in chained file sink uses a dedicated directory
+and mandatory shared lock, with bounded segments and verified checkpoint capture. See
 `docs/library/audit-chain.md` for bounds and retained-prefix verification.
 
 ## Review Blockers

@@ -39,7 +39,7 @@ const AUDIT_SINK_SOURCE = path.join(
   "local-provider",
   "src",
   "audit",
-  "audit-sink.ts"
+  "queued-sink.ts"
 );
 const PUBLIC_TYPES_SOURCE = path.join(ROOT, "packages", "local-provider", "src", "public-types.ts");
 const PACKAGE_README = path.join(ROOT, "packages", "local-provider", "README.md");

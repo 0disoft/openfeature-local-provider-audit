@@ -1,6 +1,6 @@
 # Audit chain and trusted checkpoints
 
-Status: primitives and verification in development; file-writer integration pending.
+Status: primitives/verification alpha.13; segmented file writer alpha.14, locally implemented.
 
 An opt-in chain wraps a redacted AuditEvent v1:
 `{ schemaVersion: 1, chainId, sequence, previousHash, event, hash }`.
@@ -66,8 +66,60 @@ boundary, with independent access/authentication and durable retention. Another 
 file beside the log does not create independent trust. External checkpoint delivery
 and retention belong to the operator; no remote writer is installed here.
 
-Plain `createFileAuditSink` output remains unchanged. These primitives do not yet
-make it a chain writer. Next: assign links inside path/process locks, preserve
-rotation continuity, anchor retained prefixes, reject incompatible modes and define
-checkpoint/write durability. Partial append/crash, lock takeover, shared writers and
-retention deletion require explicit handling. Then audit the whole P2 acceptance.
+## Segmented chained file sink
+
+`createChainedFileAuditSink({ directory, chainId, initialCheckpoint?,
+maxSegmentBytes?, maxSegments?, maxRecordBytes?, maxVerificationBytes?,
+maxQueueSize?, lockTimeoutMs? })` implements AuditSink including confirmed writes,
+flush and queue stats. The plain file sink remains compatible. The chained sink
+uses a dedicated directory, stable `segment-<first-sequence>.jsonl` names and an
+atomically replaced `manifest.json`; these files must not be shared with plain
+writers. A missing manifest in a nonempty directory fails closed, preventing a
+lost manifest from silently resetting the chain. An optional trusted initial
+checkpoint continues an externally anchored chain in a new empty directory.
+
+Defaults: 10 MiB target segment size, 5 retained segments, 1 MiB record cap,
+256 MiB verification budget, 5,000 queued writes and 5-second lock timeout.
+Segment target accepts 1 byte..100 MiB, count 1..128, record cap up to 16 MiB and
+verification budget up to 1 GiB. The budget must cover configured retained capacity.
+An individual record remains whole even when larger than the segment target.
+Queue overflow rejects; null is an explicit unbounded queue opt-in. `lock: false`,
+automatic stale takeover and dropNewest are rejected even through untyped options.
+
+Sequence/hash assignment, append/recovery and manifest changes happen inside the
+shared package path queue and mandatory advisory owner lock. Independent cooperating
+processes reread the manifest under that lock. Parent directories are trusted;
+new directories/files use POSIX 0700/0600. Existing ownership, regular-file type,
+no-follow identity and single-link checks protect managed files. Windows directory
+ACLs and power-loss behavior remain caller/filesystem responsibilities.
+
+A write flushes record data before atomically replacing/flushing metadata; POSIX
+also syncs the directory. Rotation commits the new retained-file manifest before
+unlinking pruned segments. Acknowledgment therefore defines durable acceptance,
+subject to filesystem/storage guarantees. An error after metadata commit can still
+mean the record was accepted. It cannot safely be undone by retrying an older head.
+Append checks retained file sizes and the current committed tip; `getCheckpoint()`
+drains writes, fully re-verifies retained records under the lock and returns frozen
+`{ start, head, files }`, with safe relative filenames in oldest-first order.
+
+A complete unacknowledged append or next-sequence rotation orphan is re-verified,
+flushed and adopted on recovery before subsequent writes. Caller retries can thus
+produce duplicate events at different sequence positions: this is not exactly-once
+delivery. A partial/malformed tail, missing/truncated committed file or incompatible
+manifest fails closed without deleting forensic data. An abandoned lock is never
+automatically stolen: confirm its writer stopped before operator removal.
+
+For unrecoverable partial data, stop writers, preserve the directory and verify a
+closed copy through the last externally trusted checkpoint. Start a new dedicated
+empty directory with that trusted checkpoint as `initialCheckpoint`; retain the
+original evidence. Do not silently truncate bytes, delete a manifest or reset to
+genesis. Interrupted retention/temp cleanup may leave unreferenced files: remove
+only confirmed unreferenced owned artifacts after stopping writers. Normal completed
+writes enforce the retained-segment count; crash leftovers are not hidden as retained
+history. Existing-history backup restore still needs independent checkpoints.
+
+Quiesce writers or make an external consistent copy before exporting files and
+checkpoints, because later rotation can remove files after the lock is released.
+Store checkpoint copies outside the log's writable trust boundary; the operational
+manifest is not independent authentication. No remote checkpoint exporter is
+installed. Full P2 acceptance auditing remains the next step.

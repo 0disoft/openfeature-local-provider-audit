@@ -17,6 +17,7 @@ export {
   verifyAuditChainRecord,
   verifyAuditChain
 } from "./audit/audit-chain.js";
+export { createChainedFileAuditSink } from "./audit/chained-file-sink.js";
 export { createFileAuditSink } from "./audit/audit-sink.js";
 export { createOpenTelemetryMetrics } from "./metrics/opentelemetry.js";
 export { createHttpsSnapshotSource } from "./sources/https-source.js";
@@ -49,6 +50,9 @@ export type {
   AuditChainOptions,
   VerifyAuditChainOptions,
   AuditChainVerification,
+  ChainedFileAuditSinkOptions,
+  AuditChainFileCheckpoint,
+  ChainedFileAuditSink,
   AuditContextKeyMode,
   AuditQueueOverflowPolicy,
   AuditRedactionOptions,
