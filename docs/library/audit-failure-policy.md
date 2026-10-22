@@ -53,4 +53,11 @@ Status `timedOutWrites` counts timed-out waits separately. Pending writes stay
 pending until the actual promise settles, and later resolution/failure updates
 their counters once. A timeout is not a completed or rejected write. A permanently
 stalled custom sink remains pending; callers own its resource bounds and lifecycle.
-`onClose` still awaits the sink's flush without this evaluation timeout.
+`onClose` uses a separate `auditShutdownTimeoutMs` limit: 5,000 ms by default,
+configurable from 1 to 2,147,483,647 with an audit sink. Event handlers and metrics
+are detached before waiting, even if flush never settles. Repeated close calls
+share the same result and invoke flush once. A deadline rejects with
+`AUDIT_SINK_ERROR`; pending I/O is not cancelled, and a late failure remains
+observed. The sink stays caller-owned and may be shared. Stop intake before closing;
+a shared sink's flush may include other providers' writes. Custom sinks still own
+actual I/O cancellation and resource cleanup.

@@ -8,8 +8,17 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.19` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.20` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.20 bounds provider shutdown flushing to 5,000 ms by default; configure
+`auditShutdownTimeoutMs` (1..2,147,483,647) with an audit sink for another limit.
+Provider event handlers and metrics are released before waiting. Repeated close
+calls share one result. A timeout rejects with `AUDIT_SINK_ERROR`; it neither
+cancels pending I/O nor closes a shared sink. Late flush failures remain observed.
+Remove `staleLockMs` from file sink settings: supplying it now throws rather than
+risk deleting a live owner's lock. Stop all writers before abandoned-lock recovery.
+Lock release attempts owned-marker cleanup even if handle close fails.
 
 Alpha.19 adds optional `SnapshotRefresher.refresh({ signal })`. Existing no-argument
 calls and return types are unchanged. A caller signal cancels that wait, not the

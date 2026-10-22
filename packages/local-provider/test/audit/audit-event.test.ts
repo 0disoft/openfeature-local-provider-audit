@@ -10,7 +10,6 @@ import {
   rm,
   stat,
   symlink,
-  utimes,
   writeFile
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -724,30 +723,17 @@ describe("audit events", () => {
     }
   });
 
-  it("removes stale advisory audit locks", async () => {
-    const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-audit-"));
-    const auditPath = join(tempDirectory, "locked", "audit.jsonl");
-    const lockPath = `${auditPath}.lock`;
-
+  it("rejects stale takeover without removing an existing lock", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-audit-stale-"));
+    const path = join(directory, "audit.jsonl");
     try {
-      await mkdir(join(tempDirectory, "locked"), { recursive: true });
-      const lockHandle = await open(lockPath, "w");
-      await lockHandle.close();
-      const oldDate = new Date(Date.now() - 10_000);
-      await utimes(lockPath, oldDate, oldDate);
-
-      const auditSink = createFileAuditSink({
-        path: auditPath,
-        lock: true,
-        staleLockMs: 1
-      });
-
-      await auditSink.write(createTestAuditEvent("evt_stale_lock"));
-      await auditSink.flush?.();
-
-      expect(await readFile(auditPath, "utf8")).toContain("evt_stale_lock");
+      await writeFile(`${path}.lock`, "live-owner\n");
+      expect(() => createFileAuditSink({ path, lock: true, staleLockMs: 1 })).toThrow(
+        "staleLockMs is unsupported"
+      );
+      expect(await readFile(`${path}.lock`, "utf8")).toBe("live-owner\n");
     } finally {
-      await rm(tempDirectory, { recursive: true, force: true });
+      await rm(directory, { recursive: true, force: true });
     }
   });
 

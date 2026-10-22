@@ -89,14 +89,12 @@ raw user context by default.
   coordination and require `lock: true` when sharing a rotating path.
 - File audit sinks capture an absolute path at construction. Later caller URL or
   working-directory changes cannot redirect writes, rotation or locking independently.
-- File audit sinks support optional advisory `.lock` files with `lock`, `lockTimeoutMs`,
-  and `staleLockMs` for multi-process local writers.
-  Lock wait deadlines use monotonic elapsed time, so wall-clock corrections neither
-  extend the wait nor expire it early. Stale-lock age still uses filesystem mtime
-  and wall time, with the takeover limitations described below.
-- Each acquired lock records an owner token. A releasing writer removes the lock only
-  when that token still matches, so a stale owner cannot delete a replacement owner's
-  lock after takeover.
+- File audit sinks support optional advisory `.lock` files with `lock` and
+  `lockTimeoutMs`. Lock wait deadlines use monotonic elapsed time.
+  `staleLockMs` is deprecated and supplying it throws: time-based takeover cannot
+  safely exclude live writers or conditionally remove only an inspected owner.
+- Each acquired lock records an owner token. Release checks that token and attempts
+  marker cleanup even after a handle-close error; both failures remain observable.
 - File audit sinks bound their in-memory write queue to 5,000 writes by default.
   `maxQueueSize` accepts a positive caller-owned limit, while `null` explicitly selects
   the pre-0.15 unbounded behavior.
@@ -109,18 +107,15 @@ raw user context by default.
   `createLocalProvider({ auditWriteMode: "blocking" })` when a test or short-lived script
   must wait for each sink write before resolution, or call `auditSink.flush?.()` before
   process exit to drain pending non-blocking writes.
-- The provider `onClose` hook flushes its configured sink. It does not close or claim
+- The provider `onClose` hook releases events/metrics then flushes with a 5,000 ms
+  default deadline (`auditShutdownTimeoutMs` overrides it). Timeout rejects without
+  cancelling I/O. It does not close or claim
   exclusive ownership of a sink that may be shared by multiple providers.
 - Rotation is local-file only. Cross-process coordination requires `lock: true` and
   cooperating writers that use the same advisory lock.
-- Advisory locking is best-effort coordination for cooperating processes on a local
-  filesystem. It is not a distributed lock or a fencing mechanism; an aggressive
-  `staleLockMs` can still classify a live writer as stale.
-- Stale-lock takeover is path-based because Node.js has no cross-platform conditional unlink by
-  owner token. Release or replacement of the lock between stale inspection and removal can let a
-  replacement owner lose its advisory marker. Consumers that cannot tolerate overlapping writers
-  must leave automatic stale takeover disabled and recover abandoned locks under an external
-  single-owner procedure.
+- Advisory locking coordinates cooperating processes on a trusted local filesystem.
+  It is not a distributed lock or fencing mechanism. Stop all writers and confirm
+  ownership before manually recovering an abandoned marker. No automatic stale takeover.
 
 ## Review Blockers
 

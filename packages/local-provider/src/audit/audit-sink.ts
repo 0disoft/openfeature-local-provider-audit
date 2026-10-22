@@ -174,6 +174,11 @@ export function createLockOptions(
   options: FileAuditSinkOptions,
   auditPath: string | URL
 ): LockOptions | undefined {
+  if (options.staleLockMs !== undefined) {
+    throw new TypeError(
+      "staleLockMs is unsupported: stop writers before recovering an abandoned lock."
+    );
+  }
   if (options.lock !== true) {
     return undefined;
   }
@@ -181,14 +186,10 @@ export function createLockOptions(
   const timeoutMs = options.lockTimeoutMs ?? 5000;
   assertNonNegativeInteger(timeoutMs, "lockTimeoutMs");
 
-  if (options.staleLockMs !== undefined) {
-    assertNonNegativeInteger(options.staleLockMs, "staleLockMs");
-  }
-
   return {
     path: `${toPathString(auditPath)}.lock`,
     timeoutMs,
-    staleMs: options.staleLockMs,
+    staleMs: undefined,
     retryMs: 20
   };
 }
@@ -212,6 +213,8 @@ export async function acquireFileLock(
   lock: LockOptions,
   writeLockRecord: LockRecordWriter = defaultWriteLockRecord
 ): Promise<() => Promise<void>> {
+  if (lock.staleMs !== undefined)
+    throw new TypeError("Automatic stale lock takeover is unsupported.");
   const startedAt = performance.now();
 
   while (true) {
@@ -235,16 +238,24 @@ export async function acquireFileLock(
       }
 
       return async () => {
-        await handle.close();
-        await removeLockIfOwned(lock.path, ownerToken);
+        const failures: unknown[] = [];
+        try {
+          await handle.close();
+        } catch (error) {
+          failures.push(error);
+        } finally {
+          try {
+            await removeLockIfOwned(lock.path, ownerToken);
+          } catch (error) {
+            failures.push(error);
+          }
+        }
+        if (failures.length === 1) throw failures[0];
+        if (failures.length > 1) throw new AggregateError(failures, "Audit lock release failed.");
       };
     } catch (error) {
       if (!isAlreadyExistsError(error)) {
         throw error;
-      }
-
-      if (lock.staleMs !== undefined) {
-        await removeStaleLockIfNeeded(lock);
       }
 
       if (performance.now() - startedAt >= lock.timeoutMs) {
@@ -270,23 +281,6 @@ async function removeLockIfOwned(
     const recordedOwner = contents.split("\n", 1)[0];
     if (recordedOwner === ownerToken || (allowEmpty && recordedOwner === "")) {
       await removeIfExists(path);
-    }
-  } catch (error) {
-    if (!isNotFoundError(error)) {
-      throw error;
-    }
-  }
-}
-
-async function removeStaleLockIfNeeded(lock: LockOptions): Promise<void> {
-  if (lock.staleMs === undefined) {
-    return;
-  }
-
-  try {
-    const lockStats = await stat(lock.path);
-    if (Date.now() - lockStats.mtimeMs >= lock.staleMs) {
-      await removeIfExists(lock.path);
     }
   } catch (error) {
     if (!isNotFoundError(error)) {

@@ -71,7 +71,7 @@ The P2 prerelease adds `ObservableLocalProvider`, `ProviderStatus`,
 `getStatus()` and `reportRefreshFailure(kind)`; `LocalProviderOptions.staleAfterMs`
 opts into age reporting. See `operational-status.md` for counter and privacy semantics.
 The audit policy adds `AuditFailurePolicy`, optional
-`LocalProviderOptions.auditFailurePolicy` / `auditTimeoutMs`, optional
+`LocalProviderOptions.auditFailurePolicy` / `auditTimeoutMs` / `auditShutdownTimeoutMs`, optional
 `AuditSink.writeConfirmed` and `ProviderAuditStatus.timedOutWrites`.
 See `audit-failure-policy.md` for the default-preserving opt-in contract.
 Optional metrics add `createOpenTelemetryMetrics`, `OpenTelemetryMeter`,
@@ -193,7 +193,7 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
   `maxOverridesJsonBytes`, and optional injectable `env`.
 - `FileAuditSinkOptions` with `path`, optional `createDirectory`, optional `maxBytes`,
   optional `maxFiles`, optional `lock`, optional `lockTimeoutMs`, and optional
-  `staleLockMs`, optional `maxQueueSize: number | null`, and optional
+  deprecated `staleLockMs` (supplying it throws), optional `maxQueueSize: number | null`, and optional
   `queueOverflowPolicy`. Omitting `maxQueueSize` selects 5,000; `null` explicitly selects
   an unbounded queue.
 - `EvaluationRequest` with optional `targetingKey` for rollout evaluation and a
@@ -206,7 +206,8 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
   optional `getStats()` for implementation-specific sink counters. File sinks report
   pending, dropped, and rejected writes plus their effective queue limit.
 - Providers flush an optional audit sink through the OpenFeature `onClose` lifecycle hook;
-  they do not close or take exclusive ownership of shared sinks.
+  waiting at most 5,000 ms by default (`auditShutdownTimeoutMs` overrides this).
+  They release events/metrics before waiting and do not close shared sinks.
 - Reloadable providers emit OpenFeature `PROVIDER_CONFIGURATION_CHANGED` events after a
   successful semantic snapshot change. `flagsChanged` is a code-unit-sorted list of added,
   removed, or changed flag keys; metadata-only changes use an empty list.

@@ -326,11 +326,13 @@ Treat the audit file path as trusted local configuration. Do not pass tenant, re
 unvalidated user input directly into `path`.
 
 Set `lock: true` when multiple local processes may write the same audit file. The lock is
-advisory and uses a sibling `.lock` file. `lockTimeoutMs` controls acquisition timeout,
-and `staleLockMs` can remove stale lock files left by crashed processes. Lock ownership
-is checked before release so an old writer does not remove a replacement owner's lock.
-This is best-effort local-filesystem coordination, not a distributed lock; an aggressive
-stale timeout can still allow concurrent live writers.
+advisory and uses a sibling `.lock` file. `lockTimeoutMs` controls acquisition timeout.
+`staleLockMs` is deprecated and rejected because time-based takeover can delete a
+live writer's lock. Stop all writers before manually recovering an abandoned marker.
+This is local-filesystem coordination, not a distributed lock or fencing mechanism.
+Provider `onClose` detaches events/metrics immediately and waits at most 5,000 ms for
+flush by default; `auditShutdownTimeoutMs` sets another limit. Timeout rejects without
+cancelling pending I/O or closing a caller-owned shared sink.
 
 Multiple sinks loaded from the same package instance are serialized by audit path within
 one process. Separate processes or duplicate installed package instances still require

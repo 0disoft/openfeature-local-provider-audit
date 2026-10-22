@@ -33,7 +33,8 @@ default events remain uncorrelated. See `docs/library/audit-pseudonyms.md`.
 - SDK audit contract: examples may pass `auditSink` to `createLocalProvider`, but must not
   log raw evaluation context or evaluated object values.
 - SDK audit lifecycle: short-lived examples may call `auditSink.flush?.()` before exit
-  when using non-blocking audit writes.
+  when using non-blocking audit writes. Provider `onClose` uses a separate
+  `auditShutdownTimeoutMs` deadline (default 5,000 ms); timeout rejects without cancelling I/O.
 - SDK audit file examples may configure `maxBytes` and `maxFiles` for local rotation.
 - SDK audit file examples may configure `lock` for shared local audit files.
 - SDK integration examples may combine strict context-key redaction, bounded audit

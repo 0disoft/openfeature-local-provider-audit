@@ -200,6 +200,7 @@ interface LocalProviderOptions {
   readonly auditWriteMode?: AuditWriteMode;
   readonly auditFailurePolicy?: AuditFailurePolicy;
   readonly auditTimeoutMs?: number;
+  readonly auditShutdownTimeoutMs?: number;
   readonly auditRedaction?: AuditRedactionOptions;
   readonly auditPseudonymizer?: AuditPseudonymizer;
   readonly staleAfterMs?: number;
@@ -609,6 +610,7 @@ interface FileAuditSinkOptions {
   readonly maxFiles?: number;
   readonly lock?: boolean;
   readonly lockTimeoutMs?: number;
+  /** @deprecated Automatic stale takeover is unsafe and rejected. Recover only after stopping writers. */
   readonly staleLockMs?: number;
   readonly maxQueueSize?: number | null;
   readonly queueOverflowPolicy?: AuditQueueOverflowPolicy;

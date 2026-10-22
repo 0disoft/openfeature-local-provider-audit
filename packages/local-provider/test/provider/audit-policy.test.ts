@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ErrorCode, OpenFeature } from "@openfeature/server-sdk";
+import { ErrorCode, OpenFeature, ProviderEvents } from "@openfeature/server-sdk";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createFileAuditSink,
@@ -16,6 +16,80 @@ const options = { snapshot: staticSnapshot, env: {} };
 afterEach(() => vi.useRealTimers());
 
 describe("audit confirmation policy", () => {
+  it("bounds shutdown, immediately releases diagnostics and observes a late flush rejection", async () => {
+    vi.useFakeTimers();
+    let rejectFlush!: (error: Error) => void;
+    const pending = new Promise<void>((_, reject) => {
+      rejectFlush = reject;
+    });
+    const flush = vi.fn(function (this: AuditSink) {
+      expect(this).toBe(sink);
+      return pending;
+    });
+    const sink: AuditSink = { write: async () => {}, flush };
+    let reentrantClose: Promise<void> | undefined;
+    const close = vi.fn(() => {
+      reentrantClose = provider.onClose?.();
+    });
+    const provider = createLocalProvider({
+      ...options,
+      auditSink: sink,
+      auditShutdownTimeoutMs: 25,
+      metrics: { bindStatus: () => ({ recordEvaluation() {}, close }) }
+    });
+    provider.events?.addHandler(ProviderEvents.ConfigurationChanged, vi.fn());
+    const closing = provider.onClose?.();
+    const rejected = expect(closing).rejects.toThrow("Audit shutdown flush timed out");
+    expect(provider.onClose?.()).toBe(closing);
+    expect(reentrantClose).toBe(closing);
+    expect(provider.getStatus().closed).toBe(true);
+    expect(close).toHaveBeenCalledOnce();
+    expect(provider.events?.getHandlers(ProviderEvents.ConfigurationChanged)).toEqual([]);
+    await vi.advanceTimersByTimeAsync(25);
+    await rejected;
+    expect(vi.getTimerCount()).toBe(0);
+    expect(flush).toHaveBeenCalledOnce();
+    rejectFlush(new Error("late flush failure"));
+    await vi.advanceTimersByTimeAsync(0);
+  });
+
+  it("clears the shutdown deadline after flush succeeds or fails", async () => {
+    vi.useFakeTimers();
+    for (const failure of [undefined, new Error("flush failure")]) {
+      const provider = createLocalProvider({
+        ...options,
+        auditSink: {
+          write: async () => {},
+          flush: async () => {
+            if (failure) throw failure;
+          }
+        }
+      });
+      if (failure) await expect(provider.onClose?.()).rejects.toBe(failure);
+      else await provider.onClose?.();
+      expect(vi.getTimerCount()).toBe(0);
+    }
+  });
+
+  it.each([0, -1, 0.5, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648])(
+    "rejects invalid shutdown limit %s",
+    (auditShutdownTimeoutMs) => {
+      expect(() =>
+        createLocalProvider({
+          ...options,
+          auditShutdownTimeoutMs,
+          auditSink: { write: async () => {} }
+        })
+      ).toThrow(RangeError);
+    }
+  );
+
+  it("rejects a shutdown limit without a sink", () => {
+    expect(() => createLocalProvider({ ...options, auditShutdownTimeoutMs: 100 })).toThrow(
+      TypeError
+    );
+  });
+
   it("confirms none-mode audits without enumerating context keys or producing a false failure", async () => {
     const enumerate = vi.fn(() => {
       throw new Error("key enumeration is unavailable");

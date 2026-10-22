@@ -42,7 +42,12 @@ import type {
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
 import { OperationalState } from "./operational-state.js";
-import { resolveAuditPolicy, waitForAudit, type AuditPolicy } from "./audit-policy.js";
+import {
+  flushAuditSink,
+  resolveAuditPolicy,
+  waitForAudit,
+  type AuditPolicy
+} from "./audit-policy.js";
 
 const DEFAULT_PROVIDER_NAME = "openfeature-local-provider";
 
@@ -122,6 +127,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
   readonly events = new OpenFeatureEventEmitter();
   private state: ProviderState;
   private closed = false;
+  private closeOperation: Promise<void> | undefined;
   private pendingUpdate: object | undefined;
   private readonly operational: OperationalState;
   private readonly metricsSession: ProviderMetricsSession | undefined;
@@ -234,18 +240,19 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     }
   }
 
-  async onClose(): Promise<void> {
+  onClose(): Promise<void> {
+    if (this.closeOperation !== undefined) return this.closeOperation;
     this.closed = true;
+    this.closeOperation = Promise.resolve().then(() =>
+      flushAuditSink(this.auditSink, this.auditPolicy.shutdownTimeoutMs)
+    );
+    this.events.removeAllHandlers();
     try {
-      await this.auditSink?.flush?.();
-    } finally {
-      this.events.removeAllHandlers();
-      try {
-        this.metricsSession?.close();
-      } catch {
-        // Preserve the original flush result.
-      }
+      this.metricsSession?.close();
+    } catch {
+      // Optional diagnostics must not prevent audit draining.
     }
+    return this.closeOperation;
   }
 
   async resolveBooleanEvaluation(

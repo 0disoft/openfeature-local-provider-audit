@@ -84,9 +84,10 @@ Use a service-owned directory with POSIX mode `0700` and keep the audit file at 
 Do not place a fixed audit filename directly in a shared temporary directory. On Windows,
 use an ACL that prevents other local users from replacing any path component.
 
-Configure `lockTimeoutMs` and `staleLockMs` from the process supervisor's crash and restart model.
-An aggressive stale timeout can let two live processes write concurrently; an excessive timeout
-can delay recovery after a crash.
+Configure `lockTimeoutMs` for expected contention. `staleLockMs` is rejected: stop
+all writers and verify ownership before manually recovering an abandoned marker.
+Quiesce intake before provider close and configure `auditShutdownTimeoutMs` (default
+5,000 ms) within the supervisor's shutdown window. A timeout does not cancel I/O.
 
 ## Operational Signals
 
