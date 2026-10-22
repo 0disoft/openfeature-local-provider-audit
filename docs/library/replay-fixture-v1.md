@@ -37,6 +37,10 @@ exports of production audit logs.
 - Mismatches are reported by field and do not throw, so CI and custom harnesses can aggregate failures.
 - Object values compare as JSON objects independently of key insertion order, including nested
   objects inside arrays. Array element order remains significant.
+- Value comparisons use own data properties without invoking input array methods or
+  getters. Cyclic, non-finite, accessor, over-depth (128 edges) or oversized
+  (100,000 visited values) comparison values produce a field mismatch rather than
+  a recursion/serialization exception. A malformed value is never considered equal.
 - Error message text is intentionally excluded from fixture comparison to avoid overfitting tests to non-contract copy.
 
 ## Review Blockers

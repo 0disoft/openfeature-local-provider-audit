@@ -5,6 +5,56 @@ import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { replayFixtures } from "./fixtures.js";
 
 describe("replayEvaluationFixture", () => {
+  it("does not let hidden array methods falsify a comparison", () => {
+    let calls = 0;
+    const value = [true];
+    Object.defineProperty(value, "map", {
+      get() {
+        calls++;
+        return () => [false];
+      }
+    });
+    const fixture: ReplayFixture = {
+      schemaVersion: 1,
+      name: "array-method",
+      snapshot: {
+        schemaVersion: 1,
+        flags: { f: { type: "object", defaultVariant: "v", variants: { v: [false] } } }
+      },
+      request: { flagKey: "f", expectedType: "object", defaultValue: [] },
+      expected: { value, variant: "v", reason: "STATIC", source: "file" }
+    };
+    expect(replayEvaluationFixture(fixture)).toMatchObject({
+      passed: false,
+      mismatches: [{ field: "value" }]
+    });
+    expect(calls).toBe(0);
+  });
+
+  it("reports cyclic, excessive-depth and accessor values as mismatches without executing getters", () => {
+    const cyclic: unknown[] = [];
+    cyclic.push(cyclic);
+    let deep: unknown = 0;
+    for (let index = 0; index < 12_000; index++) deep = [deep];
+    let reads = 0;
+    const accessor = {
+      get value() {
+        reads++;
+        return true;
+      }
+    };
+    const base = getReplayFixture(0);
+    for (const value of [cyclic, deep, accessor, Number.NaN]) {
+      const result = replayEvaluationFixture({
+        ...base,
+        expected: { ...base.expected, value: value as never }
+      });
+      expect(result.passed).toBe(false);
+      expect(result.mismatches.map((entry) => entry.field)).toContain("value");
+    }
+    expect(reads).toBe(0);
+  });
+
   it.each(replayFixtures)("passes replay fixture $name", (fixture) => {
     expect(replayEvaluationFixture(fixture)).toMatchObject({
       fixtureName: fixture.name,

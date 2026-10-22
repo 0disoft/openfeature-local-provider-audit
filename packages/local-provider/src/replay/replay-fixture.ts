@@ -1,5 +1,6 @@
 import { createEnvOverrides } from "../env/env-overrides.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
+import { isJsonValue } from "../evaluator/type-guards.js";
 import type {
   EvaluationRequest,
   EvaluationResult,
@@ -97,35 +98,44 @@ function collectMismatches<T extends FlagValue>(
 }
 
 function jsonValuesEqual(left: JsonValue | undefined, right: JsonValue | undefined): boolean {
-  return stableJsonStringify(left) === stableJsonStringify(right);
-}
-
-function stableJsonStringify(value: JsonValue | undefined): string | undefined {
-  return value === undefined ? undefined : JSON.stringify(sortJsonValue(value));
-}
-
-function sortJsonValue(value: JsonValue): JsonValue {
-  if (Array.isArray(value)) {
-    return value.map((entryValue) => sortJsonValue(entryValue));
+  if (left === undefined || right === undefined) return left === right;
+  if (!isJsonValue(left) || !isJsonValue(right)) return false;
+  const pending: [JsonValue, JsonValue][] = [[left, right]];
+  let visited = 0;
+  try {
+    while (pending.length > 0) {
+      if (++visited > 100_000) return false;
+      const pair = pending.pop();
+      if (pair === undefined) break;
+      const [expected, actual] = pair;
+      if (expected === actual) continue;
+      if (
+        expected === null ||
+        actual === null ||
+        typeof expected !== "object" ||
+        typeof actual !== "object"
+      )
+        return false;
+      const array = Array.isArray(expected);
+      if (array !== Array.isArray(actual)) return false;
+      const keys = array
+        ? Array.from({ length: expected.length }, (_, index) => String(index))
+        : Object.keys(expected);
+      if (
+        array
+          ? expected.length !== (actual as readonly JsonValue[]).length
+          : keys.length !== Object.keys(actual).length
+      )
+        return false;
+      for (const key of keys) {
+        const a = Object.getOwnPropertyDescriptor(expected, key);
+        const b = Object.getOwnPropertyDescriptor(actual, key);
+        if (!a || !b || !("value" in a) || !("value" in b)) return false;
+        pending.push([a.value, b.value]);
+      }
+    }
+    return true;
+  } catch {
+    return false;
   }
-
-  if (value !== null && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([leftKey], [rightKey]) => compareCodeUnits(leftKey, rightKey))
-        .map(([key, entryValue]) => [key, sortJsonValue(entryValue)])
-    );
-  }
-
-  return value;
-}
-
-function compareCodeUnits(left: string, right: string): number {
-  if (left < right) {
-    return -1;
-  }
-  if (left > right) {
-    return 1;
-  }
-  return 0;
 }
