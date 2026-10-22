@@ -202,6 +202,12 @@ export interface SnapshotRefresherOptions {
   readonly verifier?: SnapshotVerifier;
   readonly previous?: SignedSnapshotMetadata;
   readonly store?: SignedSnapshotStore;
+  readonly timeoutMs?: number;
+  readonly onFailure?: (failure: {
+    readonly kind: RefreshFailureKind;
+    readonly cause: unknown;
+    readonly timedOut: boolean;
+  }) => void;
 }
 
 export interface SignFlagSnapshotOptions {
@@ -259,7 +265,7 @@ export interface SnapshotRecovery {
 }
 
 export interface SignedSnapshotStore {
-  load(): Promise<SnapshotRecovery | undefined>;
+  load(request?: { readonly signal?: AbortSignal }): Promise<SnapshotRecovery | undefined>;
   commit(content: Uint8Array): Promise<VerifiedFlagSnapshot>;
 }
 

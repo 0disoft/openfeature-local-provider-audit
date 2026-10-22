@@ -8,8 +8,25 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.21` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.22` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.22 adds a shared refresh `timeoutMs` (default 30,000 ms; integer
+1..2,147,483,647). Existing call signatures remain valid, but previously unlimited
+custom source/store waits now reject at the deadline. Increase the limit explicitly
+for slower delivery. Cancellation is cooperative: one owner is retained until the
+actual outstanding I/O settles, and repeated refresh calls share the rejected result
+while it remains outstanding. A timed-out commit has an unknown outcome, is never
+automatically retried, and keeps its provider reservation until actual settlement.
+Late matching acceptance advances the replay floor without activating or caching
+that delivery. Reconcile through explicit recovery before further writes.
+`SignedSnapshotStore.load({ signal }?)` adds optional read cancellation; existing
+zero-argument implementations remain compatible. Optional `onFailure` receives
+`{ kind, cause, timedOut }` for trusted operator diagnostics, including private raw
+causes. Protect this callback as a sensitive logging boundary. Exceptions/rejected
+promises from it are ignored. A late commit failure can generate a second diagnostic
+after timeout, but the refresh failure counter increments only once. Public errors,
+status and audit events retain their sanitized contracts.
 
 Alpha.21 adds optional `totalTimeoutMs` (1..320,000 ms) to HTTPS/S3 sources.
 The default total budget equals the former maximum attempts/backoff envelope;
@@ -30,7 +47,7 @@ Alpha.19 adds optional `SnapshotRefresher.refresh({ signal })`. Existing no-argu
 calls and return types are unchanged. A caller signal cancels that wait, not the
 shared refresh; use `close()` to stop shared fetch/recovery waiting. Abort-ignoring
 custom sources can no longer hold that wait open after close, though their own I/O
-may continue. Already-started durable commits still drain before refresh settles.
+may continue. Already-started durable commits drain internally; alpha.22 bounds the caller wait.
 Watcher `reload()` rejects from its own active `onSnapshot` callback instead of
 deadlocking; unrelated callers and post-callback scheduled reloads still work.
 

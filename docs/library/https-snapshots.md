@@ -69,11 +69,28 @@ it does not mean the already initialized provider stopped serving its last good 
 
 ## Application and ETag commit
 
-`createSnapshotRefresher({ provider, source, format?, maxBytes? })` captures the
+`createSnapshotRefresher({ provider, source, format?, maxBytes?, timeoutMs?, onFailure? })` captures the
 provider/source. Format defaults to JSON; YAML must be explicit. Refresher maxBytes
 has the same default/range and independently limits custom-source bodies. UTF-8 is
 strictly decoded and parsed through the existing validated JSON/YAML contracts.
 The source's claimed media type does not change the parser.
+
+The shared refresh deadline defaults to 30,000 ms, including recovery, fetch and
+persistence. `timeoutMs` accepts integers from 1 to 2,147,483,647. It bounds async
+waiting, not synchronous parsing or a blocked event loop. Deadline expiry rejects
+with generic `PROVIDER_NOT_READY` and signals read cancellation. A custom source or
+store must release its own resources; cancellation cannot force arbitrary I/O to stop.
+The refresher retains ownership until outstanding actual reads/writes settle, even
+when the waiting result has rejected. Repeated calls meanwhile share that rejected
+result, preventing overlapping retries or an expanding queue. Use a larger explicit
+limit if transport policy requires more than 30 seconds.
+
+Optional `onFailure({ kind, cause, timedOut })` receives original failure causes only
+for trusted operator diagnosis. It must redact sensitive endpoints, paths, tokens
+and response data before logging. Nothing logs these causes automatically; public
+errors have no raw `cause`. Synchronous and asynchronous callback failures are
+isolated. A commit failing after timeout can produce a second diagnostic with its
+actual cause, without incrementing the refresh failure counter twice.
 
 Overlapping `refresh()` calls share one promise and one operation; they do not
 build an unbounded queue. Optional `refresh({ signal })` cancels only that caller's
@@ -105,8 +122,11 @@ close cancellation does not add a failure. Close ends the refresh wait during
 source fetch or recovery load even if a custom implementation ignores AbortSignal.
 Late results cannot apply and late rejections are observed. Custom implementations
 still own their I/O cleanup; their underlying work may continue after close.
-Once persistence starts, the refresh drains its acknowledgment before settling,
-preserving durable acceptance for recovery rather than claiming it was rolled back.
+Once persistence starts, internal work drains its acknowledgment. If the shared
+deadline expires first, the waiting result reports an unknown persistence outcome;
+it does not imply rollback. No commit or whole refresh is automatically retried.
+Reservations remain held until the actual commit settles; late matching acceptance
+advances the replay floor without activating the expired delivery or its ETag.
 
 `refresher.close()` is idempotent and does not flush/close the provider or source.
 Callers own scheduling and shutdown; no recurring timer, worker or management

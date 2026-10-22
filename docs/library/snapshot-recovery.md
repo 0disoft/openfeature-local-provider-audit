@@ -9,7 +9,10 @@ uses the same pinned Ed25519 keys, audience and policy as signed delivery.
 then atomically replaces the journal. It never accepts an older sequence, earlier
 issuance or another artifact at the same sequence. Failed validation preserves it.
 
-`load()` returns undefined only for a missing journal. Corrupt/unverifiable heads
+`load({ signal }?)` preserves existing no-argument calls. A refresher passes its
+shared read signal; the file implementation checks cancellation before and after
+its bounded journal read, without abandoning an opened handle. Custom stores own
+cooperative cancellation and cleanup. `load()` returns undefined only for a missing journal. Corrupt/unverifiable heads
 fail closed; recovery never silently falls back to older history. The result has
 an authenticated `floor`, optional fresh `current`, and authenticated `history`
 entries, newest first. Historical verification authenticates signatures, audience,
@@ -100,8 +103,12 @@ explicitly replaces the just-activated state, refresh rejects without adopting i
 ETag/source provenance, but the accepted durable floor stays advanced. If close
 occurs before persistence starts, nothing commits. Once a filesystem commit starts,
 close cannot retract it: the promise is drained, no closed provider is activated,
-and durable acceptance may remain for restart recovery. Callers must await the
-in-flight refresh without cancelling that wait to know persistence has settled.
+and durable acceptance may remain for restart recovery. A shared refresh timeout can reject before persistence settles: the outcome is then
+unknown, and the provider reservation remains held until the actual commit ends.
+Late matching acceptance advances the replay floor but cannot activate or cache that
+delivery. Reconcile by loading durable state after the actual operation settles;
+do not overlap or automatically retry writes. Neither a rejected deadline nor a
+cancelled caller wait proves persistence settled.
 A cancelled `refresh({ signal })` wait is not a persistence acknowledgment or rollback.
 Old active evaluations retain
 exact old audit origin until activation; callback evaluations see the new origin.

@@ -5,6 +5,7 @@ import { parseJsonFlagSnapshot } from "../flags/parse-json-snapshot.js";
 import { parseYamlFlagSnapshot } from "../flags/parse-yaml-snapshot.js";
 import type {
   FlagSnapshot,
+  RefreshFailureKind,
   SnapshotRefresher,
   SnapshotRefresherOptions,
   SnapshotRefreshResult,
@@ -16,6 +17,8 @@ import type {
 } from "../public-types.js";
 import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./source-policy.js";
 import { waitForSnapshotOperation } from "./abortable.js";
+import { RefreshOperation } from "./refresh-operation.js";
+import { failureCause, retainFailureCause } from "./failure-cause.js";
 
 interface CommittedSource {
   readonly snapshotHash: string;
@@ -32,6 +35,10 @@ interface DurableRefresh {
 
 export function createSnapshotRefresher(options: SnapshotRefresherOptions): SnapshotRefresher {
   const { provider, source, verifier, store } = options;
+  const timeoutMs = sourceInteger("timeoutMs", options.timeoutMs ?? 30_000, 1, 2_147_483_647);
+  if (options.onFailure !== undefined && typeof options.onFailure !== "function")
+    throw new TypeError("onFailure must be a function.");
+  const onFailure = options.onFailure?.bind(options);
   const prepare = store === undefined ? undefined : provider.prepareSnapshot?.bind(provider);
   if (store !== undefined && (verifier === undefined || prepare === undefined))
     throw new TypeError("Durable refresh requires a signed verifier and transactional provider.");
@@ -54,7 +61,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       : undefined;
   let committed: CommittedSource | undefined;
   let closed = false;
-  let active: AbortController | undefined;
+  let active: RefreshOperation | undefined;
   let inFlight: Promise<SnapshotRefreshResult> | undefined;
   const initial = provider.getStatus().provenance;
   const recovered =
@@ -78,45 +85,86 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
   )
     throw new TypeError("Recovered provenance conflicts with initial provider origin.");
 
+  function diagnoseFailure(
+    operation: RefreshOperation,
+    kind: RefreshFailureKind,
+    cause: unknown
+  ): void {
+    try {
+      void Promise.resolve(
+        onFailure?.({
+          kind,
+          cause: failureCause(cause),
+          timedOut: operation.timeoutError !== undefined
+        })
+      ).catch(() => {});
+    } catch {
+      /* Operator diagnostics must not alter refresh results. */
+    }
+  }
+
+  function reportFailure(
+    operation: RefreshOperation,
+    kind: RefreshFailureKind,
+    cause: unknown
+  ): void {
+    if (operation.failureReported) {
+      if (operation.timeoutError !== undefined && failureCause(cause) !== operation.timeoutError)
+        diagnoseFailure(operation, kind, cause);
+      return;
+    }
+    operation.failureReported = true;
+    provider.reportRefreshFailure(kind);
+    diagnoseFailure(operation, kind, cause);
+  }
+
   async function persistAndActivate(
+    operation: RefreshOperation,
     delivery: DurableRefresh,
     verified: VerifiedFlagSnapshot,
     signedBytes: Uint8Array,
     expectedHash: string
   ): Promise<void> {
+    operation.assertNotTimedOut();
     const transaction = delivery.prepare(verified.snapshot, verified.provenance);
     try {
       if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
       try {
-        const acknowledged = await delivery.store.commit(Uint8Array.from(signedBytes));
+        const acknowledged = await operation.persist(() =>
+          delivery.store.commit(Uint8Array.from(signedBytes))
+        );
         if (!matchesVerifiedOrigin(acknowledged, verified, expectedHash)) throw new Error();
-      } catch {
-        provider.reportRefreshFailure("persist");
-        throw unavailable("Snapshot persistence is unavailable.");
+      } catch (cause) {
+        reportFailure(operation, "persist", cause);
+        throw unavailable("Snapshot persistence is unavailable.", cause);
       }
       // Acceptance is durable even if close or final freshness checks prevent activation.
       replayFloor = verified.provenance;
+      operation.assertNotTimedOut();
       if (closed || provider.getStatus().closed)
         throw unavailable("Snapshot refresher is closed after persistence.");
       try {
         const fresh = delivery.verifier.verify(signedBytes, replayFloor);
         if (!matchesVerifiedOrigin(fresh, verified, expectedHash)) throw new Error();
-      } catch {
-        provider.reportRefreshFailure("signature");
-        throw new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed.");
+      } catch (cause) {
+        reportFailure(operation, "signature", cause);
+        throw retainFailureCause(
+          new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed."),
+          cause
+        );
       }
       try {
         transaction.commit();
-      } catch {
-        provider.reportRefreshFailure("load");
-        throw unavailable("Snapshot application failed after persistence.");
+      } catch (cause) {
+        reportFailure(operation, "load", cause);
+        throw unavailable("Snapshot application failed after persistence.", cause);
       }
     } finally {
       transaction.cancel();
     }
   }
 
-  async function performRefresh(): Promise<SnapshotRefreshResult> {
+  async function performRefresh(operation: RefreshOperation): Promise<SnapshotRefreshResult> {
     if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
     const beforeStatus = provider.getStatus();
     const before = beforeStatus.snapshotHash;
@@ -125,52 +173,49 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       committed?.snapshotHash === before && committed.provenance?.artifactHash === beforeArtifact
         ? committed.etag
         : undefined;
-    active = new AbortController();
-    const signal = active.signal;
+    operation.assertNotTimedOut();
+    const signal = operation.signal;
     try {
       if (store !== undefined) {
         try {
-          const recovery = await waitForSnapshotOperation(
-            () => store.load(),
-            signal,
-            "Snapshot refresher is closed."
-          );
+          const recovery = await operation.read(() => store.load({ signal }));
           replayFloor = mergeFloor(replayFloor, recovery?.floor);
-        } catch {
-          if (closed) throw unavailable("Snapshot refresher is closed.");
-          provider.reportRefreshFailure("persist");
-          throw unavailable("Snapshot persistence is unavailable.");
+        } catch (cause) {
+          if (closed) throw unavailable("Snapshot refresher is closed.", cause);
+          operation.assertNotTimedOut();
+          reportFailure(operation, "persist", cause);
+          throw unavailable("Snapshot persistence is unavailable.", cause);
         }
         if (closed || provider.getStatus().closed)
           throw unavailable("Snapshot refresher is closed.");
         const loaded = provider.getStatus();
         if (loaded.snapshotHash !== before || loaded.provenance?.artifactHash !== beforeArtifact) {
-          provider.reportRefreshFailure("load");
+          reportFailure(operation, "load", new Error("Snapshot changed during recovery."));
           throw unavailable("Snapshot changed during recovery; retry explicitly.");
         }
       }
       let response: SnapshotSourceResponse;
       try {
-        response = await waitForSnapshotOperation(
-          () =>
-            source.fetch({
-              signal,
-              ...(conditionalEtag !== undefined ? { etag: conditionalEtag } : {})
-            }),
-          signal,
-          "Snapshot refresher is closed."
+        operation.stage = "fetch";
+        response = await operation.read(() =>
+          source.fetch({
+            signal,
+            ...(conditionalEtag !== undefined ? { etag: conditionalEtag } : {})
+          })
         );
-      } catch {
-        if (closed) throw unavailable("Snapshot refresher is closed.");
-        if (!closed && !provider.getStatus().closed) provider.reportRefreshFailure("fetch");
-        throw unavailable("Snapshot source could not be refreshed.");
+      } catch (cause) {
+        if (closed) throw unavailable("Snapshot refresher is closed.", cause);
+        operation.assertNotTimedOut();
+        if (!closed && !provider.getStatus().closed) reportFailure(operation, "fetch", cause);
+        throw unavailable("Snapshot source could not be refreshed.", cause);
       }
       if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
       const current = provider.getStatus();
       if (current.snapshotHash !== before || current.provenance?.artifactHash !== beforeArtifact) {
-        provider.reportRefreshFailure("load");
+        reportFailure(operation, "load", new Error("Snapshot changed during refresh."));
         throw unavailable("Snapshot changed during refresh; retry explicitly.");
       }
+      operation.stage = "validation";
       let artifact: Uint8Array | undefined;
       try {
         artifact = captureSourceArtifact(
@@ -179,39 +224,50 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
           conditionalEtag,
           verifier !== undefined
         );
-      } catch {
-        provider.reportRefreshFailure("validation");
-        throw new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid.");
+      } catch (cause) {
+        reportFailure(operation, "validation", cause);
+        throw retainFailureCause(
+          new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid."),
+          cause
+        );
       }
       let snapshot: FlagSnapshot;
       let verified: VerifiedFlagSnapshot | undefined;
       if (verifier !== undefined) {
+        operation.stage = "signature";
         try {
           const signedBytes = artifact ?? committed?.artifact;
           if (signedBytes === undefined) throw new Error("No signed artifact.");
           replayFloor = mergeFloor(replayFloor, beforeStatus.provenance);
           verified = verifier.verify(signedBytes, replayFloor);
           snapshot = verified.snapshot;
-        } catch {
-          provider.reportRefreshFailure("signature");
-          throw new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed.");
+        } catch (cause) {
+          reportFailure(operation, "signature", cause);
+          throw retainFailureCause(
+            new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed."),
+            cause
+          );
         }
       } else {
         try {
           snapshot =
             artifact === undefined ? provider.getSnapshot() : parseSourceSnapshot(artifact, format);
-        } catch {
-          provider.reportRefreshFailure("validation");
-          throw new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid.");
+        } catch (cause) {
+          reportFailure(operation, "validation", cause);
+          throw retainFailureCause(
+            new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid."),
+            cause
+          );
         }
       }
       // Provider validation failures are already counted there. Commit the validator
       // only after application succeeds; failures leave both snapshot and ETag intact.
       const expectedHash = createSnapshotHash(snapshot);
+      operation.stage = "load";
       if (durable !== undefined && verified !== undefined) {
         const signedBytes = artifact ?? committed?.artifact;
         if (signedBytes === undefined) throw unavailable("No signed artifact is available.");
-        await persistAndActivate(durable, verified, signedBytes, expectedHash);
+        await persistAndActivate(operation, durable, verified, signedBytes, expectedHash);
       } else {
         provider.updateSnapshot(snapshot, verified?.provenance);
       }
@@ -221,7 +277,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         snapshotHash !== expectedHash ||
         applied.provenance?.artifactHash !== verified?.provenance.artifactHash
       ) {
-        provider.reportRefreshFailure("load");
+        reportFailure(operation, "load", new Error("Snapshot changed during application."));
         throw unavailable("Snapshot changed during application; retry explicitly.");
       }
       if (verified !== undefined) replayFloor = verified.provenance;
@@ -236,8 +292,13 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         snapshotHash,
         ...(committed.provenance !== undefined ? { provenance: committed.provenance } : {})
       };
-    } finally {
-      active = undefined;
+    } catch (cause) {
+      if (!closed && !provider.getStatus().closed && !operation.failureReported) {
+        operation.failureReported = true;
+        // Native provider preparation/application already counts its own failures.
+        diagnoseFailure(operation, operation.stage, cause);
+      }
+      throw cause;
     }
   }
 
@@ -254,13 +315,23 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         return Promise.reject(unavailable("Snapshot refresher is closed."));
       const signal = request.signal;
       if (signal?.aborted)
-        return Promise.reject(unavailable("Snapshot refresh wait was cancelled."));
+        return Promise.reject(unavailable("Snapshot refresh wait was cancelled.", signal.reason));
       if (inFlight === undefined) {
-        inFlight = Promise.resolve()
-          .then(performRefresh)
-          .finally(() => {
-            inFlight = undefined;
-          });
+        const operation = new RefreshOperation(
+          timeoutMs,
+          store === undefined ? "fetch" : "persist"
+        );
+        active = operation;
+        inFlight = operation.run(
+          () => performRefresh(operation),
+          (error) => reportFailure(operation, operation.stage, error),
+          () => {
+            if (active === operation) {
+              active = undefined;
+              inFlight = undefined;
+            }
+          }
+        );
       }
       const shared = inFlight;
       return signal === undefined
@@ -305,8 +376,8 @@ function matchesVerifiedOrigin(
   );
 }
 
-function unavailable(message: string): LocalProviderError {
-  return new LocalProviderError("PROVIDER_NOT_READY", message);
+function unavailable(message: string, cause?: unknown): LocalProviderError {
+  return retainFailureCause(new LocalProviderError("PROVIDER_NOT_READY", message), cause);
 }
 
 function mergeFloor(

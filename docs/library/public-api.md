@@ -82,6 +82,12 @@ Caller-triggered delivery adds `createHttpsSnapshotSource` and
 see `https-snapshots.md`. Provider resolution remains local. Optional
 `SnapshotRefresher.refresh({ signal })` cancels only that caller's wait; ordinary
 `refresh()` calls still share one promise and operation.
+`SnapshotRefresherOptions.timeoutMs` bounds shared waiting (30,000 ms default), while
+ownership remains held until actual I/O settles. Optional `onFailure` provides
+sensitive original causes only to trusted operator callbacks; ordinary errors stay
+sanitized. `SignedSnapshotStore.load({ signal }?)` accepts optional read cancellation;
+existing no-argument stores remain compatible. See the delivery/recovery contracts
+for unknown commit outcomes and explicit reconciliation.
 Optional signed delivery adds `signFlagSnapshot`, `createSnapshotVerifier`,
 `SignFlagSnapshotOptions`, `SnapshotVerificationOptions`, `SignedSnapshotMetadata`,
 `VerifiedFlagSnapshot` and `SnapshotVerifier`; see `signed-snapshots.md`.

@@ -1,3 +1,4 @@
+import { retainFailureCause } from "./failure-cause.js";
 import { Readable } from "node:stream";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import type {
@@ -26,9 +27,11 @@ const TRANSIENT_CODES = new Set([
 class S3ReadError extends LocalProviderError {
   constructor(
     message: string,
-    readonly retryable = false
+    readonly retryable = false,
+    cause?: unknown
   ) {
     super("PROVIDER_NOT_READY", message);
+    retainFailureCause(this, cause);
   }
 }
 
@@ -62,7 +65,7 @@ export function createS3SnapshotSource(options: S3SnapshotSourceOptions): Snapsh
         signal,
         read: (timeoutMs) => readAttempt(getObject, bucket, key, maxBytes, timeoutMs, etag, signal),
         retryable: (error) => error instanceof S3ReadError && error.retryable,
-        cancelled,
+        cancelled: () => cancelled(signal?.reason),
         timedOut: () => new S3ReadError("S3 snapshot request timed out.", true)
       });
     }
@@ -96,9 +99,9 @@ async function readAttempt(
     rejectAbort = reject;
   });
   const onAbort = () => {
-    abort.abort();
+    abort.abort(signal?.reason);
     close();
-    rejectAbort(cancelled());
+    rejectAbort(cancelled(signal?.reason));
   };
   signal?.addEventListener("abort", onAbort, { once: true });
   const timer = setTimeout(() => {
@@ -176,18 +179,19 @@ async function readAttempt(
     };
   };
   try {
-    if (signal?.aborted) throw cancelled();
+    if (signal?.aborted) throw cancelled(signal.reason);
     return await Promise.race([operation(), interrupted]);
   } catch (error) {
-    if (signal?.aborted) throw cancelled();
-    if (timedOut) throw new S3ReadError("S3 snapshot request timed out.", true);
+    if (signal?.aborted) throw cancelled(signal.reason);
+    if (timedOut) throw new S3ReadError("S3 snapshot request timed out.", true, error);
     if (error instanceof S3ReadError) throw error;
     const details = error as { code?: string; $metadata?: { httpStatusCode?: number } } | null;
     const status = details?.$metadata?.httpStatusCode;
     if (status === 304) return notModified(etag);
     throw new S3ReadError(
       "S3 snapshot request failed.",
-      RETRYABLE_STATUS.has(status ?? 0) || TRANSIENT_CODES.has(details?.code ?? "")
+      RETRYABLE_STATUS.has(status ?? 0) || TRANSIENT_CODES.has(details?.code ?? ""),
+      error
     );
   } finally {
     finished = true;
@@ -218,6 +222,6 @@ function notModified(etag?: string): SnapshotSourceResponse {
   if (etag === undefined) throw new S3ReadError("Unexpected S3 not-modified response.");
   return { status: "notModified" };
 }
-function cancelled(): S3ReadError {
-  return new S3ReadError("S3 snapshot request was cancelled.");
+function cancelled(cause?: unknown): S3ReadError {
+  return new S3ReadError("S3 snapshot request was cancelled.", false, cause);
 }

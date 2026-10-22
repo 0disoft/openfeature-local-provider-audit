@@ -364,6 +364,12 @@ interface SnapshotRefresherOptions {
   readonly verifier?: SnapshotVerifier;
   readonly previous?: SignedSnapshotMetadata;
   readonly store?: SignedSnapshotStore;
+  readonly timeoutMs?: number;
+  readonly onFailure?: (failure: {
+    readonly kind: RefreshFailureKind;
+    readonly cause: unknown;
+    readonly timedOut: boolean;
+  }) => void;
 }
 interface SignFlagSnapshotOptions {
   readonly snapshot: FlagSnapshot;
@@ -413,7 +419,7 @@ interface SnapshotRecovery {
   readonly history: readonly VerifiedFlagSnapshot[];
 }
 interface SignedSnapshotStore {
-  load(): Promise<SnapshotRecovery | undefined>;
+  load(request?: { readonly signal?: AbortSignal }): Promise<SnapshotRecovery | undefined>;
   commit(content: Uint8Array): Promise<VerifiedFlagSnapshot>;
 }
 interface SnapshotRefreshResult {

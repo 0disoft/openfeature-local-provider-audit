@@ -55,6 +55,12 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
   hashes and exception messages are excluded. Caller-owned telemetry resource
   metadata and exporters remain outside this projection.
 
+Optional snapshot refresher `onFailure` is an explicit trusted operator boundary:
+it receives original causes, which may include source URLs, SDK response details,
+filesystem paths or credentials. Redact before forwarding to logging/telemetry.
+Causes are retained privately for this callback, never attached to public package
+errors, operational status or audit records. No automatic logging is added.
+
 ## Review Blockers
 
 - Examples log raw context values.

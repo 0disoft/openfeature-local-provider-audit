@@ -1,3 +1,4 @@
+import { retainFailureCause } from "./failure-cause.js";
 import { request as httpsRequest } from "node:https";
 import type { IncomingMessage } from "node:http";
 import { LocalProviderError } from "../errors/local-provider-error.js";
@@ -28,9 +29,11 @@ const TRANSIENT_CODES = new Set([
 class HttpsReadError extends LocalProviderError {
   constructor(
     message: string,
-    readonly retryable = false
+    readonly retryable = false,
+    cause?: unknown
   ) {
     super("PROVIDER_NOT_READY", message);
+    retainFailureCause(this, cause);
   }
 }
 
@@ -70,7 +73,7 @@ export function createHttpsSnapshotSource(options: HttpsSnapshotSourceOptions): 
         signal,
         read: (timeoutMs) => readAttempt(url, ca, maxBytes, timeoutMs, etag, signal),
         retryable: (error) => error instanceof HttpsReadError && error.retryable,
-        cancelled,
+        cancelled: () => cancelled(signal?.reason),
         timedOut: () => new HttpsReadError("HTTPS snapshot request timed out.", true)
       });
     }
@@ -87,14 +90,14 @@ async function readAttempt(
 ): Promise<SnapshotSourceResponse> {
   const abort = new AbortController();
   let timedOut = false;
-  const onAbort = () => abort.abort();
+  const onAbort = () => abort.abort(signal?.reason);
   signal?.addEventListener("abort", onAbort, { once: true });
   const timer = setTimeout(() => {
     timedOut = true;
     abort.abort();
   }, timeoutMs);
   try {
-    if (signal?.aborted) throw cancelled();
+    if (signal?.aborted) throw cancelled(signal.reason);
     return await new Promise<SnapshotSourceResponse>((resolve, reject) => {
       const request = httpsRequest(
         url,
@@ -118,13 +121,14 @@ async function readAttempt(
       request.end();
     });
   } catch (error) {
-    if (signal?.aborted) throw cancelled();
-    if (timedOut) throw new HttpsReadError("HTTPS snapshot request timed out.", true);
+    if (signal?.aborted) throw cancelled(signal.reason);
+    if (timedOut) throw new HttpsReadError("HTTPS snapshot request timed out.", true, error);
     if (error instanceof HttpsReadError) throw error;
     const code = (error as { code?: string } | null)?.code;
     throw new HttpsReadError(
       "HTTPS snapshot request failed.",
-      code !== undefined && TRANSIENT_CODES.has(code)
+      code !== undefined && TRANSIENT_CODES.has(code),
+      error
     );
   } finally {
     clearTimeout(timer);
@@ -177,6 +181,6 @@ async function readResponse(
   }
 }
 
-function cancelled(): HttpsReadError {
-  return new HttpsReadError("HTTPS snapshot request was cancelled.");
+function cancelled(cause?: unknown): HttpsReadError {
+  return new HttpsReadError("HTTPS snapshot request was cancelled.", false, cause);
 }

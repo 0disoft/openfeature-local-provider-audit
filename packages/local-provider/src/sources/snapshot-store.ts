@@ -1,3 +1,4 @@
+import { retainFailureCause } from "./failure-cause.js";
 import { constants, type Stats } from "node:fs";
 import { lstat, mkdir, open, rename, unlink, type FileHandle } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -150,12 +151,14 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
   }
 
   return {
-    async load() {
+    async load(request = {}) {
       try {
+        if (request.signal?.aborted) throw unavailable(request.signal.reason);
         const journal = await readJournal();
+        if (request.signal?.aborted) throw unavailable(request.signal.reason);
         return journal === undefined ? undefined : authenticate(journal);
-      } catch {
-        throw unavailable();
+      } catch (cause) {
+        throw unavailable(cause);
       }
     },
     async commit(content) {
@@ -164,8 +167,8 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
       try {
         if (content.byteLength > maxBytes) throw unavailable();
         bytes = Uint8Array.from(content);
-      } catch {
-        throw unavailable();
+      } catch (cause) {
+        throw unavailable(cause);
       }
       let lock: FileHandle | undefined;
       let lockStats: Stats | undefined;
@@ -188,8 +191,8 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
         if (Buffer.byteLength(serialize(journal)) > maxBytes) throw unavailable();
         await writeJournal(journal);
         return verified;
-      } catch {
-        throw unavailable();
+      } catch (cause) {
+        throw unavailable(cause);
       } finally {
         // No stale takeover: only the owner of this acquired marker may release it.
         if (lock !== undefined) await releaseLock(lock, lockStats, lockPath);
@@ -215,8 +218,11 @@ function assertRegular(stats: Stats): void {
 function isMissing(error: unknown): boolean {
   return error !== null && typeof error === "object" && "code" in error && error.code === "ENOENT";
 }
-function unavailable(): LocalProviderError {
-  return new LocalProviderError("PROVIDER_NOT_READY", "Snapshot recovery storage is unavailable.");
+function unavailable(cause?: unknown): LocalProviderError {
+  return retainFailureCause(
+    new LocalProviderError("PROVIDER_NOT_READY", "Snapshot recovery storage is unavailable."),
+    cause
+  );
 }
 
 async function releaseLock(

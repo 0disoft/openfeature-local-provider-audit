@@ -1,4 +1,5 @@
 import { LocalProviderError } from "../errors/local-provider-error.js";
+import { retainFailureCause } from "./failure-cause.js";
 
 // Stop waiting without letting an abort-ignoring operation resume its caller.
 // Both late outcomes remain observed; the operation still owns its I/O cleanup.
@@ -11,7 +12,9 @@ export function waitForSnapshotOperation<T>(
     const cleanup = () => signal.removeEventListener("abort", onAbort);
     const onAbort = () => {
       cleanup();
-      reject(new LocalProviderError("PROVIDER_NOT_READY", message));
+      reject(
+        retainFailureCause(new LocalProviderError("PROVIDER_NOT_READY", message), signal.reason)
+      );
     };
     if (signal.aborted) {
       onAbort();

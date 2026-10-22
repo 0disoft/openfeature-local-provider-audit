@@ -131,3 +131,10 @@ not custom client work that ignores cancellation. Configure SDK maxAttempts: 1.
 ETags are conditional validators, not integrity evidence; pinned verification and
 durable sequence floors remain necessary across origins/restarts. SDK response
 content, bucket/key, causes and credentials are excluded from adapter errors.
+
+The optional refresher `onFailure` diagnostic callback deliberately receives raw
+causes inside the trusted application boundary. Its destination and redaction policy
+are operator-owned. Adapter/public errors, status and audit events stay sanitized;
+callback exceptions and rejected promises do not replace refresh results. Shared
+deadlines bound waiting, not cancellation-ignoring custom I/O; ownership and durable
+reservations remain held until actual settlement to prevent overlapping writes.
