@@ -9,11 +9,26 @@ import type {
   SnapshotRefresherOptions,
   SnapshotRefreshResult,
   SnapshotSourceResponse,
+  SignedSnapshotStore,
   SignedSnapshotMetadata,
+  SnapshotVerifier,
   VerifiedFlagSnapshot
 } from "../public-types.js";
 import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./https-source.js";
 import { waitForSnapshotOperation } from "./abortable.js";
+
+interface CommittedSource {
+  readonly snapshotHash: string;
+  readonly etag: string | undefined;
+  readonly provenance: SignedSnapshotMetadata | undefined;
+  readonly artifact: Uint8Array | undefined;
+}
+
+interface DurableRefresh {
+  readonly store: SignedSnapshotStore;
+  readonly verifier: SnapshotVerifier;
+  readonly prepare: NonNullable<SnapshotRefresherOptions["provider"]["prepareSnapshot"]>;
+}
 
 export function createSnapshotRefresher(options: SnapshotRefresherOptions): SnapshotRefresher {
   const { provider, source, verifier, store } = options;
@@ -33,8 +48,11 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
     1,
     100 * 1024 * 1024
   );
-  let etag: string | undefined;
-  let committedHash: string | undefined;
+  const durable =
+    store !== undefined && verifier !== undefined && prepare !== undefined
+      ? { store, verifier, prepare }
+      : undefined;
+  let committed: CommittedSource | undefined;
   let closed = false;
   let active: AbortController | undefined;
   let inFlight: Promise<SnapshotRefreshResult> | undefined;
@@ -59,8 +77,44 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       (recovered.sequence === initial.sequence && recovered.artifactHash !== initial.artifactHash))
   )
     throw new TypeError("Recovered provenance conflicts with initial provider origin.");
-  let provenance: SignedSnapshotMetadata | undefined;
-  let committedArtifact: Uint8Array | undefined;
+
+  async function persistAndActivate(
+    delivery: DurableRefresh,
+    verified: VerifiedFlagSnapshot,
+    signedBytes: Uint8Array,
+    expectedHash: string
+  ): Promise<void> {
+    const transaction = delivery.prepare(verified.snapshot, verified.provenance);
+    try {
+      if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
+      try {
+        const acknowledged = await delivery.store.commit(Uint8Array.from(signedBytes));
+        if (!matchesVerifiedOrigin(acknowledged, verified, expectedHash)) throw new Error();
+      } catch {
+        provider.reportRefreshFailure("persist");
+        throw unavailable("Snapshot persistence is unavailable.");
+      }
+      // Acceptance is durable even if close or final freshness checks prevent activation.
+      replayFloor = verified.provenance;
+      if (closed || provider.getStatus().closed)
+        throw unavailable("Snapshot refresher is closed after persistence.");
+      try {
+        const fresh = delivery.verifier.verify(signedBytes, replayFloor);
+        if (!matchesVerifiedOrigin(fresh, verified, expectedHash)) throw new Error();
+      } catch {
+        provider.reportRefreshFailure("signature");
+        throw new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed.");
+      }
+      try {
+        transaction.commit();
+      } catch {
+        provider.reportRefreshFailure("load");
+        throw unavailable("Snapshot application failed after persistence.");
+      }
+    } finally {
+      transaction.cancel();
+    }
+  }
 
   async function performRefresh(): Promise<SnapshotRefreshResult> {
     if (closed || provider.getStatus().closed) throw unavailable("Snapshot refresher is closed.");
@@ -68,7 +122,9 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
     const before = beforeStatus.snapshotHash;
     const beforeArtifact = beforeStatus.provenance?.artifactHash;
     const conditionalEtag =
-      committedHash === before && provenance?.artifactHash === beforeArtifact ? etag : undefined;
+      committed?.snapshotHash === before && committed.provenance?.artifactHash === beforeArtifact
+        ? committed.etag
+        : undefined;
     active = new AbortController();
     const signal = active.signal;
     try {
@@ -117,14 +173,12 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       }
       let artifact: Uint8Array | undefined;
       try {
-        if (response.status === "notModified") {
-          if (conditionalEtag === undefined) throw new Error("Unexpected not-modified response.");
-        } else if (response.status === "content") {
-          if (response.content.byteLength > maxBytes) throw new Error("Snapshot exceeds maxBytes.");
-          artifact = verifier === undefined ? response.content : Uint8Array.from(response.content);
-        } else {
-          throw new Error("Unknown source response.");
-        }
+        artifact = captureSourceArtifact(
+          response,
+          maxBytes,
+          conditionalEtag,
+          verifier !== undefined
+        );
       } catch {
         provider.reportRefreshFailure("validation");
         throw new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid.");
@@ -133,7 +187,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       let verified: VerifiedFlagSnapshot | undefined;
       if (verifier !== undefined) {
         try {
-          const signedBytes = artifact ?? committedArtifact;
+          const signedBytes = artifact ?? committed?.artifact;
           if (signedBytes === undefined) throw new Error("No signed artifact.");
           replayFloor = mergeFloor(replayFloor, beforeStatus.provenance);
           verified = verifier.verify(signedBytes, replayFloor);
@@ -144,12 +198,8 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         }
       } else {
         try {
-          if (artifact === undefined) snapshot = provider.getSnapshot();
-          else {
-            const text = new TextDecoder("utf-8", { fatal: true }).decode(artifact);
-            snapshot =
-              format === "json" ? parseJsonFlagSnapshot(text) : parseYamlFlagSnapshot(text);
-          }
+          snapshot =
+            artifact === undefined ? provider.getSnapshot() : parseSourceSnapshot(artifact, format);
         } catch {
           provider.reportRefreshFailure("validation");
           throw new LocalProviderError("SCHEMA_ERROR", "Snapshot source content is invalid.");
@@ -158,53 +208,10 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       // Provider validation failures are already counted there. Commit the validator
       // only after application succeeds; failures leave both snapshot and ETag intact.
       const expectedHash = createSnapshotHash(snapshot);
-      if (
-        store !== undefined &&
-        verified !== undefined &&
-        prepare !== undefined &&
-        verifier !== undefined
-      ) {
-        const signedBytes = artifact ?? committedArtifact;
+      if (durable !== undefined && verified !== undefined) {
+        const signedBytes = artifact ?? committed?.artifact;
         if (signedBytes === undefined) throw unavailable("No signed artifact is available.");
-        const transaction = prepare(snapshot, verified.provenance);
-        try {
-          if (closed || provider.getStatus().closed)
-            throw unavailable("Snapshot refresher is closed.");
-          try {
-            const acknowledged = await store.commit(Uint8Array.from(signedBytes));
-            if (
-              acknowledged.provenance.artifactHash !== verified.provenance.artifactHash ||
-              acknowledged.provenance.snapshotHash !== expectedHash
-            )
-              throw new Error();
-          } catch {
-            provider.reportRefreshFailure("persist");
-            throw unavailable("Snapshot persistence is unavailable.");
-          }
-          // Durable acceptance survives close, later callbacks and ambiguous application.
-          replayFloor = verified.provenance;
-          if (closed || provider.getStatus().closed)
-            throw unavailable("Snapshot refresher is closed after persistence.");
-          try {
-            const fresh = verifier.verify(signedBytes, replayFloor);
-            if (
-              fresh.provenance.artifactHash !== verified.provenance.artifactHash ||
-              fresh.provenance.snapshotHash !== expectedHash
-            )
-              throw new Error();
-          } catch {
-            provider.reportRefreshFailure("signature");
-            throw new LocalProviderError("SCHEMA_ERROR", "Signed snapshot verification failed.");
-          }
-          try {
-            transaction.commit();
-          } catch {
-            provider.reportRefreshFailure("load");
-            throw unavailable("Snapshot application failed after persistence.");
-          }
-        } finally {
-          transaction.cancel();
-        }
+        await persistAndActivate(durable, verified, signedBytes, expectedHash);
       } else {
         provider.updateSnapshot(snapshot, verified?.provenance);
       }
@@ -217,17 +224,17 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         provider.reportRefreshFailure("load");
         throw unavailable("Snapshot changed during application; retry explicitly.");
       }
-      committedHash = snapshotHash;
-      if (verified !== undefined) {
-        provenance = verified.provenance;
-        replayFloor = verified.provenance;
-        if (artifact !== undefined) committedArtifact = artifact;
-      }
-      if (response.status === "content") etag = response.etag;
+      if (verified !== undefined) replayFloor = verified.provenance;
+      committed = {
+        snapshotHash,
+        etag: response.status === "content" ? response.etag : committed?.etag,
+        provenance: verified?.provenance,
+        artifact: verified === undefined ? undefined : (artifact ?? committed?.artifact)
+      };
       return {
         status: snapshotHash === before ? "unchanged" : "updated",
         snapshotHash,
-        ...(provenance !== undefined ? { provenance } : {})
+        ...(committed.provenance !== undefined ? { provenance: committed.provenance } : {})
       };
     } finally {
       active = undefined;
@@ -237,9 +244,9 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
   return {
     getProvenance() {
       const status = provider.getStatus();
-      return status.snapshotHash === committedHash &&
-        status.provenance?.artifactHash === provenance?.artifactHash
-        ? provenance
+      return status.snapshotHash === committed?.snapshotHash &&
+        status.provenance?.artifactHash === committed.provenance?.artifactHash
+        ? committed.provenance
         : undefined;
     },
     refresh(request = {}) {
@@ -265,6 +272,37 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       active?.abort();
     }
   };
+}
+
+function captureSourceArtifact(
+  response: SnapshotSourceResponse,
+  maxBytes: number,
+  conditionalEtag: string | undefined,
+  signed: boolean
+): Uint8Array | undefined {
+  if (response.status === "notModified") {
+    if (conditionalEtag === undefined) throw new Error("Unexpected not-modified response.");
+    return undefined;
+  }
+  if (response.status !== "content") throw new Error("Unknown source response.");
+  if (response.content.byteLength > maxBytes) throw new Error("Snapshot exceeds maxBytes.");
+  return signed ? Uint8Array.from(response.content) : response.content;
+}
+
+function parseSourceSnapshot(artifact: Uint8Array, format: "json" | "yaml"): FlagSnapshot {
+  const text = new TextDecoder("utf-8", { fatal: true }).decode(artifact);
+  return format === "json" ? parseJsonFlagSnapshot(text) : parseYamlFlagSnapshot(text);
+}
+
+function matchesVerifiedOrigin(
+  actual: VerifiedFlagSnapshot,
+  expected: VerifiedFlagSnapshot,
+  snapshotHash: string
+): boolean {
+  return (
+    actual.provenance.artifactHash === expected.provenance.artifactHash &&
+    actual.provenance.snapshotHash === snapshotHash
+  );
 }
 
 function unavailable(message: string): LocalProviderError {
