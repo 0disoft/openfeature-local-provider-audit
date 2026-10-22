@@ -122,10 +122,15 @@ For unrecoverable partial data, stop writers, preserve the directory and verify 
 closed copy through the last externally trusted checkpoint. Start a new dedicated
 empty directory with that trusted checkpoint as `initialCheckpoint`; retain the
 original evidence. Do not silently truncate bytes, delete a manifest or reset to
-genesis. Interrupted retention/temp cleanup may leave unreferenced files: remove
-only confirmed unreferenced owned artifacts after stopping writers. Normal completed
-writes enforce the retained-segment count; crash leftovers are not hidden as retained
-history. Existing-history backup restore still needs independent checkpoints.
+genesis. Retention cleanup uses the committed retained prefix under the same owner
+lock. Recovery and subsequent writes retry deletion of canonical `segment-N.jsonl`
+files whose starting sequence is after the initial checkpoint and at or before that
+prefix. This recovers cleanup interrupted after metadata commit or by an unlink error.
+A persistent deletion error rejects recovery before another append, preventing further
+retention growth. Eligible files must still pass regular-file, owner and single-link
+checks. Unrelated names, temporary files and future-sequence evidence are preserved;
+remove other confirmed unreferenced artifacts only after stopping writers. Existing-
+history backup restore still needs independent checkpoints.
 
 Quiesce writers or make an external consistent copy before exporting files and
 checkpoints, because later rotation can remove files after the lock is released.

@@ -157,8 +157,25 @@ export function createChainedFileAuditSink(
   async function commitSegments(state: Manifest, segments: readonly Segment[]): Promise<Manifest> {
     const next: Manifest = { ...state, segments: segments.slice(-maxSegments) };
     await writeChainMetadata(path, next);
-    for (const old of segments.slice(0, Math.max(0, segments.length - maxSegments))) {
-      const target = join(directory, old.file);
+    await pruneSegments(next);
+    return next;
+  }
+  async function pruneSegments(state: Manifest): Promise<void> {
+    const prefix = state.segments[0]?.start.sequence;
+    if (prefix === undefined || prefix === state.initial.sequence) return;
+    // The committed retained prefix survives crashes and failed unlink calls.
+    // Only this chain's canonical, already-pruned segment namespace is eligible.
+    for (const file of await readdir(directory)) {
+      const match = /^segment-([1-9][0-9]*)\.jsonl$/.exec(file);
+      if (match === null) continue;
+      const sequence = Number(match[1]);
+      if (
+        !Number.isSafeInteger(sequence) ||
+        sequence <= state.initial.sequence ||
+        sequence > prefix
+      )
+        continue;
+      const target = join(directory, file);
       try {
         assertOwnedFile(await lstat(target));
         await unlink(target);
@@ -166,7 +183,6 @@ export function createChainedFileAuditSink(
         if (!missing(error)) throw error;
       }
     }
-    return next;
   }
   function parseLine(bytes: Buffer, previous: AuditChainCheckpoint): AuditChainCheckpoint {
     if (
@@ -243,6 +259,7 @@ export function createChainedFileAuditSink(
         }
       }
     }
+    await pruneSegments(state);
     return state;
   }
   const queued = createQueuedAuditSink(

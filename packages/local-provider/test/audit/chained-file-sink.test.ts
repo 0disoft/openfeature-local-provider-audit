@@ -1,6 +1,15 @@
 import { execFile } from "node:child_process";
 import { generateKeyPairSync } from "node:crypto";
-import { appendFile, mkdtemp, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import {
+  appendFile,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  unlink,
+  writeFile
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -24,7 +33,7 @@ import { staticSnapshot } from "../fixtures.js";
 
 vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof import("node:fs/promises")>();
-  return { ...actual, rename: vi.fn(actual.rename) };
+  return { ...actual, rename: vi.fn(actual.rename), unlink: vi.fn(actual.unlink) };
 });
 let directory: string;
 function event() {
@@ -213,6 +222,55 @@ describe("chained file audit sink", () => {
     await writeFile(join(directory, "segment-4.jsonl"), `${JSON.stringify(orphan)}\n`);
     await sink().write(event());
     expect((await sink().getCheckpoint()).head.sequence).toBe(5);
+  });
+
+  it("retries failed retention before accepting another append", async () => {
+    const target = sink({ maxSegmentBytes: 1, maxSegments: 1 });
+    await target.write(event());
+    const obsolete = join(directory, "segment-1.jsonl");
+    const actual = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+    let failing = true;
+    vi.mocked(unlink).mockImplementation(async (path) => {
+      if (path === obsolete && failing) throw new Error("transient retention error");
+      return actual.unlink(path);
+    });
+    await expect(target.write(event())).rejects.toThrow("Chained audit storage is unavailable");
+    await expect(target.flush?.()).rejects.toThrow();
+    await expect(target.write(event())).rejects.toThrow();
+    await expect(target.flush?.()).rejects.toThrow();
+    const committed = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
+    expect(committed.segments[0].head.sequence).toBe(2);
+    expect(await readdir(directory)).toContain("segment-1.jsonl");
+    failing = false;
+    const restarted = sink({ maxSegmentBytes: 1, maxSegments: 1 });
+    const checkpoint = await restarted.getCheckpoint();
+    expect(checkpoint.head.sequence).toBe(2);
+    expect(await readdir(directory)).not.toContain("segment-1.jsonl");
+    await restarted.write(event());
+    expect((await restarted.getCheckpoint()).head.sequence).toBe(3);
+  });
+
+  it("cleans interrupted retention while preserving unrelated and future files", async () => {
+    const target = sink({ maxSegmentBytes: 1, maxSegments: 1 });
+    await target.write(event());
+    const obsolete = await readFile(join(directory, "segment-1.jsonl"));
+    await target.write(event());
+    // Model a crash after publishing the retained manifest but before unlink.
+    await writeFile(join(directory, "segment-1.jsonl"), obsolete);
+    const preserved = ["notes.txt", "segment-01.jsonl", "segment-99.jsonl", ".chain-evidence.tmp"];
+    for (const file of preserved) await writeFile(join(directory, file), "preserve");
+    const checkpoint = await sink().getCheckpoint();
+    expect(checkpoint.head.sequence).toBe(2);
+    expect(checkpoint.files).toEqual(["segment-2.jsonl"]);
+    expect((await readdir(directory)).sort()).toEqual(
+      ["manifest.json", "segment-2.jsonl", ...preserved].sort()
+    );
+    expect(
+      verifyAuditChain(await records(checkpoint.files), {
+        start: checkpoint.start,
+        expectedHead: checkpoint.head
+      }).records
+    ).toBe(1);
   });
 
   it("recovers a complete append after manifest replacement failed, preserving ambiguity and sequence", async () => {
