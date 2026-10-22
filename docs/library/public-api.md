@@ -79,7 +79,9 @@ Optional metrics add `createOpenTelemetryMetrics`, `OpenTelemetryMeter`,
 `LocalProviderOptions.metrics`; see `opentelemetry-metrics.md`.
 Caller-triggered delivery adds `createHttpsSnapshotSource` and
 `createSnapshotRefresher`, with the seven source/refresher contract types below;
-see `https-snapshots.md`. Provider resolution remains local.
+see `https-snapshots.md`. Provider resolution remains local. Optional
+`SnapshotRefresher.refresh({ signal })` cancels only that caller's wait; ordinary
+`refresh()` calls still share one promise and operation.
 Optional signed delivery adds `signFlagSnapshot`, `createSnapshotVerifier`,
 `SignFlagSnapshotOptions`, `SnapshotVerificationOptions`, `SignedSnapshotMetadata`,
 `VerifiedFlagSnapshot` and `SnapshotVerifier`; see `signed-snapshots.md`.

@@ -101,7 +101,9 @@ ETag/source provenance, but the accepted durable floor stays advanced. If close
 occurs before persistence starts, nothing commits. Once a filesystem commit starts,
 close cannot retract it: the promise is drained, no closed provider is activated,
 and durable acceptance may remain for restart recovery. Callers must await the
-in-flight refresh to know persistence has settled. Old active evaluations retain
+in-flight refresh without cancelling that wait to know persistence has settled.
+A cancelled `refresh({ signal })` wait is not a persistence acknowledgment or rollback.
+Old active evaluations retain
 exact old audit origin until activation; callback evaluations see the new origin.
 
 This is ordered durable acceptance followed by atomic in-process activation,

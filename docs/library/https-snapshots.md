@@ -72,7 +72,10 @@ strictly decoded and parsed through the existing validated JSON/YAML contracts.
 The source's claimed media type does not change the parser.
 
 Overlapping `refresh()` calls share one promise and one operation; they do not
-build an unbounded queue. A resolved result is `{ status: "updated" | "unchanged",
+build an unbounded queue. Optional `refresh({ signal })` cancels only that caller's
+wait with `PROVIDER_NOT_READY`; it does not cancel the shared refresh or other
+waiters, even when it is the last waiter. An already aborted signal starts no work.
+Calls without a signal retain shared-promise identity. A resolved result is `{ status: "updated" | "unchanged",
 snapshotHash }`. A 200 with unchanged semantic content and a valid 304 both renew
 provider freshness without configuration-change events. No snapshot download,
 parse or apply failure replaces the previous snapshot or advances its ETag.
@@ -94,8 +97,12 @@ Invalid content/UTF-8/oversize records one `validation` failure and returns gene
 `SCHEMA_ERROR`; provider-apply validation failures retain the provider's own count.
 Concurrent update conflicts record `load`. Status stores only categories and
 timestamps. Closed refreshers/providers reject before application. Intentional
-close cancellation does not add a failure; a custom source ignoring AbortSignal
-can still stall its own call, but cannot apply after close.
+close cancellation does not add a failure. Close ends the refresh wait during
+source fetch or recovery load even if a custom implementation ignores AbortSignal.
+Late results cannot apply and late rejections are observed. Custom implementations
+still own their I/O cleanup; their underlying work may continue after close.
+Once persistence starts, the refresh drains its acknowledgment before settling,
+preserving durable acceptance for recovery rather than claiming it was rolled back.
 
 `refresher.close()` is idempotent and does not flush/close the provider or source.
 Callers own scheduling and shutdown; no recurring timer, worker or management

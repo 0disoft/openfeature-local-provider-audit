@@ -13,6 +13,7 @@ import type {
   VerifiedFlagSnapshot
 } from "../public-types.js";
 import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./https-source.js";
+import { waitForSnapshotOperation } from "./abortable.js";
 
 export function createSnapshotRefresher(options: SnapshotRefresherOptions): SnapshotRefresher {
   const { provider, source, verifier, store } = options;
@@ -69,11 +70,18 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
     const conditionalEtag =
       committedHash === before && provenance?.artifactHash === beforeArtifact ? etag : undefined;
     active = new AbortController();
+    const signal = active.signal;
     try {
       if (store !== undefined) {
         try {
-          replayFloor = mergeFloor(replayFloor, (await store.load())?.floor);
+          const recovery = await waitForSnapshotOperation(
+            () => store.load(),
+            signal,
+            "Snapshot refresher is closed."
+          );
+          replayFloor = mergeFloor(replayFloor, recovery?.floor);
         } catch {
+          if (closed) throw unavailable("Snapshot refresher is closed.");
           provider.reportRefreshFailure("persist");
           throw unavailable("Snapshot persistence is unavailable.");
         }
@@ -87,11 +95,17 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       }
       let response: SnapshotSourceResponse;
       try {
-        response = await source.fetch({
-          signal: active.signal,
-          ...(conditionalEtag !== undefined ? { etag: conditionalEtag } : {})
-        });
+        response = await waitForSnapshotOperation(
+          () =>
+            source.fetch({
+              signal,
+              ...(conditionalEtag !== undefined ? { etag: conditionalEtag } : {})
+            }),
+          signal,
+          "Snapshot refresher is closed."
+        );
       } catch {
+        if (closed) throw unavailable("Snapshot refresher is closed.");
         if (!closed && !provider.getStatus().closed) provider.reportRefreshFailure("fetch");
         throw unavailable("Snapshot source could not be refreshed.");
       }
@@ -228,14 +242,23 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
         ? provenance
         : undefined;
     },
-    refresh() {
-      if (inFlight !== undefined) return inFlight;
-      inFlight = Promise.resolve()
-        .then(performRefresh)
-        .finally(() => {
-          inFlight = undefined;
-        });
-      return inFlight;
+    refresh(request = {}) {
+      if (closed || provider.getStatus().closed)
+        return Promise.reject(unavailable("Snapshot refresher is closed."));
+      const signal = request.signal;
+      if (signal?.aborted)
+        return Promise.reject(unavailable("Snapshot refresh wait was cancelled."));
+      if (inFlight === undefined) {
+        inFlight = Promise.resolve()
+          .then(performRefresh)
+          .finally(() => {
+            inFlight = undefined;
+          });
+      }
+      const shared = inFlight;
+      return signal === undefined
+        ? shared
+        : waitForSnapshotOperation(() => shared, signal, "Snapshot refresh wait was cancelled.");
     },
     close() {
       closed = true;

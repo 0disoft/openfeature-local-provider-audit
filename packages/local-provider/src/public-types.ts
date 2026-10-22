@@ -267,7 +267,7 @@ export interface SnapshotRefreshResult {
 }
 
 export interface SnapshotRefresher {
-  refresh(): Promise<SnapshotRefreshResult>;
+  refresh(request?: { readonly signal?: AbortSignal }): Promise<SnapshotRefreshResult>;
   getProvenance(): SignedSnapshotMetadata | undefined;
   close(): void;
 }

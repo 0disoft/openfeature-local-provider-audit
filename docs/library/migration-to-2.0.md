@@ -8,8 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.18` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.19` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.19 adds optional `SnapshotRefresher.refresh({ signal })`. Existing no-argument
+calls and return types are unchanged. A caller signal cancels that wait, not the
+shared refresh; use `close()` to stop shared fetch/recovery waiting. Abort-ignoring
+custom sources can no longer hold that wait open after close, though their own I/O
+may continue. Already-started durable commits still drain before refresh settles.
+Watcher `reload()` rejects from its own active `onSnapshot` callback instead of
+deadlocking; unrelated callers and post-callback scheduled reloads still work.
 
 Alpha.4 adds operational status. Provider factories now return
 `ObservableLocalProvider` (still assignable to OpenFeature `Provider`).
