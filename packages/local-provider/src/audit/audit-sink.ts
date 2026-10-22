@@ -211,7 +211,7 @@ export async function acquireFileLock(
   lock: LockOptions,
   writeLockRecord: LockRecordWriter = defaultWriteLockRecord
 ): Promise<() => Promise<void>> {
-  const startedAt = Date.now();
+  const startedAt = performance.now();
 
   while (true) {
     try {
@@ -246,7 +246,7 @@ export async function acquireFileLock(
         await removeStaleLockIfNeeded(lock);
       }
 
-      if (Date.now() - startedAt >= lock.timeoutMs) {
+      if (performance.now() - startedAt >= lock.timeoutMs) {
         throw new Error(`Timed out acquiring audit file lock: ${lock.path}`);
       }
 

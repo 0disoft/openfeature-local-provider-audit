@@ -89,6 +89,9 @@ raw user context by default.
   coordination and require `lock: true` when sharing a rotating path.
 - File audit sinks support optional advisory `.lock` files with `lock`, `lockTimeoutMs`,
   and `staleLockMs` for multi-process local writers.
+  Lock wait deadlines use monotonic elapsed time, so wall-clock corrections neither
+  extend the wait nor expire it early. Stale-lock age still uses filesystem mtime
+  and wall time, with the takeover limitations described below.
 - Each acquired lock records an owner token. A releasing writer removes the lock only
   when that token still matches, so a stale owner cannot delete a replacement owner's
   lock after takeover.
