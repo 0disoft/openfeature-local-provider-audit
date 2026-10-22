@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.23` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.24` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.24 removes repeated whole-journal serialization while trimming snapshot
+history to maxBytes. It retains the same newest contiguous prefix, duplicate/order
+rules, JSON property order, UTF-8 bytes and trailing newline. Each examined artifact
+is encoded once; processing stops at the first entry that cannot fit. Journal schema,
+signature/replay verification, locks, write acknowledgment and recovery are unchanged.
+No new public API is added.
 
 Alpha.23 bounds file/chained sink queues by both 5,000 pending writes and 64 MiB
 of pending event JSON Lines bytes by default. `maxQueueBytes` accepts a positive

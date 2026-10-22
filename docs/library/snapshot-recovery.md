@@ -42,7 +42,11 @@ the stored artifact expired. No evaluation performs filesystem I/O.
 
 The default journal bound is 16 MiB (1 byte..100 MiB configurable), with at most five
 artifacts (1..32 configurable). Oldest history is discarded to fit either bound;
-the new head must fit on its own. Input bytes are copied before asynchronous work.
+the new head must fit on its own. Capacity selection encodes each examined artifact
+once and keeps only the newest contiguous prefix; it never skips a large older entry
+to include a smaller one after it. Exact escaped JSON UTF-8 bytes, commas, envelope
+and final newline count toward maxBytes. The journal format/order is unchanged.
+Input bytes are copied before asynchronous work.
 An authorized rollback selects historical snapshot contents and publishes a new
 higher sequence with current issuance/expiry using `signFlagSnapshot`. Selecting
 an older journal or replaying its token is not an authorized rollback.

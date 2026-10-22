@@ -13,6 +13,7 @@ import type {
 } from "../public-types.js";
 import { sourceInteger } from "./source-policy.js";
 import { createHistoricalSnapshotVerifier, createSnapshotVerifier } from "./signed-snapshot.js";
+import { boundedSnapshotJournal } from "./snapshot-journal.js";
 
 interface Journal {
   readonly schemaVersion: 1;
@@ -118,14 +119,14 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
     });
   }
 
-  async function writeJournal(journal: Journal): Promise<void> {
+  async function writeJournal(serialized: string): Promise<void> {
     const temporary = join(directory, `.${basename(path)}.${randomUUID()}.tmp`);
     let handle: FileHandle | undefined;
     let created = false;
     try {
       handle = await open(temporary, "wx", 0o600);
       created = true;
-      await handle.writeFile(serialize(journal), "utf8");
+      await handle.writeFile(serialized, "utf8");
       await handle.sync();
       await handle.close();
       handle = undefined;
@@ -182,14 +183,7 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
         if (verified.provenance.artifactHash === recovery?.floor.artifactHash) return verified;
         const token = new TextDecoder("utf-8", { fatal: true }).decode(bytes).trim();
         const artifacts = [token, ...(previous?.artifacts ?? [])].slice(0, maxHistory);
-        while (
-          Buffer.byteLength(serialize({ schemaVersion: 1, artifacts })) > maxBytes &&
-          artifacts.length > 1
-        )
-          artifacts.pop();
-        const journal: Journal = { schemaVersion: 1, artifacts };
-        if (Buffer.byteLength(serialize(journal)) > maxBytes) throw unavailable();
-        await writeJournal(journal);
+        await writeJournal(boundedSnapshotJournal(artifacts, maxBytes));
         return verified;
       } catch (cause) {
         throw unavailable(cause);
@@ -201,9 +195,6 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
   };
 }
 
-function serialize(journal: Journal): string {
-  return `${JSON.stringify(journal)}\n`;
-}
 function sameFile(left: Stats, right: Stats): boolean {
   return left.dev === right.dev && left.ino === right.ino;
 }
