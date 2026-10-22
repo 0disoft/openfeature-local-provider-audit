@@ -20,7 +20,8 @@ const AUDIT_OPEN_FLAGS =
 const processWriteQueues = new Map<string, Promise<void>>();
 
 export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
-  const auditPath = options.path;
+  const inputPath = options.path;
+  const auditPath = typeof inputPath === "string" ? resolve(inputPath) : new URL(inputPath.href);
   const shouldCreateDirectory = options.createDirectory !== false;
   const rotation = createRotationOptions(options);
   const lock = createLockOptions(options, auditPath);

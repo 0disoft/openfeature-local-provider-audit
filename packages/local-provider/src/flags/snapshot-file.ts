@@ -9,7 +9,7 @@ import {
   type WatchListener
 } from "node:fs";
 import { open, stat } from "node:fs/promises";
-import { basename, dirname, extname } from "node:path";
+import { basename, dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
@@ -120,8 +120,16 @@ export async function watchFlagSnapshotFile(
       }
     | undefined;
 
-  const watcherPath = options.path;
+  const inputPath = options.path;
+  const watcherPath = typeof inputPath === "string" ? inputPath : new URL(inputPath.href);
   const target = resolveSnapshotFileTarget(watcherPath);
+  const loadOptions: LoadFlagSnapshotFileOptions = {
+    format: options.format ?? "auto",
+    encoding: options.encoding ?? "utf8",
+    maxBytes: options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES
+  };
+  const onSnapshot = options.onSnapshot.bind(options);
+  const onError = options.onError?.bind(options);
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   assertOptionalPollInterval(options.consistencyPollIntervalMs);
   const watcher = createSnapshotWatchHandle({
@@ -157,7 +165,7 @@ export async function watchFlagSnapshotFile(
       if (currentSnapshot !== undefined) return currentSnapshot;
       throw new LocalProviderError("PROVIDER_NOT_READY", "Snapshot watcher is closed.");
     }
-    const snapshot = await loadFlagSnapshotFile(options.path, options);
+    const snapshot = await loadFlagSnapshotFile(target.path, loadOptions);
     const serializedSnapshot = JSON.stringify(snapshot);
     if (skipUnchanged && serializedSnapshot === currentSerializedSnapshot) {
       return snapshot;
@@ -167,7 +175,7 @@ export async function watchFlagSnapshotFile(
     }
     const callback = { watcher: callbackOwner, active: true };
     try {
-      await snapshotCallbackContext.run(callback, () => options.onSnapshot(snapshot));
+      await snapshotCallbackContext.run(callback, () => onSnapshot(snapshot));
     } finally {
       callback.active = false;
     }
@@ -212,7 +220,7 @@ export async function watchFlagSnapshotFile(
 
   async function reportReloadError(error: unknown): Promise<void> {
     try {
-      await options.onError?.(error);
+      await onError?.(error);
     } catch {
       // Error reporting must not poison the reload queue.
     }
@@ -227,7 +235,9 @@ export async function watchFlagSnapshotFile(
   }
 
   return {
-    path: watcherPath,
+    get path() {
+      return typeof watcherPath === "string" ? watcherPath : new URL(watcherPath.href);
+    },
     getSnapshot() {
       return currentSnapshot;
     },
@@ -328,7 +338,7 @@ export function resolveSnapshotFileFormat(
 }
 
 function resolveSnapshotFileTarget(path: string | URL): SnapshotFileTarget {
-  const filePath = typeof path === "string" ? path : fileURLToPath(path);
+  const filePath = resolve(typeof path === "string" ? path : fileURLToPath(path));
 
   return {
     directory: dirname(filePath),

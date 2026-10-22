@@ -87,6 +87,8 @@ raw user context by default.
 - Sinks from one loaded package instance serialize writes by audit path, including
   rotation. Cross-process and duplicate-package-instance writers remain caller-owned
   coordination and require `lock: true` when sharing a rotating path.
+- File audit sinks capture an absolute path at construction. Later caller URL or
+  working-directory changes cannot redirect writes, rotation or locking independently.
 - File audit sinks support optional advisory `.lock` files with `lock`, `lockTimeoutMs`,
   and `staleLockMs` for multi-process local writers.
   Lock wait deadlines use monotonic elapsed time, so wall-clock corrections neither

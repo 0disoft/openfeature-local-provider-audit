@@ -37,6 +37,9 @@ contracts were covered by tests.
   symlink changes without a visible-filename event. Native watching remains primary.
 - Debounce bursts of native events and suppress event-driven callbacks when the parsed snapshot
   is unchanged. Explicit `reload()` calls still invoke `onSnapshot` after successful validation.
+- Capture the resolved path, read settings and callbacks before startup awaits.
+  Later option/URL changes cannot redirect reloads away from the watched target.
+  A URL returned through `watcher.path` is a detached copy of the original URL value.
 - Native watcher and reload failures must be reported through `onError` and must not replace the
   last valid snapshot or escape as an unhandled watcher error.
 - Calling `reload()` from that watcher's active `onSnapshot` callback, including after

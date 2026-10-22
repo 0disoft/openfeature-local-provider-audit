@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../../src/errors/error-codes.js";
 import { isLocalProviderError } from "../../src/errors/local-provider-error.js";
@@ -14,6 +15,48 @@ const WINDOWS_RENAME_RETRY_TIMEOUT_MS = 1_000;
 const WINDOWS_RENAME_RETRY_DELAY_MS = 20;
 
 describe("snapshot file helpers", () => {
+  it("captures watcher path, read settings and callback before startup awaits", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-watcher-options-"));
+    let watcher: Awaited<ReturnType<typeof watchFlagSnapshotFile>> | undefined;
+    try {
+      const original = join(directory, "original.json");
+      const replacement = join(directory, "replacement.json");
+      await writeFile(original, createJsonSnapshot(true));
+      await writeFile(replacement, createJsonSnapshot(false));
+      const url = pathToFileURL(original);
+      const onSnapshot = vi.fn();
+      const replacementCallback = vi.fn();
+      const options = {
+        path: url,
+        format: "json" as const,
+        debounceMs: 60_000,
+        onSnapshot
+      };
+      const starting = watchFlagSnapshotFile(options);
+      url.pathname = pathToFileURL(replacement).pathname;
+      Object.assign(options, {
+        path: pathToFileURL(replacement),
+        format: "yaml",
+        encoding: "hex",
+        maxBytes: 1,
+        onSnapshot: replacementCallback
+      });
+      watcher = await starting;
+      expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(true);
+      const exposedPath = watcher.path as URL;
+      exposedPath.pathname = pathToFileURL(replacement).pathname;
+      expect((watcher.path as URL).href).toBe(pathToFileURL(original).href);
+      await writeFile(original, createJsonSnapshot(false));
+      await watcher.reload();
+      expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(false);
+      expect(onSnapshot).toHaveBeenCalledTimes(2);
+      expect(replacementCallback).not.toHaveBeenCalled();
+    } finally {
+      watcher?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it.skipIf(process.platform === "win32")(
     "rejects FIFO loads and watcher startup without waiting for a writer",
     async () => {

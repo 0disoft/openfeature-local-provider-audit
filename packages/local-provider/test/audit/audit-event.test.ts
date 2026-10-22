@@ -16,6 +16,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { acquireFileLock, createFileAuditSink } from "../../src/audit/audit-sink.js";
 import {
@@ -30,6 +31,35 @@ import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { staticSnapshot } from "../fixtures.js";
 
 describe("audit events", () => {
+  it("preserves write-time rejection for unsupported URLs when locking is disabled", async () => {
+    const sink = createFileAuditSink({ path: new URL("https://example.test/audit.jsonl") });
+    await expect(sink.write(createTestAuditEvent("unsupported-path"))).rejects.toMatchObject({
+      code: "ERR_INVALID_URL_SCHEME"
+    });
+  });
+
+  it("keeps audit writes and locks on the captured path after the caller mutates its URL", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-audit-url-"));
+    try {
+      const original = join(directory, "original.jsonl");
+      const replacement = join(directory, "replacement.jsonl");
+      const url = pathToFileURL(original);
+      const sink = createFileAuditSink({ path: url, lock: true, lockTimeoutMs: 0 });
+      url.pathname = pathToFileURL(replacement).pathname;
+      await writeFile(`${original}.lock`, "another owner\n");
+      await expect(sink.write(createTestAuditEvent("blocked"))).rejects.toThrow(
+        "Timed out acquiring audit file lock"
+      );
+      await rm(`${original}.lock`);
+      await sink.writeConfirmed?.(createTestAuditEvent("captured-path"));
+      expect(await readFile(original, "utf8")).toContain("captured-path");
+      await expect(stat(replacement)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(`${original}.lock`)).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it.skipIf(process.platform === "win32")(
     "rejects real FIFOs in a child with a hard deadline",
     async () => {
