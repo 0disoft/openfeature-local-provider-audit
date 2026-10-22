@@ -23,6 +23,10 @@ contracts were covered by tests.
   before parsing. The default maximum is 10 MiB, configurable through `maxBytes`.
   The bounded read also rejects a file that grows past the limit after the initial size
   check.
+- Reject non-regular snapshot targets before open, use nonblocking read-only open
+  where available, and verify the opened handle is still a regular file before
+  reading. A FIFO/device/directory cannot stall a load or the shared watcher queue.
+  Regular-file symlink targets remain supported, including projected-volume links.
 - Use directory `fs.watch` on Linux for atomic replacement events. On macOS, combine
   directory watching for atomic replacement with direct file watching so writes immediately
   after watcher initialization are not dependent on directory-event delivery alone, and rearm

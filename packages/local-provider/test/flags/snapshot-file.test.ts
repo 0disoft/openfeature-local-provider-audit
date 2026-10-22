@@ -1,6 +1,8 @@
 import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { promisify } from "node:util";
 import { describe, expect, it, vi } from "vitest";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../../src/errors/error-codes.js";
 import { isLocalProviderError } from "../../src/errors/local-provider-error.js";
@@ -12,6 +14,33 @@ const WINDOWS_RENAME_RETRY_TIMEOUT_MS = 1_000;
 const WINDOWS_RENAME_RETRY_DELAY_MS = 20;
 
 describe("snapshot file helpers", () => {
+  it.skipIf(process.platform === "win32")(
+    "rejects FIFO loads and watcher startup without waiting for a writer",
+    async () => {
+      const directory = await mkdtemp(join(tmpdir(), "openfeature-snapshot-fifo-"));
+      try {
+        const path = join(directory, "flags.json");
+        await promisify(execFile)("mkfifo", [path], { timeout: 2000, killSignal: "SIGKILL" });
+        const script = `
+        import assert from 'node:assert/strict';
+        const api = await import(${JSON.stringify(new URL("../../dist/index.js", import.meta.url).href)});
+        const path = ${JSON.stringify(path)};
+        await assert.rejects(api.loadFlagSnapshotFile(path), {code: 'PARSE_ERROR'});
+        await assert.rejects(api.watchFlagSnapshotFile({path, persistent: true, onSnapshot() {}}), {code: 'PARSE_ERROR'});
+        console.log('special file rejected; watcher closed');
+      `;
+        const { stdout } = await promisify(execFile)(
+          process.execPath,
+          ["--input-type=module", "-e", script],
+          { timeout: 3000, killSignal: "SIGKILL" }
+        );
+        expect(stdout.trim()).toBe("special file rejected; watcher closed");
+      } finally {
+        await rm(directory, { recursive: true, force: true });
+      }
+    }
+  );
+
   it("loads JSON snapshots by extension", async () => {
     const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-file-"));
     try {

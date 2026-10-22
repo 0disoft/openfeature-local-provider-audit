@@ -1,12 +1,13 @@
 import {
   watch,
   watchFile,
+  constants,
   type FSWatcher,
   type Stats,
   unwatchFile,
   type WatchListener
 } from "node:fs";
-import { open } from "node:fs/promises";
+import { open, stat } from "node:fs/promises";
 import { basename, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
@@ -236,10 +237,14 @@ export async function readFileWithinLimit(
   encoding: BufferEncoding
 ): Promise<string> {
   assertPositiveInteger(maxBytes, "maxBytes");
-  const handle = await open(path, "r");
+  // Follow regular symlink targets (including projected volumes), but never wait
+  // for a FIFO peer. Recheck the opened handle in case the target changed.
+  assertRegularSnapshotFile(await stat(path));
+  const handle = await open(path, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
 
   try {
     const fileStats = await handle.stat();
+    assertRegularSnapshotFile(fileStats);
     assertSnapshotSizeWithinLimit(fileStats.size, maxBytes);
 
     const chunks: Buffer[] = [];
@@ -259,6 +264,15 @@ export async function readFileWithinLimit(
     }
   } finally {
     await handle.close();
+  }
+}
+
+function assertRegularSnapshotFile(stats: Stats): void {
+  if (!stats.isFile()) {
+    throw new LocalProviderError(
+      LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR,
+      "Flag snapshot path must resolve to a regular file."
+    );
   }
 }
 
