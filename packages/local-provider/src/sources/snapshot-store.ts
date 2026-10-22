@@ -10,7 +10,7 @@ import type {
   SnapshotRecovery,
   VerifiedFlagSnapshot
 } from "../public-types.js";
-import { sourceInteger } from "./https-source.js";
+import { sourceInteger } from "./source-policy.js";
 import { createHistoricalSnapshotVerifier, createSnapshotVerifier } from "./signed-snapshot.js";
 
 interface Journal {

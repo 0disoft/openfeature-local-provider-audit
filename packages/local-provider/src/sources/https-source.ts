@@ -1,6 +1,5 @@
 import { request as httpsRequest } from "node:https";
 import type { IncomingMessage } from "node:http";
-import { setTimeout as delay } from "node:timers/promises";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import type {
   HttpsSnapshotSourceOptions,
@@ -9,7 +8,13 @@ import type {
   SnapshotSourceResponse
 } from "../public-types.js";
 
-export const DEFAULT_SOURCE_BYTES = 10 * 1024 * 1024;
+import {
+  DEFAULT_SOURCE_BYTES,
+  sourceInteger,
+  validEtag,
+  createReadPolicy,
+  readWithPolicy
+} from "./source-policy.js";
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const TRANSIENT_CODES = new Set([
   "ECONNRESET",
@@ -51,9 +56,7 @@ export function createHttpsSnapshotSource(options: HttpsSnapshotSourceOptions): 
     1,
     100 * 1024 * 1024
   );
-  const timeoutMs = sourceInteger("timeoutMs", options.timeoutMs ?? 5_000, 1, 60_000);
-  const maxAttempts = sourceInteger("maxAttempts", options.maxAttempts ?? 3, 1, 5);
-  const retryDelayMs = sourceInteger("retryDelayMs", options.retryDelayMs ?? 100, 0, 5_000);
+  const policy = createReadPolicy(options);
   const ca = options.ca;
   return {
     async fetch(input: SnapshotSourceRequest = {}): Promise<SnapshotSourceResponse> {
@@ -62,26 +65,14 @@ export function createHttpsSnapshotSource(options: HttpsSnapshotSourceOptions): 
       if (etag !== undefined && !validEtag(etag)) {
         throw new TypeError("Snapshot ETag is invalid.");
       }
-      for (let attempt = 0; ; attempt++) {
-        if (signal?.aborted) throw cancelled();
-        try {
-          return await readAttempt(url, ca, maxBytes, timeoutMs, etag, signal);
-        } catch (error) {
-          if (signal?.aborted) throw cancelled();
-          if (
-            !(error instanceof HttpsReadError) ||
-            !error.retryable ||
-            attempt + 1 >= maxAttempts
-          ) {
-            throw error;
-          }
-          try {
-            await delay(Math.min(5_000, retryDelayMs * 2 ** attempt), undefined, { signal });
-          } catch {
-            throw cancelled();
-          }
-        }
-      }
+      return readWithPolicy({
+        policy,
+        signal,
+        read: (timeoutMs) => readAttempt(url, ca, maxBytes, timeoutMs, etag, signal),
+        retryable: (error) => error instanceof HttpsReadError && error.retryable,
+        cancelled,
+        timedOut: () => new HttpsReadError("HTTPS snapshot request timed out.", true)
+      });
     }
   };
 }
@@ -184,17 +175,6 @@ async function readResponse(
     // Also closes redirect/error/oversized streams without retaining their bodies.
     response.destroy();
   }
-}
-
-export function sourceInteger(name: string, value: number, min: number, max: number): number {
-  if (!Number.isSafeInteger(value) || value < min || value > max) {
-    throw new RangeError(`${name} must be an integer between ${min} and ${max}.`);
-  }
-  return value;
-}
-
-export function validEtag(value: string): boolean {
-  return value.length <= 1_024 && /^(W\/)?"[\x21\x23-\x7e\x80-\xff]*"$/.test(value);
 }
 
 function cancelled(): HttpsReadError {

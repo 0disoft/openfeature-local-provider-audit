@@ -14,7 +14,7 @@ import type {
   SnapshotVerifier,
   VerifiedFlagSnapshot
 } from "../public-types.js";
-import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./https-source.js";
+import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./source-policy.js";
 import { waitForSnapshotOperation } from "./abortable.js";
 
 interface CommittedSource {

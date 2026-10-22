@@ -3,7 +3,7 @@
 Status: implemented locally in 2.0.0-alpha.17 under ADR 0015.
 
 `createS3SnapshotSource({ client, bucket, key, maxBytes?, timeoutMs?, maxAttempts?,
-retryDelayMs? })` returns the existing SnapshotSource. The caller owns the real SDK
+retryDelayMs?, totalTimeoutMs? })` returns the existing SnapshotSource. The caller owns the real SDK
 client, credentials, HTTPS endpoint/TLS policy, IAM/R2 read permissions and shutdown.
 No credentials, signing implementation or SDK runtime dependency is installed.
 Use the same source with AWS S3 or an SDK client configured for Cloudflare R2.
@@ -18,7 +18,10 @@ Signing and durable acceptance remain the existing verifier/store/refresher's jo
 
 Defaults/ranges match HTTPS: 10 MiB bytes (1..100 MiB), 5-second per-attempt total
 deadline (1..60,000 ms), 3 attempts (1..5), exponential retry delay starting at
-100 ms (0..5,000, capped at 5,000). Configure underlying SDK maxAttempts: 1 so
+100 ms (0..5,000, capped at 5,000), with full jitter. Optional `totalTimeoutMs`
+(1..320,000 ms) bounds attempts plus backoff using monotonic elapsed time; the
+default equals the old maximum envelope (15,300 ms with defaults). Each attempt
+is capped to the remaining budget. Configure underlying SDK maxAttempts: 1 so
 adapter bounds count actual SDK attempts; caller middleware/credential providers
 must honor cancellation and not create additional unbounded work.
 

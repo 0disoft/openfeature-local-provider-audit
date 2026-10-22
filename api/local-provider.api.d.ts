@@ -320,6 +320,7 @@ interface HttpsSnapshotSourceOptions {
   readonly ca?: string;
   readonly maxBytes?: number;
   readonly timeoutMs?: number;
+  readonly totalTimeoutMs?: number;
   readonly maxAttempts?: number;
   readonly retryDelayMs?: number;
 }
@@ -351,6 +352,7 @@ interface S3SnapshotSourceOptions {
   readonly key: string;
   readonly maxBytes?: number;
   readonly timeoutMs?: number;
+  readonly totalTimeoutMs?: number;
   readonly maxAttempts?: number;
   readonly retryDelayMs?: number;
 }

@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.20` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.21` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.21 adds optional `totalTimeoutMs` (1..320,000 ms) to HTTPS/S3 sources.
+The default total budget equals the former maximum attempts/backoff envelope;
+backoff now uses full jitter. Each attempt is capped to the remaining monotonic
+budget. Only transport reads retry; persistence and activation are never retried.
+Underlying S3 clients must still use maxAttempts: 1 to avoid nested retries.
 
 Alpha.20 bounds provider shutdown flushing to 5,000 ms by default; configure
 `auditShutdownTimeoutMs` (1..2,147,483,647) with an audit sink for another limit.

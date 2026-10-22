@@ -46,15 +46,19 @@ oversized streams rather than consuming unbounded bodies.
 | --- | --- | --- |
 | `maxBytes` | 10 MiB | Integer, 1 to 100 MiB |
 | `timeoutMs` | 5,000 | Integer, 1 to 60,000 ms per attempt |
+| `totalTimeoutMs` | Derived attempt/backoff envelope | Integer, 1 to 320,000 ms |
 | `maxAttempts` | 3 | Integer, 1 to 5 |
 | `retryDelayMs` | 100 | Integer, 0 to 5,000 ms |
 
 Declared Content-Length and streamed bytes are checked before accepting the body.
 The attempt deadline covers DNS, connect, TLS, headers and body, not synchronous
 snapshot parsing. Retries are limited to timeouts, transient socket/DNS failures,
-and HTTP 408/429/500/502/503/504. Backoff doubles the configured delay, capped at
-5,000 ms; server Retry-After is not used. Default maximum waiting is about 15.3
-seconds plus event-loop scheduling, not an exact wall-clock guarantee. Abort
+and HTTP 408/429/500/502/503/504. Backoff uses full jitter from zero to the exponentially growing delay, capped at
+5,000 ms; server Retry-After is not used. The shared monotonic `totalTimeoutMs`
+budget caps reads and backoff; each attempt receives at most the remaining time.
+The default budget is the previous maximum envelope (15,300 ms with default
+settings). Event-loop scheduling can delay timer delivery. Validation, storage
+and activation never run inside the read retry helper. Abort
 cancels active I/O or backoff, clears timers/listeners and never retries deliberately
 cancelled work. TLS trust/hostname errors, redirects, oversized/encoded content and
 other permanent statuses are not retried.

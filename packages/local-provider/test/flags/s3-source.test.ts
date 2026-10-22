@@ -10,7 +10,7 @@ import {
   createSnapshotVerifier,
   signFlagSnapshot
 } from "../../src/index.js";
-import { afterAll, beforeAll, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, expect, it, vi } from "vitest";
 import {
   createS3SnapshotSource,
   createSnapshotRefresher,
@@ -31,6 +31,10 @@ beforeAll(async () => {
 afterAll(async () => {
   server.closeAllConnections();
   await new Promise<void>((resolve) => server.close(() => resolve()));
+});
+afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 function source(client: S3SnapshotClient, options: Partial<S3SnapshotSourceOptions> = {}) {
@@ -146,6 +150,20 @@ it("streams web, Blob and Node bytes, copies buffers and rejects invalid or over
   ).rejects.toThrow("Unexpected");
 });
 
+it("caps stalled SDK waiting at the total deadline without starting another attempt", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
+  const getObject = vi.fn<S3SnapshotClient["getObject"]>(() => new Promise(() => {}));
+  const waiting = source(
+    { getObject },
+    { timeoutMs: 1000, totalTimeoutMs: 25, maxAttempts: 3 }
+  ).fetch();
+  const rejected = expect(waiting).rejects.toThrow("timed out");
+  await vi.advanceTimersByTimeAsync(25);
+  await rejected;
+  expect(getObject).toHaveBeenCalledOnce();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
 it("bounds ignored transport and iterator aborts and closes late bodies", async () => {
   let resolve!: (response: { Body: Readable }) => void;
   const pending = new Promise<{ Body: Readable }>((done) => {
@@ -199,6 +217,7 @@ it("retries only bounded transient failures and cancels retry backoff", async ()
     /^S3 snapshot request failed\.$/
   );
   expect(getObject).toHaveBeenCalledOnce();
+  vi.spyOn(Math, "random").mockReturnValue(0.5);
   const controller = new AbortController();
   getObject.mockClear().mockImplementation(async () => {
     setTimeout(() => controller.abort(), 5);

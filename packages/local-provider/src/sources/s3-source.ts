@@ -1,5 +1,4 @@
 import { Readable } from "node:stream";
-import { setTimeout as delay } from "node:timers/promises";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import type {
   S3SnapshotClient,
@@ -7,7 +6,13 @@ import type {
   SnapshotSource,
   SnapshotSourceResponse
 } from "../public-types.js";
-import { DEFAULT_SOURCE_BYTES, sourceInteger, validEtag } from "./https-source.js";
+import {
+  DEFAULT_SOURCE_BYTES,
+  sourceInteger,
+  validEtag,
+  createReadPolicy,
+  readWithPolicy
+} from "./source-policy.js";
 
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const TRANSIENT_CODES = new Set([
@@ -47,28 +52,19 @@ export function createS3SnapshotSource(options: S3SnapshotSourceOptions): Snapsh
     1,
     100 * 1024 * 1024
   );
-  const timeoutMs = sourceInteger("timeoutMs", options.timeoutMs ?? 5000, 1, 60000);
-  const maxAttempts = sourceInteger("maxAttempts", options.maxAttempts ?? 3, 1, 5);
-  const retryDelayMs = sourceInteger("retryDelayMs", options.retryDelayMs ?? 100, 0, 5000);
+  const policy = createReadPolicy(options);
   return {
     async fetch(input = {}) {
       const { etag, signal } = input;
       if (etag !== undefined && !validEtag(etag)) throw new TypeError("Snapshot ETag is invalid.");
-      for (let attempt = 0; ; attempt++) {
-        if (signal?.aborted) throw cancelled();
-        try {
-          return await readAttempt(getObject, bucket, key, maxBytes, timeoutMs, etag, signal);
-        } catch (error) {
-          if (signal?.aborted) throw cancelled();
-          if (!(error instanceof S3ReadError) || !error.retryable || attempt + 1 >= maxAttempts)
-            throw error;
-          try {
-            await delay(Math.min(5000, retryDelayMs * 2 ** attempt), undefined, { signal });
-          } catch {
-            throw cancelled();
-          }
-        }
-      }
+      return readWithPolicy({
+        policy,
+        signal,
+        read: (timeoutMs) => readAttempt(getObject, bucket, key, maxBytes, timeoutMs, etag, signal),
+        retryable: (error) => error instanceof S3ReadError && error.retryable,
+        cancelled,
+        timedOut: () => new S3ReadError("S3 snapshot request timed out.", true)
+      });
     }
   };
 }

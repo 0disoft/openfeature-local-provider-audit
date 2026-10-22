@@ -8,7 +8,7 @@ import type {
   SnapshotVerificationOptions,
   SnapshotVerifier
 } from "../public-types.js";
-import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./https-source.js";
+import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./source-policy.js";
 
 const TYPE = "openfeature-local-snapshot+jws";
 const DAY = 86_400_000;

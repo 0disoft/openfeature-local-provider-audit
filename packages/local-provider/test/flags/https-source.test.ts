@@ -277,6 +277,7 @@ describe("HTTPS source and local refresh", () => {
   });
 
   it("cancels retry backoff instead of starting another attempt", async () => {
+    vi.spyOn(Math, "random").mockReturnValue(0.5);
     const abort = new AbortController();
     handle = (_request, response) => {
       response.writeHead(503).end();

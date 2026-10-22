@@ -245,3 +245,7 @@ boundary alone does not establish browser/Bun/Deno/Workers runtime support.
 
 The core-only execution matrix is now established separately in `compatibility.md`
 and `../testing/core-runtime-acceptance.md`; it does not extend root API support.
+
+HTTPS/S3 source options accept optional `totalTimeoutMs` (1..320,000 ms) to bound
+all read attempts and jittered backoff. Omission derives the previous maximum
+attempt/backoff envelope. No persistence or activation retries are added.
