@@ -25,6 +25,9 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
   `"none"` stores neither names nor count. These modes never read property values, but
   `names` is safe only for fixed schema-like keys: applications that encode emails,
   tokens, or other data in property names must use `count` or `none`.
+- Redaction sorts keys only in `names` mode. `count` counts own enumerable keys
+  without sorting; `none` skips key enumeration entirely and reads only the own
+  data descriptor needed for targeting-key presence. Serialized fields are unchanged.
 - Omitting `contextKeys` selects `count`; key-name disclosure always requires an explicit
   `names` choice.
 - Snapshot and override data are represented by SHA-256 hashes.

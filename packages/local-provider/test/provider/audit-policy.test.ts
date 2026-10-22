@@ -16,6 +16,41 @@ const options = { snapshot: staticSnapshot, env: {} };
 afterEach(() => vi.useRealTimers());
 
 describe("audit confirmation policy", () => {
+  it("confirms none-mode audits without enumerating context keys or producing a false failure", async () => {
+    const enumerate = vi.fn(() => {
+      throw new Error("key enumeration is unavailable");
+    });
+    const context = new Proxy({ targetingKey: "synthetic-subject" }, { ownKeys: enumerate });
+    const events: AuditEvent[] = [];
+    const provider = createLocalProvider({
+      ...options,
+      auditRedaction: { contextKeys: "none" },
+      auditFailurePolicy: "returnDefault",
+      auditSink: {
+        async write() {},
+        async writeConfirmed(event) {
+          events.push(event);
+        }
+      }
+    });
+    try {
+      await expect(
+        provider.resolveBooleanEvaluation("checkout.enabled", false, context, logger)
+      ).resolves.toMatchObject({ value: true, reason: "STATIC" });
+      expect(enumerate).not.toHaveBeenCalled();
+      expect(events).toHaveLength(1);
+      expect(events[0]?.context).toEqual({
+        targetingKeyPresent: true,
+        keyMode: "none",
+        keys: [],
+        redacted: true
+      });
+      expect(provider.getStatus().audit).toMatchObject({ resolvedWrites: 1, failedWrites: 0 });
+    } finally {
+      await provider.onClose?.();
+    }
+  });
+
   it("uses confirmed writes with their receiver and cancels the wait timer on success", async () => {
     vi.useFakeTimers();
     const write = vi.fn(async () => {});

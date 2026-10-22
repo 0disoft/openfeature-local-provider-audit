@@ -90,12 +90,12 @@ export function redactContext(
   options: AuditRedactionOptions = {}
 ): RedactedAuditContext {
   const keyMode = resolveAuditContextKeyMode(options);
-  const contextKeys = Object.keys(context).sort(compareCodeUnits);
+  const contextKeys = keyMode === "none" ? [] : Object.keys(context);
 
   return {
     targetingKeyPresent: targetingKeyPresent(context),
     keyMode,
-    keys: keyMode === "names" ? contextKeys : [],
+    keys: keyMode === "names" ? contextKeys.sort(compareCodeUnits) : [],
     ...(keyMode === "count" ? { keyCount: contextKeys.length } : {}),
     redacted: true
   };
