@@ -346,6 +346,73 @@ describe("snapshot file helpers", () => {
     }
   });
 
+  it("rejects async callback reentry without blocking external queued reloads", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-reentrant-reload-"));
+    const started = createDeferred();
+    const release = createDeferred();
+    let watcher: Awaited<ReturnType<typeof watchFlagSnapshotFile>> | undefined;
+    let calls = 0;
+    try {
+      const path = join(directory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true));
+      watcher = await watchFlagSnapshotFile({
+        path,
+        debounceMs: 60_000,
+        async onSnapshot() {
+          if (++calls !== 2) return;
+          started.resolve();
+          await release.promise;
+          await expect(watcher?.reload()).rejects.toMatchObject({
+            code: "PROVIDER_NOT_READY",
+            message: expect.stringContaining("active onSnapshot callback")
+          });
+        }
+      });
+      const active = watcher.reload();
+      await started.promise;
+      const trailing = watcher.reload();
+      release.resolve();
+      await Promise.all([active, trailing]);
+      expect(calls).toBe(3);
+      expect(getCheckoutDefaultEnabled(watcher.getSnapshot() as FlagSnapshot)).toBe(true);
+    } finally {
+      release.resolve();
+      watcher?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it("allows callback descendants to reload after their callback has completed", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-deferred-reload-"));
+    const release = createDeferred();
+    let watcher: Awaited<ReturnType<typeof watchFlagSnapshotFile>> | undefined;
+    let deferredReload: Promise<FlagSnapshot> | undefined;
+    let calls = 0;
+    try {
+      const path = join(directory, "flags.json");
+      await writeFile(path, createJsonSnapshot(true));
+      watcher = await watchFlagSnapshotFile({
+        path,
+        debounceMs: 60_000,
+        onSnapshot() {
+          if (++calls === 2) {
+            deferredReload = release.promise.then(() =>
+              (watcher as NonNullable<typeof watcher>).reload()
+            );
+          }
+        }
+      });
+      await watcher.reload();
+      release.resolve();
+      await deferredReload;
+      expect(calls).toBe(3);
+    } finally {
+      release.resolve();
+      watcher?.close();
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
   it("coalesces a burst behind a slow callback into one trailing reload", async () => {
     const directory = await mkdtemp(join(tmpdir(), "openfeature-coalesce-"));
     const started = createDeferred();

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import {
   watch,
   watchFile,
@@ -26,6 +27,10 @@ const DEFAULT_DEBOUNCE_MS = 50;
 const DEFAULT_MAX_SNAPSHOT_FILE_BYTES = 10 * 1024 * 1024;
 const MIN_POLL_INTERVAL_MS = 50;
 const SNAPSHOT_READ_CHUNK_BYTES = 64 * 1024;
+const snapshotCallbackContext = new AsyncLocalStorage<{
+  readonly watcher: object;
+  active: boolean;
+}>();
 
 interface SnapshotFileTarget {
   readonly directory: string;
@@ -107,6 +112,7 @@ export async function watchFlagSnapshotFile(
   let closed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let reloadQueue = Promise.resolve();
+  const callbackOwner = {};
   let queuedReload:
     | {
         request: { reportError: boolean; skipUnchanged: boolean };
@@ -159,7 +165,12 @@ export async function watchFlagSnapshotFile(
     if (closed) {
       return snapshot;
     }
-    await options.onSnapshot(snapshot);
+    const callback = { watcher: callbackOwner, active: true };
+    try {
+      await snapshotCallbackContext.run(callback, () => options.onSnapshot(snapshot));
+    } finally {
+      callback.active = false;
+    }
     if (closed) {
       return snapshot;
     }
@@ -221,6 +232,15 @@ export async function watchFlagSnapshotFile(
       return currentSnapshot;
     },
     reload() {
+      const callback = snapshotCallbackContext.getStore();
+      if (!closed && callback?.watcher === callbackOwner && callback.active) {
+        return Promise.reject(
+          new LocalProviderError(
+            "PROVIDER_NOT_READY",
+            "Cannot reload a snapshot watcher from its active onSnapshot callback."
+          )
+        );
+      }
       return enqueueReload({ reportError: false, skipUnchanged: false });
     },
     close() {

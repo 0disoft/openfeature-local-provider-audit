@@ -39,6 +39,10 @@ contracts were covered by tests.
   is unchanged. Explicit `reload()` calls still invoke `onSnapshot` after successful validation.
 - Native watcher and reload failures must be reported through `onError` and must not replace the
   last valid snapshot or escape as an unhandled watcher error.
+- Calling `reload()` from that watcher's active `onSnapshot` callback, including after
+  an await, rejects with `PROVIDER_NOT_READY` instead of waiting on its own reload queue.
+  Reloads from unrelated callers still queue normally. Work scheduled by a callback
+  may reload after that callback has finished; `onError` recovery reloads remain supported.
 - Do not add hot remote configuration, HTTP APIs, hosted control planes, CLI, browser,
   Bun, Deno, or multi-language SDK support as part of this decision.
 
