@@ -79,7 +79,7 @@ and retention belong to the operator; no remote writer is installed here.
 
 `createChainedFileAuditSink({ directory, chainId, initialCheckpoint?,
 maxSegmentBytes?, maxSegments?, maxRecordBytes?, maxVerificationBytes?,
-maxQueueSize?, lockTimeoutMs? })` implements AuditSink including confirmed writes,
+maxQueueSize?, maxQueueBytes?, lockTimeoutMs? })` implements AuditSink including confirmed writes,
 flush and queue stats. The plain file sink remains compatible. The chained sink
 uses a dedicated directory, stable `segment-<first-sequence>.jsonl` names and an
 atomically replaced `manifest.json`; these files must not be shared with plain
@@ -88,11 +88,16 @@ lost manifest from silently resetting the chain. An optional trusted initial
 checkpoint continues an externally anchored chain in a new empty directory.
 
 Defaults: 10 MiB target segment size, 5 retained segments, 1 MiB record cap,
-256 MiB verification budget, 5,000 queued writes and 5-second lock timeout.
+256 MiB verification budget, 5,000 queued writes, 64 MiB queued event payload
+and 5-second lock timeout.
 Segment target accepts 1 byte..100 MiB, count 1..128, record cap up to 16 MiB and
 verification budget up to 1 GiB. The budget must cover configured retained capacity.
 An individual record remains whole even when larger than the segment target.
-Queue overflow rejects; null is an explicit unbounded queue opt-in. `lock: false`,
+Queue overflow rejects on either count or bytes. `maxQueueBytes` accepts a positive
+safe integer or null; a null limit disables only that bound. Pending bytes measure
+captured event JSON in UTF-8 plus newline, excluding chain envelope and JS overhead.
+Active writes retain their reservation until settlement. Both limits must be null
+for a fully unbounded queue; see `audit-event-v1.md`. `lock: false`,
 automatic stale takeover and dropNewest are rejected even through untyped options.
 
 Sequence/hash assignment, append/recovery and manifest changes happen inside the

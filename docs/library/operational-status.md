@@ -56,7 +56,9 @@ Audit counters belong to this provider: attempted, pending, resolved and failed
 `write` calls. A resolved call is an acknowledgment, **not proof of persistence**:
 a `dropNewest` sink can resolve after dropping an event. Optional copied `sinkStats`
 exposes pending/dropped/rejected writes and queue limit for the whole sink, which
-can be shared with other providers. Missing or throwing diagnostics are omitted.
+can be shared with other providers. Optional `pendingBytes` / `maxQueueBytes`
+report queued event UTF-8 JSON Lines payload bytes and their budget (not total heap).
+Old custom sinks may omit both fields. Missing, invalid or throwing diagnostics are omitted.
 Audit event creation errors count as failures too. No counter resets or per-user
 history are retained. Sink flush errors retain their existing propagation behavior
 and are not write failures. Counters are JavaScript numbers, not durable accounting.

@@ -1,5 +1,6 @@
 import type { AuditEvent, AuditSink, FileAuditSinkOptions } from "../public-types.js";
 const DEFAULT_AUDIT_QUEUE_SIZE = 5_000;
+const DEFAULT_AUDIT_QUEUE_BYTES = 64 * 1024 * 1024;
 const MAX_RETAINED_FAILURE_CAUSES = 16;
 export function createQueuedAuditSink(
   options: FileAuditSinkOptions,
@@ -10,23 +11,33 @@ export function createQueuedAuditSink(
   const failureCauses: unknown[] = [];
   let unreportedFailureCount = 0;
   let queuedWrites = 0;
+  let pendingBytes = 0;
   let droppedWrites = 0;
   let rejectedWrites = 0;
   let writeQueue = Promise.resolve();
   let flushQueue = Promise.resolve();
 
   async function enqueueWrite(event: AuditEvent, requireConfirmation: boolean): Promise<void> {
-    if (queue.maxSize !== undefined && queuedWrites >= queue.maxSize) {
+    // Count saturation keeps its existing precedence and avoids needless serialization.
+    const countFull = queue.maxSize !== undefined && queuedWrites >= queue.maxSize;
+    const bytes = countFull ? 0 : Buffer.byteLength(JSON.stringify(event), "utf8") + 1;
+    const bytesFull = queue.maxBytes !== undefined && bytes > queue.maxBytes - pendingBytes;
+    if (countFull || bytesFull) {
       if (queue.overflowPolicy === "dropNewest" && !requireConfirmation) {
         droppedWrites += 1;
         return;
       }
 
       rejectedWrites += 1;
-      throw new Error(`Audit write queue is full: maxQueueSize=${queue.maxSize}`);
+      throw new Error(
+        countFull
+          ? `Audit write queue is full: maxQueueSize=${queue.maxSize}`
+          : `Audit write queue is full: maxQueueBytes=${queue.maxBytes}`
+      );
     }
 
     queuedWrites += 1;
+    pendingBytes += bytes;
     const writeOperation = writeQueue.then(() => writer(event));
     writeQueue = writeOperation.catch(() => undefined);
     const trackedWrite = writeOperation
@@ -39,6 +50,7 @@ export function createQueuedAuditSink(
       })
       .finally(() => {
         queuedWrites -= 1;
+        pendingBytes -= bytes;
         pendingWrites.delete(trackedWrite);
       });
 
@@ -82,7 +94,9 @@ export function createQueuedAuditSink(
         pendingWrites: queuedWrites,
         droppedWrites,
         rejectedWrites,
-        maxQueueSize: queue.maxSize ?? null
+        maxQueueSize: queue.maxSize ?? null,
+        pendingBytes,
+        maxQueueBytes: queue.maxBytes ?? null
       };
     }
   };
@@ -90,10 +104,17 @@ export function createQueuedAuditSink(
 
 interface QueueOptions {
   readonly maxSize: number | undefined;
+  readonly maxBytes: number | undefined;
   readonly overflowPolicy: NonNullable<FileAuditSinkOptions["queueOverflowPolicy"]>;
 }
 
 function createQueueOptions(options: FileAuditSinkOptions): QueueOptions {
+  const maxBytes =
+    options.maxQueueBytes === null
+      ? undefined
+      : (options.maxQueueBytes ?? DEFAULT_AUDIT_QUEUE_BYTES);
+  if (maxBytes !== undefined && (!Number.isSafeInteger(maxBytes) || maxBytes <= 0))
+    throw new RangeError("maxQueueBytes must be a positive safe integer or null");
   if (
     options.queueOverflowPolicy !== undefined &&
     options.queueOverflowPolicy !== "reject" &&
@@ -105,6 +126,7 @@ function createQueueOptions(options: FileAuditSinkOptions): QueueOptions {
   if (options.maxQueueSize === null) {
     return {
       maxSize: undefined,
+      maxBytes,
       overflowPolicy: options.queueOverflowPolicy ?? "reject"
     };
   }
@@ -117,6 +139,7 @@ function createQueueOptions(options: FileAuditSinkOptions): QueueOptions {
 
   return {
     maxSize: maxQueueSize,
+    maxBytes,
     overflowPolicy: options.queueOverflowPolicy ?? "reject"
   };
 }

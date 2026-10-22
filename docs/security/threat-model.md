@@ -91,6 +91,9 @@ Partial committed history fails closed; plain file writers remain compatible.
 - Provide an optional bounded queue for local audit sinks so high-pressure writers can
   reject or drop newest audit writes instead of growing memory without a caller-selected
   limit.
+- Default sink queues bound both write count and queued event payload bytes. Byte
+  reservations include active writes until settlement; heap and temporary serialization
+  overhead remain additional. Multiple sinks require an aggregate process budget.
 - Bound local file growth with optional size-based rotation and retained rotated file
   count.
 - Coordinate shared local audit files with optional advisory lock files when multiple

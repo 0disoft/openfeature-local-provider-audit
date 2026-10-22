@@ -804,7 +804,7 @@ describe("audit events", () => {
         await expect(auditSink.write(createTestAuditEvent("evt_queue_reject_2"))).rejects.toThrow(
           "Audit write queue is full: maxQueueSize=1"
         );
-        expect(auditSink.getStats?.()).toEqual({
+        expect(auditSink.getStats?.()).toMatchObject({
           pendingWrites: 1,
           droppedWrites: 0,
           rejectedWrites: 1,
@@ -817,7 +817,7 @@ describe("audit events", () => {
       await firstWrite;
       await auditSink.flush?.();
 
-      expect(auditSink.getStats?.()).toEqual({
+      expect(auditSink.getStats?.()).toMatchObject({
         pendingWrites: 0,
         droppedWrites: 0,
         rejectedWrites: 1,
@@ -850,7 +850,7 @@ describe("audit events", () => {
 
       try {
         await auditSink.write(createTestAuditEvent("evt_queue_drop_2"));
-        expect(auditSink.getStats?.()).toEqual({
+        expect(auditSink.getStats?.()).toMatchObject({
           pendingWrites: 1,
           droppedWrites: 1,
           rejectedWrites: 0,
@@ -863,7 +863,7 @@ describe("audit events", () => {
       await firstWrite;
       await auditSink.flush?.();
 
-      expect(auditSink.getStats?.()).toEqual({
+      expect(auditSink.getStats?.()).toMatchObject({
         pendingWrites: 0,
         droppedWrites: 1,
         rejectedWrites: 0,
@@ -884,13 +884,13 @@ describe("audit events", () => {
       maxQueueSize: null
     });
 
-    expect(defaultSink.getStats?.()).toEqual({
+    expect(defaultSink.getStats?.()).toMatchObject({
       pendingWrites: 0,
       droppedWrites: 0,
       rejectedWrites: 0,
       maxQueueSize: 5000
     });
-    expect(unboundedSink.getStats?.()).toEqual({
+    expect(unboundedSink.getStats?.()).toMatchObject({
       pendingWrites: 0,
       droppedWrites: 0,
       rejectedWrites: 0,

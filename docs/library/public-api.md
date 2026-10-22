@@ -200,8 +200,8 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
 - `FileAuditSinkOptions` with `path`, optional `createDirectory`, optional `maxBytes`,
   optional `maxFiles`, optional `lock`, optional `lockTimeoutMs`, and optional
   deprecated `staleLockMs` (supplying it throws), optional `maxQueueSize: number | null`, and optional
-  `queueOverflowPolicy`. Omitting `maxQueueSize` selects 5,000; `null` explicitly selects
-  an unbounded queue.
+  `queueOverflowPolicy` and `maxQueueBytes: number | null`. Count defaults to 5,000
+  and pending event bytes to 64 MiB; null independently disables that bound.
 - `EvaluationRequest` with optional `targetingKey` for rollout evaluation and a
   discriminated `expectedType`/`defaultValue` pair that rejects mismatched caller types.
 - `EvaluationResult` with optional `bucket` for deterministic pure-evaluator replay checks.
@@ -210,7 +210,8 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
   non-`names` modes keep `keys` empty.
 - `AuditSink` implementations may expose optional `flush()` to wait for pending writes and
   optional `getStats()` for implementation-specific sink counters. File sinks report
-  pending, dropped, and rejected writes plus their effective queue limit.
+  pending, dropped, and rejected writes plus their effective queue limit and optional
+  `pendingBytes` / `maxQueueBytes` payload diagnostics. Custom sinks remain compatible.
 - Providers flush an optional audit sink through the OpenFeature `onClose` lifecycle hook;
   waiting at most 5,000 ms by default (`auditShutdownTimeoutMs` overrides this).
   They release events/metrics before waiting and do not close shared sinks.

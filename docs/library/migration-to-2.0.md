@@ -8,8 +8,21 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.22` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.23` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.23 bounds file/chained sink queues by both 5,000 pending writes and 64 MiB
+of pending event JSON Lines bytes by default. `maxQueueBytes` accepts a positive
+safe integer or null; each null disables only its own bound. To restore the old
+fully unbounded policy, explicitly set both maxQueueSize and maxQueueBytes to null.
+Existing rejection/drop-newest and confirmed-write semantics apply to either bound.
+Byte reservations include active writes and release only after actual settlement,
+including failures. Optional FileAuditSinkStats.pendingBytes / maxQueueBytes are
+also projected into provider status; custom sinks can keep their old stats shape.
+The byte budget counts captured event JSON in UTF-8 plus its newline, not JS heap,
+Promise overhead, temporary serialization or chain-envelope/disk bytes. Coordinate
+aggregate budgets when creating multiple sinks. No event ordering, hash-chain,
+locking, acknowledgment or crash-recovery contract changes.
 
 Alpha.22 adds a shared refresh `timeoutMs` (default 30,000 ms; integer
 1..2,147,483,647). Existing call signatures remain valid, but previously unlimited

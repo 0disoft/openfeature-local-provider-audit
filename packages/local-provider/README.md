@@ -312,11 +312,13 @@ provider close hook, which flushes the configured sink without taking ownership 
 closing a sink that another provider may share.
 
 The queue is bounded to 5,000 pending writes by default. Set a positive `maxQueueSize` to
-choose another limit, or set `maxQueueSize: null` only when preserving the pre-0.15
-unbounded behavior is worth the process-memory risk. The default overflow policy is
+choose another count limit. Pending event payload is also limited to 64 MiB by default;
+`maxQueueBytes` accepts a positive safe integer or null. Each null disables only its
+own bound; both must be null for fully unbounded behavior. Pending bytes include
+UTF-8 event JSON and newline, not JS heap overhead or chain-envelope bytes. The default overflow policy is
 `reject`; set `queueOverflowPolicy: "dropNewest"` to resolve the overflowing write without
 appending that event. `auditSink.getStats?.()` returns pending, dropped, and rejected
-write counters plus the effective queue limit. Counters are cumulative for the sink
+write counters, `pendingBytes`, and effective count/byte limits. Counters are cumulative for the sink
 lifetime.
 
 Set `maxBytes` to rotate the active audit file by size. `maxFiles` controls how many

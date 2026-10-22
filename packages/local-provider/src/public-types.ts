@@ -468,6 +468,8 @@ export interface FileAuditSinkStats {
   readonly droppedWrites: number;
   readonly rejectedWrites: number;
   readonly maxQueueSize: number | null;
+  readonly pendingBytes?: number;
+  readonly maxQueueBytes?: number | null;
 }
 
 export interface ChainedFileAuditSinkOptions {
@@ -479,6 +481,7 @@ export interface ChainedFileAuditSinkOptions {
   readonly maxRecordBytes?: number;
   readonly maxVerificationBytes?: number;
   readonly maxQueueSize?: number | null;
+  readonly maxQueueBytes?: number | null;
   readonly lockTimeoutMs?: number;
 }
 
@@ -502,5 +505,6 @@ export interface FileAuditSinkOptions {
   /** @deprecated Automatic stale takeover is unsafe and rejected. Recover only after stopping writers. */
   readonly staleLockMs?: number;
   readonly maxQueueSize?: number | null;
+  readonly maxQueueBytes?: number | null;
   readonly queueOverflowPolicy?: AuditQueueOverflowPolicy;
 }

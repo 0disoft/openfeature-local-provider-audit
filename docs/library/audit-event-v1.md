@@ -76,7 +76,8 @@ raw user context by default.
   serialized flush call. Failure count is exact; retained error objects are capped at 16
   per flush interval so an undrained failure ledger cannot grow without bound.
 - File audit sinks expose optional `getStats()` with pending, dropped, and rejected write
-  counters plus the effective queue limit. Counters are cumulative for the sink lifetime.
+  counters plus the effective count and byte limits. Optional `pendingBytes` and
+  `maxQueueBytes` expose pending event JSON Lines bytes and their budget. Counters are cumulative for the sink lifetime.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
 - New POSIX audit directories and files use `0700` and `0600`. The final path rejects
@@ -97,7 +98,14 @@ raw user context by default.
   marker cleanup even after a handle-close error; both failures remain observable.
 - File audit sinks bound their in-memory write queue to 5,000 writes by default.
   `maxQueueSize` accepts a positive caller-owned limit, while `null` explicitly selects
-  the pre-0.15 unbounded behavior.
+  unbounded count behavior. `maxQueueBytes` independently defaults to 64 MiB and
+  accepts a positive safe integer or null to disable the byte bound. Both active
+  and waiting writes reserve their captured JSON UTF-8 size plus one newline;
+  reservations release on actual completion or failure, not on caller timeout.
+  This is a payload budget, not a heap/RSS bound: JS objects, Promise overhead,
+  temporary serialization and chain envelope bytes are additional. Budgets belong
+  to each sink, not the entire process. Fully unbounded behavior requires both
+  limits to be null. Invalid events are still validated before enqueue.
   `queueOverflowPolicy: "reject"` rejects the newest write when full, while
   `"dropNewest"` resolves without writing the newest event. Reject and drop outcomes
   increment separate counters.

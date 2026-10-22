@@ -263,7 +263,11 @@ export function createChainedFileAuditSink(
     return state;
   }
   const queued = createQueuedAuditSink(
-    { path, ...(options.maxQueueSize !== undefined ? { maxQueueSize: options.maxQueueSize } : {}) },
+    {
+      path,
+      ...(options.maxQueueSize !== undefined ? { maxQueueSize: options.maxQueueSize } : {}),
+      ...(options.maxQueueBytes !== undefined ? { maxQueueBytes: options.maxQueueBytes } : {})
+    },
     (event) =>
       exclusive(async () => {
         let state = await recover(await load());

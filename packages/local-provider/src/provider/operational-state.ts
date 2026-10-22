@@ -116,12 +116,23 @@ function readSinkStats(sink: AuditSink | undefined): FileAuditSinkStats | undefi
   try {
     const stats = sink?.getStats?.();
     if (stats === undefined) return undefined;
-    const { pendingWrites, droppedWrites, rejectedWrites, maxQueueSize } = stats;
+    const {
+      pendingWrites,
+      droppedWrites,
+      rejectedWrites,
+      maxQueueSize,
+      pendingBytes,
+      maxQueueBytes
+    } = stats;
     if (
       ![pendingWrites, droppedWrites, rejectedWrites].every(
         (value) => Number.isSafeInteger(value) && value >= 0
       ) ||
-      (maxQueueSize !== null && (!Number.isSafeInteger(maxQueueSize) || maxQueueSize <= 0))
+      (maxQueueSize !== null && (!Number.isSafeInteger(maxQueueSize) || maxQueueSize <= 0)) ||
+      (pendingBytes !== undefined && (!Number.isSafeInteger(pendingBytes) || pendingBytes < 0)) ||
+      (maxQueueBytes !== undefined &&
+        maxQueueBytes !== null &&
+        (!Number.isSafeInteger(maxQueueBytes) || maxQueueBytes <= 0))
     )
       return undefined;
     // Copy only documented fields: custom sinks can carry sensitive extra metadata.
@@ -129,7 +140,9 @@ function readSinkStats(sink: AuditSink | undefined): FileAuditSinkStats | undefi
       pendingWrites,
       droppedWrites,
       rejectedWrites,
-      maxQueueSize
+      maxQueueSize,
+      ...(pendingBytes !== undefined ? { pendingBytes } : {}),
+      ...(maxQueueBytes !== undefined ? { maxQueueBytes } : {})
     });
   } catch {
     // Optional diagnostics must not break health checks or flag evaluations.
