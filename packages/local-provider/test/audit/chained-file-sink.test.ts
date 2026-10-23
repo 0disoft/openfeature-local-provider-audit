@@ -224,6 +224,54 @@ describe("chained file audit sink", () => {
     expect((await sink().getCheckpoint()).head.sequence).toBe(5);
   });
 
+  it.each(["tail", "orphan"])(
+    "recovers 64 complete unacknowledged records in a %s",
+    async (kind) => {
+      const target = sink();
+      await target.write(event());
+      const committed = await target.getCheckpoint();
+      let previous = committed.head;
+      const lines: string[] = [];
+      for (let index = 0; index < 64; index++) {
+        const record = createChainedAuditEvent(event(), previous);
+        previous = verifyAuditChainRecord(record, previous);
+        lines.push(`${JSON.stringify(record)}\n`);
+      }
+      const file = kind === "tail" ? (committed.files[0] ?? "") : "segment-2.jsonl";
+      await appendFile(join(directory, file), lines.join(""));
+      const recovered = await sink().getCheckpoint();
+      expect(recovered.head).toEqual(previous);
+      await sink().write(event());
+      expect((await sink().getCheckpoint()).head.sequence).toBe(66);
+    }
+  );
+
+  it.each(["partial", "corrupt", "too-many", "too-large"])(
+    "preserves all evidence and the committed manifest on a %s suffix",
+    async (kind) => {
+      const target = sink();
+      await target.write(event());
+      const committed = await target.getCheckpoint();
+      const manifest = await readFile(join(directory, "manifest.json"));
+      let previous = committed.head;
+      const lines: string[] = [];
+      for (let index = 0; index < (kind === "too-many" ? 65 : 3); index++) {
+        const record = createChainedAuditEvent(event(), previous);
+        previous = verifyAuditChainRecord(record, previous);
+        lines.push(`${JSON.stringify(record)}\n`);
+      }
+      if (kind === "partial") lines.push('{"partial":');
+      if (kind === "corrupt") lines[1] = lines[1]?.replace('"feature"', '"tampered"') ?? "";
+      if (kind === "too-large") lines.push("x".repeat(4 * 1024 * 1024));
+      const file = join(directory, committed.files[0] ?? "");
+      await appendFile(file, lines.join(""));
+      const evidence = await readFile(file);
+      await expect(sink().getCheckpoint()).rejects.toThrow();
+      expect((await readFile(file)).equals(evidence)).toBe(true);
+      expect(await readFile(join(directory, "manifest.json"))).toEqual(manifest);
+    }
+  );
+
   it("retries failed retention before accepting another append", async () => {
     const target = sink({ maxSegmentBytes: 1, maxSegments: 1 });
     await target.write(event());

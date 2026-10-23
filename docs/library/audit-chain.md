@@ -116,7 +116,7 @@ Append checks retained file sizes and the current committed tip; `getCheckpoint(
 drains writes, fully re-verifies retained records under the lock and returns frozen
 `{ start, head, files }`, with safe relative filenames in oldest-first order.
 
-A complete unacknowledged append or next-sequence rotation orphan is re-verified,
+A complete unacknowledged suffix or next-sequence rotation orphan is re-verified,
 flushed and adopted on recovery before subsequent writes. Caller retries can thus
 produce duplicate events at different sequence positions: this is not exactly-once
 delivery. A partial/malformed tail, missing/truncated committed file or incompatible
@@ -143,3 +143,10 @@ Store checkpoint copies outside the log's writable trust boundary; the operation
 manifest is not independent authentication. No remote checkpoint exporter is
 installed. Requirement-by-requirement local evidence is recorded in
 `../testing/p2-acceptance.md`.
+
+Recovery validates the entire uncommitted suffix before publishing a new manifest.
+It accepts at most 64 contiguous records and 4 MiB total encoded bytes (or one
+record up to maxRecordBytes + 1 when larger). Missing newlines, invalid UTF-8,
+invalid hashes, gaps and overflow preserve both the evidence and the committed
+manifest. Recovery limits are shared with the batch writer, independent of its
+local configuration. No valid prefix of a malformed suffix is adopted.

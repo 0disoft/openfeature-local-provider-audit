@@ -16,6 +16,7 @@ import {
   verifyAuditChain,
   verifyAuditChainRecord
 } from "./audit-chain.js";
+import { MAX_CHAIN_BATCH_BYTES, MAX_CHAIN_BATCH_RECORDS } from "./chain-policy.js";
 import { captureChainEvent, dataRecord } from "./chain-event.js";
 import { createQueuedAuditSink } from "./queued-sink.js";
 import { readChainLines } from "./read-chain-lines.js";
@@ -198,6 +199,20 @@ export function createChainedFileAuditSink(
       { maxRecordBytes }
     );
   }
+  function parseSuffix(bytes: Buffer, previous: AuditChainCheckpoint): AuditChainCheckpoint {
+    let current = previous;
+    let offset = 0;
+    let records = 0;
+    if (bytes.length === 0) throw new Error();
+    while (offset < bytes.length) {
+      if (++records > MAX_CHAIN_BATCH_RECORDS) throw new Error();
+      const end = bytes.indexOf(10, offset);
+      if (end < 0) throw new Error();
+      current = parseLine(bytes.subarray(offset, end + 1), current);
+      offset = end + 1;
+    }
+    return current;
+  }
   async function recover(state: Manifest): Promise<Manifest> {
     for (let index = 0; index < state.segments.length; index++) {
       const segment = state.segments[index];
@@ -220,8 +235,9 @@ export function createChainedFileAuditSink(
           });
           if (!same(checked, segment.head)) throw new Error();
           if (size > segment.size) {
-            if (size - segment.size > maxRecordBytes + 1) throw new Error();
-            const accepted = parseLine(
+            if (size - segment.size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1))
+              throw new Error();
+            const accepted = parseSuffix(
               await readChainRange(handle, segment.size, size - segment.size),
               segment.head
             );
@@ -247,8 +263,8 @@ export function createChainedFileAuditSink(
       if (handle !== undefined) {
         try {
           const size = (await handle.stat()).size;
-          if (size > maxRecordBytes + 1) throw new Error();
-          const accepted = parseLine(await readChainRange(handle, 0, size), head(state));
+          if (size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1)) throw new Error();
+          const accepted = parseSuffix(await readChainRange(handle, 0, size), head(state));
           await handle.sync();
           state = await commitSegments(state, [
             ...state.segments,

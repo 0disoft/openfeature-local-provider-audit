@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.26` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.27` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.26 privately indexes wide validated `in` condition arrays for repeated
@@ -213,3 +213,7 @@ APIs remain Node-only. Native Node bucketing stays SHA-256 compatible with the
 portable implementation; no request or schema migration is required. New packaged
 core and bundled dependency notices increase artifact size. See `portable-core.md`;
 non-Node support remains pending real runtime evidence.
+
+Alpha.27 recovers bounded multi-record uncommitted audit suffixes atomically.
+Upgrade all processes reading the same chain before enabling batched writes;
+older readers cannot recover a multi-record suffix left by an interrupted batch.
