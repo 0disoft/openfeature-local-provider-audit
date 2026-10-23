@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.36` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.37` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.37 preserves simultaneous snapshot file read/handle-validation and close
+failures as AggregateError, with operation first, close second, and the original
+operation as cause. Single failures retain their identity and no close retry is added.
+This also covers CLI input readers; CLI output remains sanitized. Existing audit
+cleanup semantics use the same internal helper. No public signatures change.
 
 Alpha.36 rejects malformed UTF-8 bytes in file loads/reloads and shared CLI input
 reads with PARSE_ERROR. Previously replacement characters could silently change

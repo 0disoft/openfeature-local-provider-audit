@@ -55,3 +55,69 @@ it("opens nonblocking and rejects a replacement special file before reading, clo
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+it.each(["stat", "read"] as const)(
+  "retains both the %s failure and a close failure, closing once",
+  async (stage) => {
+    await withSnapshotHandle(async (path, handle, release) => {
+      const primary = new Error(`injected ${stage} failure`);
+      const cleanup = new Error("injected close failure");
+      if (stage === "stat") vi.spyOn(handle, "stat").mockRejectedValueOnce(primary);
+      else vi.spyOn(handle, "read").mockRejectedValueOnce(primary);
+      vi.mocked(handle.close).mockImplementationOnce(async () => {
+        await release();
+        throw cleanup;
+      });
+      const error = await loadFlagSnapshotFile(path).catch((error: unknown) => error);
+      expect(error).toBeInstanceOf(AggregateError);
+      expect((error as AggregateError).errors).toEqual([primary, cleanup]);
+      expect((error as AggregateError).cause).toBe(primary);
+      expect(handle.close).toHaveBeenCalledOnce();
+    });
+  }
+);
+
+it("preserves the original read failure when closing succeeds", async () => {
+  await withSnapshotHandle(async (path, handle) => {
+    const primary = new Error("injected read failure");
+    vi.spyOn(handle, "read").mockRejectedValueOnce(primary);
+    await expect(loadFlagSnapshotFile(path)).rejects.toBe(primary);
+    expect(handle.close).toHaveBeenCalledOnce();
+  });
+});
+
+it("reports a lone close failure after a successful read without retrying", async () => {
+  await withSnapshotHandle(async (path, handle, release) => {
+    const cleanup = new Error("injected close failure");
+    vi.mocked(handle.close).mockImplementationOnce(async () => {
+      await release();
+      throw cleanup;
+    });
+    await expect(loadFlagSnapshotFile(path)).rejects.toBe(cleanup);
+    expect(handle.close).toHaveBeenCalledOnce();
+  });
+});
+
+async function withSnapshotHandle(
+  run: (path: string, handle: FileHandle, release: () => Promise<void>) => Promise<void>
+): Promise<void> {
+  const directory = await mkdtemp(join(tmpdir(), "snapshot-read-cleanup-"));
+  const native = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+  const path = join(directory, "flags.json");
+  await writeFile(path, '{"schemaVersion":1,"flags":{}}');
+  const handle = await native.open(path, "r");
+  const nativeClose = handle.close.bind(handle);
+  let released = false;
+  const release = async () => {
+    await nativeClose();
+    released = true;
+  };
+  vi.spyOn(handle, "close").mockImplementation(release);
+  vi.mocked(open).mockResolvedValueOnce(handle);
+  try {
+    await run(path, handle, release);
+  } finally {
+    if (!released) await release();
+    await rm(directory, { recursive: true, force: true });
+  }
+}

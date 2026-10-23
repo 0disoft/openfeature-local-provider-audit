@@ -14,6 +14,7 @@ import { basename, dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
+import { cleanupResource } from "../errors/resource-cleanup.js";
 import type {
   FlagSnapshot,
   FlagSnapshotFileWatcher,
@@ -273,7 +274,7 @@ export async function readFileWithinLimit(
   // for a FIFO peer. Recheck the opened handle in case the target changed.
   assertRegularSnapshotFile(await stat(path));
   const handle = await open(path, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
-
+  let failure: { cause: unknown } | undefined;
   try {
     const fileStats = await handle.stat();
     assertRegularSnapshotFile(fileStats);
@@ -301,8 +302,11 @@ export async function readFileWithinLimit(
       assertSnapshotSizeWithinLimit(totalBytes, maxBytes);
       chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
     }
+  } catch (error) {
+    failure = { cause: error };
+    throw error;
   } finally {
-    await handle.close();
+    await cleanupResource(() => handle.close(), failure, "Snapshot file read and close failed.");
   }
 }
 

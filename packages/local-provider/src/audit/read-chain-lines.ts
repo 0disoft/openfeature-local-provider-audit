@@ -1,4 +1,4 @@
-import { cleanupAuditResource } from "./cleanup.js";
+import { cleanupResource } from "../errors/resource-cleanup.js";
 import { constants } from "node:fs";
 import { lstat, open } from "node:fs/promises";
 export async function* readChainLines(
@@ -69,6 +69,6 @@ export async function* readChainLines(
     failure = { cause: error };
     throw error;
   } finally {
-    await cleanupAuditResource(() => handle.close(), failure, "Audit chain read and close failed.");
+    await cleanupResource(() => handle.close(), failure, "Audit chain read and close failed.");
   }
 }

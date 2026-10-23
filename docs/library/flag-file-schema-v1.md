@@ -58,6 +58,11 @@ because malformed or changed configuration can alter evaluated flag values.
   U+FFFD characters and Unicode split across read chunks remain supported. Explicit
   non-UTF-8 encodings retain their existing decoding behavior. File byte limits and
   their error precedence are unchanged; failed watcher reloads keep the last snapshot.
+- A file read/handle-validation failure is preserved when handle close succeeds.
+  If both the operation and close fail, an AggregateError retains them in that order
+  and its cause is the original failure. A lone close failure stays unchanged; close
+  is attempted once without retry. Direct loader callers and watcher error callbacks
+  receive these native diagnostics; CLI failure output continues to omit input details.
 - Invalid schema produces a schema error.
 - Unknown fields at the snapshot, flag-definition, or rollout-rule level produce a
   schema error that names the rejected field.
