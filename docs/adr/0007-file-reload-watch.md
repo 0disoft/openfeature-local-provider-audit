@@ -43,6 +43,13 @@ contracts were covered by tests.
 - Capture the resolved path, read settings and callbacks before startup awaits.
   Later option/URL changes cannot redirect reloads away from the watched target.
   A URL returned through `watcher.path` is a detached copy of the original URL value.
+- Closing attempts every owned native/polling cleanup even if an earlier cleanup
+  throws. Ownership is retired before cleanup, so repeated close does not retry
+  ambiguous releases. Multiple failures use AggregateError in attempted order, with
+  the first as cause; single failures retain their identity. Setup/initial delivery
+  failure remains first when cleanup also fails. A polling setup failure closes
+  native handles once, including both macOS handles. Cleanup attempts do not guarantee
+  that an OS resource whose close failed was released.
 - Native watcher and reload failures must be reported through `onError` and must not replace the
   last valid snapshot or escape as an unhandled watcher error.
 - Calling `reload()` from that watcher's active `onSnapshot` callback, including after

@@ -1,14 +1,15 @@
-import { constants } from "node:fs";
+import { constants, unwatchFile } from "node:fs";
 import { mkdtemp, open, rm, writeFile, type FileHandle } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
-import { loadFlagSnapshotFile } from "../../src/flags/snapshot-file.js";
+import { loadFlagSnapshotFile, watchFlagSnapshotFile } from "../../src/flags/snapshot-file.js";
 
 vi.mock("node:fs", async (original) => {
   const actual = await original<typeof import("node:fs")>();
   return {
     ...actual,
+    unwatchFile: vi.fn(actual.unwatchFile),
     constants: { ...actual.constants, O_NONBLOCK: actual.constants.O_NONBLOCK ?? 2048 }
   };
 });
@@ -17,6 +18,38 @@ vi.mock("node:fs/promises", async (original) => {
   return { ...actual, open: vi.fn(actual.open) };
 });
 afterEach(() => vi.restoreAllMocks());
+
+it.skipIf(process.platform !== "win32")(
+  "preserves initial callback and real polling cleanup failures",
+  async () => {
+    const directory = await mkdtemp(join(tmpdir(), "snapshot-startup-cleanup-"));
+    const native = await vi.importActual<typeof import("node:fs")>("node:fs");
+    const primary = new Error("initial delivery failed");
+    const cleanup = new Error("poll cleanup failed");
+    try {
+      const path = join(directory, "flags.json");
+      await writeFile(path, '{"schemaVersion":1,"flags":{}}');
+      vi.mocked(unwatchFile)
+        .mockClear()
+        .mockImplementationOnce((...args) => {
+          native.unwatchFile(...args);
+          throw cleanup;
+        });
+      const error = await watchFlagSnapshotFile({
+        path,
+        onSnapshot() {
+          throw primary;
+        }
+      }).catch((error: unknown) => error);
+      expect(error).toBeInstanceOf(AggregateError);
+      expect((error as AggregateError).errors).toEqual([primary, cleanup]);
+      expect((error as AggregateError).cause).toBe(primary);
+      expect(unwatchFile).toHaveBeenCalledOnce();
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  }
+);
 
 it("rejects non-regular snapshot paths before opening them", async () => {
   const directory = await mkdtemp(join(tmpdir(), "openfeature-snapshot-type-"));

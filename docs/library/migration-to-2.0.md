@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.37` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.38` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.38 attempts all owned watcher cleanups when one release fails, including
+polling plus native handles and the two macOS watchers. Compound setup/delivery
+and cleanup failures retain the original cause in AggregateError; single errors
+keep their identity. Repeated close does not retry ambiguous releases, and polling
+startup cleanup no longer closes the macOS directory watcher twice. No signature,
+reload ordering, event filtering or default polling behavior changes.
 
 Alpha.37 preserves simultaneous snapshot file read/handle-validation and close
 failures as AggregateError, with operation first, close second, and the original

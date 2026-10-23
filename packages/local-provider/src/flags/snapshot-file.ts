@@ -14,7 +14,7 @@ import { basename, dirname, extname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
-import { cleanupResource } from "../errors/resource-cleanup.js";
+import { cleanupResource, cleanupResources } from "../errors/resource-cleanup.js";
 import type {
   FlagSnapshot,
   FlagSnapshotFileWatcher,
@@ -233,7 +233,9 @@ export async function watchFlagSnapshotFile(
     await enqueueReload({ reportError: false, skipUnchanged: false });
   } catch (error) {
     closed = true;
-    closeWatcher(watcher, timer);
+    cleanupResources([() => closeWatcher(watcher, timer)], "Snapshot startup and cleanup failed.", {
+      cause: error
+    });
     throw error;
   }
 
@@ -446,34 +448,38 @@ export function createSnapshotWatchHandle(
 
   try {
     fileWatcher = createNativeWatcher(options.target.path, options, runtime, () => {
-      options.onChange();
+      if (!handleClosed) options.onChange();
     });
-
-    return addConsistencyPolling(
-      {
-        close() {
-          if (handleClosed) {
-            return;
-          }
-          handleClosed = true;
-          directoryWatcher.close();
-          fileWatcher?.close();
-          fileWatcher = undefined;
-        }
-      },
-      options,
-      runtime
-    );
   } catch (error) {
     handleClosed = true;
-    directoryWatcher.close();
+    cleanupResources(
+      [directoryWatcher.close.bind(directoryWatcher)],
+      "Snapshot watcher setup and cleanup failed.",
+      { cause: error }
+    );
     throw error;
   }
+
+  return addConsistencyPolling(
+    {
+      close() {
+        if (handleClosed) return;
+        handleClosed = true;
+        const previous = fileWatcher;
+        fileWatcher = undefined;
+        const cleanups = [directoryWatcher.close.bind(directoryWatcher)];
+        if (previous !== undefined) cleanups.push(previous.close.bind(previous));
+        cleanupResources(cleanups, "Snapshot watcher cleanup failed.");
+      }
+    },
+    options,
+    runtime
+  );
 
   function rearmMacOsFileWatcher(): void {
     try {
       const nextFileWatcher = createNativeWatcher(options.target.path, options, runtime, () => {
-        options.onChange();
+        if (!handleClosed) options.onChange();
       });
       const previousFileWatcher = fileWatcher;
       fileWatcher = nextFileWatcher;
@@ -512,7 +518,11 @@ function addConsistencyPolling(
       listener
     );
   } catch (error) {
-    nativeHandle.close();
+    cleanupResources(
+      [nativeHandle.close.bind(nativeHandle)],
+      "Snapshot polling setup and cleanup failed.",
+      { cause: error }
+    );
     throw error;
   }
 
@@ -522,8 +532,13 @@ function addConsistencyPolling(
         return;
       }
       closed = true;
-      runtime.unwatchFile(options.target.path, listener);
-      nativeHandle.close();
+      cleanupResources(
+        [
+          () => runtime.unwatchFile(options.target.path, listener),
+          nativeHandle.close.bind(nativeHandle)
+        ],
+        "Snapshot polling and native cleanup failed."
+      );
     }
   };
 }

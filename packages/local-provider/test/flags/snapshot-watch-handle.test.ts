@@ -4,6 +4,81 @@ import { describe, expect, it, vi } from "vitest";
 import { createSnapshotWatchHandle } from "../../src/flags/snapshot-file.js";
 
 describe("snapshot watch handle", () => {
+  it("releases the macOS file watcher even when directory close fails", () => {
+    const fake = createFakeWatchRuntime("darwin");
+    const handle = createSnapshotWatchHandle(createWatchOptions(vi.fn(), vi.fn()), fake.runtime);
+    const failure = new Error("directory close");
+    const close = vi.spyOn(watcherAt(fake.records, 0), "close").mockImplementation(() => {
+      throw failure;
+    });
+    expect(() => handle.close()).toThrow(failure);
+    expect(fake.records[1]?.watcher.closed).toBe(true);
+    handle.close();
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it("attempts all polling and native cleanup and retains each failure", () => {
+    const fake = createFakeWatchRuntime("darwin");
+    const handle = createSnapshotWatchHandle(
+      createWatchOptions(vi.fn(), vi.fn(), { consistencyPollIntervalMs: 50 }),
+      fake.runtime
+    );
+    const failures = [new Error("unwatch"), new Error("directory"), new Error("file")];
+    fake.unwatchFile.mockImplementation(() => {
+      throw failures[0];
+    });
+    const directoryClose = vi.spyOn(watcherAt(fake.records, 0), "close").mockImplementation(() => {
+      throw failures[1];
+    });
+    const fileClose = vi.spyOn(watcherAt(fake.records, 1), "close").mockImplementation(() => {
+      throw failures[2];
+    });
+    let error: unknown;
+    try {
+      handle.close();
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(AggregateError);
+    const aggregate = error as AggregateError;
+    expect(aggregate.errors[0]).toBe(failures[0]);
+    expect((aggregate.errors[1] as AggregateError).errors).toEqual(failures.slice(1));
+    expect(aggregate.cause).toBe(failures[0]);
+    handle.close();
+    expect(fake.unwatchFile).toHaveBeenCalledOnce();
+    expect(directoryClose).toHaveBeenCalledOnce();
+    expect(fileClose).toHaveBeenCalledOnce();
+  });
+
+  it("preserves polling setup failure and closes both macOS handles once", () => {
+    const fake = createFakeWatchRuntime("darwin");
+    const onChange = vi.fn();
+    const setup = new Error("poll setup");
+    const cleanup = new Error("directory close");
+    fake.watchFile.mockImplementation(() => {
+      vi.spyOn(watcherAt(fake.records, 0), "close").mockImplementation(() => {
+        throw cleanup;
+      });
+      throw setup;
+    });
+    let error: unknown;
+    try {
+      createSnapshotWatchHandle(
+        createWatchOptions(onChange, vi.fn(), { consistencyPollIntervalMs: 50 }),
+        fake.runtime
+      );
+    } catch (caught) {
+      error = caught;
+    }
+    expect(error).toBeInstanceOf(AggregateError);
+    expect((error as AggregateError).errors).toEqual([setup, cleanup]);
+    expect((error as AggregateError).cause).toBe(setup);
+    expect(fake.records[1]?.watcher.closed).toBe(true);
+    expect(fake.records[0]?.watcher.close).toHaveBeenCalledOnce();
+    fake.records[1]?.listener("change", "flags.json");
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it.each(["linux", "darwin", "win32"] as const)(
     "rejects invalid debounce delays before acquiring %s watchers",
     (platform) => {
@@ -268,4 +343,10 @@ class FakeFsWatcher extends EventEmitter {
   close(): void {
     this.closed = true;
   }
+}
+
+function watcherAt(records: readonly FakeWatchRecord[], index: number): FakeFsWatcher {
+  const record = records[index];
+  if (record === undefined) throw new Error("Missing test watcher");
+  return record.watcher;
 }
