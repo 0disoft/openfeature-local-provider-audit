@@ -491,6 +491,14 @@ describe("snapshot file helpers", () => {
     }
   });
 
+  it("rejects an overflowing debounce delay before reading a snapshot", async () => {
+    const onSnapshot = vi.fn();
+    await expect(
+      watchFlagSnapshotFile({ path: "flags.json", debounceMs: 2_147_483_648, onSnapshot })
+    ).rejects.toThrow("debounceMs must be an integer between 0 and 2147483647");
+    expect(onSnapshot).not.toHaveBeenCalled();
+  });
+
   it("rejects unsafe consistency poll intervals before creating a watcher", async () => {
     await expect(
       watchFlagSnapshotFile({

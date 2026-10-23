@@ -4,6 +4,42 @@ import { describe, expect, it, vi } from "vitest";
 import { createSnapshotWatchHandle } from "../../src/flags/snapshot-file.js";
 
 describe("snapshot watch handle", () => {
+  it.each(["linux", "darwin", "win32"] as const)(
+    "rejects invalid debounce delays before acquiring %s watchers",
+    (platform) => {
+      for (const debounceMs of [-1, 0.5, Number.NaN, Number.POSITIVE_INFINITY, 2_147_483_648]) {
+        const fake = createFakeWatchRuntime(platform);
+        expect(() =>
+          createSnapshotWatchHandle(
+            { ...createWatchOptions(vi.fn(), vi.fn()), debounceMs },
+            fake.runtime
+          )
+        ).toThrow("debounceMs must be an integer between 0 and 2147483647");
+        expect(fake.records).toHaveLength(0);
+        expect(fake.watchFile).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  it.each(["linux", "darwin", "win32"] as const)(
+    "accepts both debounce boundaries with %s watcher cleanup",
+    (platform) => {
+      for (const debounceMs of [0, 2_147_483_647]) {
+        const fake = createFakeWatchRuntime(platform);
+        const handle = createSnapshotWatchHandle(
+          { ...createWatchOptions(vi.fn(), vi.fn()), debounceMs },
+          fake.runtime
+        );
+        if (platform === "win32") {
+          expect(fake.watchFile.mock.calls[0]?.[1].interval).toBe(Math.max(50, debounceMs));
+        }
+        handle.close();
+        expect(fake.records.every((record) => record.watcher.closed)).toBe(true);
+        expect(fake.unwatchFile).toHaveBeenCalledTimes(platform === "win32" ? 1 : 0);
+      }
+    }
+  );
+
   it("rearms the macOS file watcher after target replacement", () => {
     const fake = createFakeWatchRuntime("darwin");
     const onChange = vi.fn();

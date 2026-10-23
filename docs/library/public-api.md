@@ -194,7 +194,9 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
   `maxBytes`.
 - `WatchFlagSnapshotFileOptions` with optional `debounceMs`, `persistent`, and
   `consistencyPollIntervalMs`. Consistency polling is disabled when omitted; supplied values
-  must be integers of at least 50 ms.
+  must be integers of at least 50 ms. `debounceMs` defaults to 50 ms and must be an
+  integer from 0 through 2,147,483,647. Invalid debounce values reject with RangeError
+  before any watcher is acquired or initial file is read, avoiding Node timer clamping.
 - `CreateEnvOverridesOptions` with optional `overridesJson`, optional
   `maxOverridesJsonBytes`, and optional injectable `env`.
 - `FileAuditSinkOptions` with `path`, optional `createDirectory`, optional `maxBytes`,

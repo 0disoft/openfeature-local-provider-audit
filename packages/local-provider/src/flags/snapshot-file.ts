@@ -24,6 +24,7 @@ import { parseJsonFlagSnapshot } from "./parse-json-snapshot.js";
 import { parseYamlFlagSnapshot } from "./parse-yaml-snapshot.js";
 
 const DEFAULT_DEBOUNCE_MS = 50;
+const MAX_DEBOUNCE_MS = 2_147_483_647;
 const DEFAULT_MAX_SNAPSHOT_FILE_BYTES = 10 * 1024 * 1024;
 const MIN_POLL_INTERVAL_MS = 50;
 const SNAPSHOT_READ_CHUNK_BYTES = 64 * 1024;
@@ -351,6 +352,13 @@ export function createSnapshotWatchHandle(
   options: SnapshotWatchOptions,
   runtime: SnapshotWatchRuntime = DEFAULT_SNAPSHOT_WATCH_RUNTIME
 ): SnapshotWatchHandle {
+  if (
+    !Number.isInteger(options.debounceMs) ||
+    options.debounceMs < 0 ||
+    options.debounceMs > MAX_DEBOUNCE_MS
+  ) {
+    throw new RangeError(`debounceMs must be an integer between 0 and ${MAX_DEBOUNCE_MS}`);
+  }
   assertOptionalPollInterval(options.consistencyPollIntervalMs);
 
   if (runtime.platform === "win32") {

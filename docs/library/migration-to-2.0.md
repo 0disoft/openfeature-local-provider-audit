@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.34` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.35` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.35 validates watcher `debounceMs` as an integer in 0..2,147,483,647 before
+opening native/polling resources or reading the initial file. Invalid settings now
+reject with RangeError instead of Node silently clamping the delay, including
+overflow to 1 ms. Omitted settings retain the 50 ms default; zero remains supported.
+Valid settings, event ordering, polling policy and public signatures are unchanged.
 
 Alpha.34 makes provider freshness independent of wall-clock adjustments. Optional
 `staleAfterMs` now measures monotonic elapsed time from the last successful refresh,

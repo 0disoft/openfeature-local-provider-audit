@@ -37,6 +37,9 @@ contracts were covered by tests.
   symlink changes without a visible-filename event. Native watching remains primary.
 - Debounce bursts of native events and suppress event-driven callbacks when the parsed snapshot
   is unchanged. Explicit `reload()` calls still invoke `onSnapshot` after successful validation.
+- Validate `debounceMs` as an integer in 0..2,147,483,647 before acquiring watcher
+  resources or loading the initial file. Keep 50 ms as the omitted default and accept
+  zero; reject invalid delays rather than allowing Node to clamp overflow to 1 ms.
 - Capture the resolved path, read settings and callbacks before startup awaits.
   Later option/URL changes cannot redirect reloads away from the watched target.
   A URL returned through `watcher.path` is a detached copy of the original URL value.
