@@ -2,9 +2,8 @@
 
 The default remains `auditFailurePolicy: "bestEffort"` and
 `auditWriteMode: "nonBlocking"`. Writes and redaction failures are observed and
-logged without changing evaluation. Existing `"blocking"` waits for completion,
-still preserving the result on failure. Blocking without a timeout retains its
-existing unlimited wait.
+logged without changing evaluation. `"blocking"` waits for completion or its finite deadline,
+still preserving the result on failure or timeout under best effort.
 
 ```ts
 const sink = createFileAuditSink({ path: auditPath, maxQueueSize: 1_000 });
@@ -44,9 +43,10 @@ business execution or the final failure-policy response from this candidate reco
 No second recursive audit write is attempted after an audit failure.
 
 `auditTimeoutMs` bounds asynchronous waiting and must be an integer from 1 to
-2,147,483,647. It requires a sink and blocking mode. The default for `returnDefault`
-is 1,000 ms; best effort has no default timeout. Best-effort blocking can opt into
-a timeout while retaining the candidate result. Timers are cleared on every wait
+2,147,483,647. It requires a sink and blocking mode. Enabled blocking sinks default to 1,000 ms for both failure policies. Set an explicit
+positive auditTimeoutMs to allow a longer or shorter finite wait. Best-effort blocking
+retains the candidate result when its deadline expires; returnDefault returns the
+safe caller default. Non-blocking mode and providers without a sink add no wait timer. Timers are cleared on every wait
 outcome. This does not preempt synchronous code or cancel the underlying write.
 
 Status `timedOutWrites` counts timed-out waits separately. Pending writes stay

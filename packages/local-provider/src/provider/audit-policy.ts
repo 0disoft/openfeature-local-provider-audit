@@ -7,6 +7,7 @@ import type {
 import { LocalProviderError } from "../errors/local-provider-error.js";
 
 const MAX_TIMER_MS = 2_147_483_647;
+const DEFAULT_AUDIT_TIMEOUT_MS = 1_000;
 const DEFAULT_AUDIT_SHUTDOWN_TIMEOUT_MS = 5_000;
 
 export interface AuditPolicy {
@@ -34,7 +35,11 @@ export function resolveAuditPolicy(options: LocalProviderOptions): AuditPolicy {
       "returnDefault requires blocking mode and an audit sink with writeConfirmed."
     );
   }
-  const timeoutMs = options.auditTimeoutMs ?? (requiresConfirmation ? 1_000 : undefined);
+  const timeoutMs =
+    options.auditTimeoutMs ??
+    (writeMode === "blocking" && options.auditSink !== undefined
+      ? DEFAULT_AUDIT_TIMEOUT_MS
+      : undefined);
   if (
     timeoutMs !== undefined &&
     (!Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > MAX_TIMER_MS)

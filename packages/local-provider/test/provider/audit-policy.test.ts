@@ -9,6 +9,7 @@ import {
   type AuditEvent,
   type AuditSink
 } from "../../src/index.js";
+import { resolveAuditPolicy } from "../../src/provider/audit-policy.js";
 import { staticSnapshot } from "../fixtures.js";
 
 const logger = { debug() {}, info() {}, warn() {}, error() {} };
@@ -240,6 +241,77 @@ describe("audit confirmation policy", () => {
       timedOutWrites: 1,
       pendingWrites: 0
     });
+  });
+
+  it.each(["resolve", "reject"])(
+    "bounds best-effort blocking by default and observes late %s exactly once",
+    async (outcome) => {
+      vi.useFakeTimers();
+      let resolve!: () => void, reject!: (error: Error) => void;
+      const pending = new Promise<void>((done, fail) => {
+        resolve = done;
+        reject = fail;
+      });
+      const write = vi.fn(() => pending);
+      const provider = createLocalProvider({
+        ...options,
+        auditWriteMode: "blocking",
+        auditSink: { write }
+      });
+      let completed = false;
+      const result = provider
+        .resolveBooleanEvaluation("checkout.enabled", false, {}, logger)
+        .then((value) => {
+          completed = true;
+          return value;
+        });
+      await vi.advanceTimersByTimeAsync(999);
+      expect(completed).toBe(false);
+      expect(provider.getStatus().audit).toMatchObject({ pendingWrites: 1, timedOutWrites: 0 });
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(result).resolves.toMatchObject({ value: true, reason: "STATIC", variant: "on" });
+      expect(provider.getStatus().audit).toMatchObject({
+        pendingWrites: 1,
+        timedOutWrites: 1,
+        failedWrites: 0,
+        resolvedWrites: 0
+      });
+      expect(vi.getTimerCount()).toBe(0);
+      if (outcome === "resolve") resolve();
+      else reject(new Error("late private storage failure"));
+      await vi.advanceTimersByTimeAsync(0);
+      expect(provider.getStatus().audit).toMatchObject({
+        pendingWrites: 0,
+        timedOutWrites: 1,
+        failedWrites: outcome === "reject" ? 1 : 0,
+        resolvedWrites: outcome === "resolve" ? 1 : 0
+      });
+      expect(write).toHaveBeenCalledOnce();
+    }
+  );
+
+  it("derives deadlines only for enabled blocking sinks and honors explicit limits", () => {
+    const sink = { write: async () => {}, writeConfirmed: async () => {} };
+    expect(resolveAuditPolicy(options).timeoutMs).toBeUndefined();
+    expect(
+      resolveAuditPolicy({ ...options, auditWriteMode: "blocking" }).timeoutMs
+    ).toBeUndefined();
+    expect(resolveAuditPolicy({ ...options, auditSink: sink }).timeoutMs).toBeUndefined();
+    expect(
+      resolveAuditPolicy({ ...options, auditSink: sink, auditWriteMode: "blocking" }).timeoutMs
+    ).toBe(1000);
+    expect(
+      resolveAuditPolicy({ ...options, auditSink: sink, auditFailurePolicy: "returnDefault" })
+        .timeoutMs
+    ).toBe(1000);
+    expect(
+      resolveAuditPolicy({
+        ...options,
+        auditSink: sink,
+        auditWriteMode: "blocking",
+        auditTimeoutMs: 2000
+      }).timeoutMs
+    ).toBe(2000);
   });
 
   it("treats removal of confirmation after construction as a failure", async () => {
