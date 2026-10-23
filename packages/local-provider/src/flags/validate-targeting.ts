@@ -1,6 +1,6 @@
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
-import { strictSemver } from "../evaluator/conditions.js";
+import { captureConditionValues, strictSemver } from "../evaluator/conditions.js";
 import type {
   ConditionScalar,
   TargetingCondition,
@@ -74,7 +74,7 @@ function condition(value: unknown, budget: { nodes: number }, depth: number): Ta
         !operand.every(scalar)
       )
         fail("in requires 1..100 bounded scalars");
-      return { attribute: path, op: "in", value: operand.slice() };
+      return { attribute: path, op: "in", value: captureConditionValues(operand) };
     case "gt":
     case "gte":
     case "lt":

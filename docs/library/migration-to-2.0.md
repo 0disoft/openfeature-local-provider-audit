@@ -8,8 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.25` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.26` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.26 privately indexes wide validated `in` condition arrays for repeated
+membership evaluation. Only validator-owned frozen copies are indexed; direct
+caller-provided arrays keep live strict-equality behavior, including after mutation.
+Small arrays retain linear lookup. Indexes use weak keys, store configuration only,
+and do not appear in snapshots, hashes, traces or exports. Duplicate/order semantics,
+first matching rule, numeric/string distinction and all condition limits remain.
+No migration action or public signature change is required, including for /core.
 
 Alpha.25 prepares a lazy per-snapshot envVar index for local CLI inspection.
 Simulation/comparison no longer scan all flags for each request's env mapping.

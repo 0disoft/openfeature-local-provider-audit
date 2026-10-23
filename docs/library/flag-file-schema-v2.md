@@ -35,6 +35,15 @@ SemVer strings are at most 256 characters. Missing, accessor, inherited, oversiz
 non-finite, or wrong-type context values do not match. Missing is distinct from null.
 Cycles and large unrelated context fields are never traversed.
 
+Wide `in` arrays from validated snapshots use a private membership index; smaller
+arrays retain linear lookup. Validation creates and freezes its own operand copy,
+preserving its order and duplicates in the snapshot and hash. The index is keyed
+weakly by that array, contains configuration operands only and never retains context
+or targeting values. It is not serialized or exposed in explanations. Direct caller
+arrays (including caller-frozen arrays that bypass validation) retain live strict
+equality, avoiding stale caches or a changed NaN comparison. Rule/group order and
+short-circuit behavior are unchanged in Node and the portable core.
+
 ## Selection and failure
 
 After flag existence and requested type checks, `disabledVariant` immediately selects

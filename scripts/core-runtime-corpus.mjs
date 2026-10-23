@@ -25,6 +25,20 @@ export function runCoreContract(api) {
               }
             ]
           },
+          membership: {
+            ...definition,
+            rules: [
+              {
+                id: "member",
+                when: {
+                  attribute: ["member"],
+                  op: "in",
+                  value: Array.from({ length: 100 }, (_, index) => `member-${index}`)
+                },
+                variant: "on"
+              }
+            ]
+          },
           schedule: {
             ...definition,
             schedule: {
@@ -43,13 +57,23 @@ export function runCoreContract(api) {
     if (!Object.isFrozen(snapshot.flags.rollout.variants)) throw new Error("Snapshot is mutable.");
     for (const subject of ["ascii", "한국어", "😀", "e\u0301", "a\nb", "\ud800", "\udfff", ""]) {
       for (let index = 0; index < 8; index++) {
-        for (const flagKey of ["rollout", "target", "schedule", "disabled", "missing"]) {
+        for (const flagKey of [
+          "rollout",
+          "target",
+          "membership",
+          "schedule",
+          "disabled",
+          "missing"
+        ]) {
           const request = {
             flagKey,
             expectedType: "boolean",
             defaultValue: false,
             targetingKey: `${subject}${index}`,
-            context: { version: index % 2 ? "2.0.0" : "1.0.0" },
+            context: {
+              version: index % 2 ? "2.0.0" : "1.0.0",
+              member: index % 2 ? "member-99" : "missing"
+            },
             evaluationTime: [0, 9, 10, 19, 20, 21, 100, 5][index]
           };
           const result = api.evaluateFlag(snapshot, request);
@@ -58,6 +82,8 @@ export function runCoreContract(api) {
             throw new Error("Final stage not fully enabled.");
           if (flagKey === "disabled" && result.value !== false)
             throw new Error("Emergency disable failed.");
+          if (flagKey === "membership" && result.value !== Boolean(index % 2))
+            throw new Error("Indexed membership failed.");
           if (index === 0)
             results.push(
               api.evaluateFlag(snapshot, {

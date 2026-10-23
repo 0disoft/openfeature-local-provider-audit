@@ -1,5 +1,23 @@
 import { SemVer } from "semver";
-import type { EvaluationRequest, FlagValue, TargetingCondition } from "../core-types.js";
+import type {
+  ConditionScalar,
+  EvaluationRequest,
+  FlagValue,
+  TargetingCondition
+} from "../core-types.js";
+
+const MIN_INDEXED_MEMBERSHIP_SIZE = 16;
+const membershipIndexes = new WeakMap<readonly ConditionScalar[], ReadonlySet<ConditionScalar>>();
+
+// Only validator-owned, immutable copies are indexed; caller arrays never acquire stale caches.
+export function captureConditionValues(
+  values: readonly ConditionScalar[]
+): readonly ConditionScalar[] {
+  const captured = Object.freeze([...values]);
+  if (captured.length >= MIN_INDEXED_MEMBERSHIP_SIZE)
+    membershipIndexes.set(captured, new Set(captured));
+  return captured;
+}
 
 export function strictSemver(value: unknown): SemVer | undefined {
   if (
@@ -27,8 +45,15 @@ export function matchesCondition(
   switch (condition.op) {
     case "eq":
       return actual === condition.value;
-    case "in":
-      return condition.value.some((candidate) => candidate === actual);
+    case "in": {
+      const indexed =
+        condition.value.length >= MIN_INDEXED_MEMBERSHIP_SIZE
+          ? membershipIndexes.get(condition.value)
+          : undefined;
+      return indexed === undefined
+        ? condition.value.some((candidate) => candidate === actual)
+        : indexed.has(actual as ConditionScalar);
+    }
     case "gt":
     case "gte":
     case "lt":
