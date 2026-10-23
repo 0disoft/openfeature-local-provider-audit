@@ -195,3 +195,16 @@ AUDIT_SINK_ERROR without raw cause. The callback is captured with its original
 options receiver. It is not awaited; synchronous throws and asynchronous rejections
 are observed and isolated, and a pending callback does not hold the storage queue.
 Caller code must bound callback I/O and keep synchronous work short.
+
+Audit verification scans each input byte once for line boundaries, retains bounded
+byte fragments for an unfinished record, then decodes a complete line once. Large
+records no longer repeatedly scan or re-encode an ever-growing string per read.
+Exact byte budgets, strict UTF-8, CRLF, initial-file BOM handling, partial-tail
+rejection and ordered verification retain their previous semantics.
+
+Local performance evidence (2026-10-23, Windows, Node 24.14.0): three alternating
+before/after runs reading two Unicode lines of 1, 4 and 8 MiB each, including output
+SHA-256 checks, had median times of 39.8/19.6, 341.4/66.8 and 1242.8/118.4 ms.
+All decoded counts and digests matched. These isolate file framing/decoding and
+output comparison; they do not claim the same gain for full chain cryptographic
+verification, small records, production storage or network filesystems.

@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.31` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.32` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.26 privately indexes wide validated `in` condition arrays for repeated
@@ -239,3 +239,6 @@ results and callbacks are not awaited. No automatic append or cleanup retry is a
 
 Alpha.31 prevents immediately resolved S3 byte iterators (including empty chunks)
 from starving deadline and cancellation callbacks. No API or retry-policy change.
+
+Alpha.32 makes large-record audit file framing linear in input bytes. Public
+signatures, chain hashes and strict encoding/size/partial-record checks are unchanged.

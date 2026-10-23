@@ -23,25 +23,46 @@ export async function* readChainLines(
     )
       throw new Error();
     const decoder = new TextDecoder("utf-8", { fatal: true });
-    let pending = "";
+    let parts: Buffer[] = [];
+    let lineBytes = 0;
+    let firstLine = true;
     while (true) {
       const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, budget.remaining + 1));
       const { bytesRead } = await handle.read(buffer);
       budget.remaining -= bytesRead;
       if (budget.remaining < 0) throw new Error();
-      pending += decoder.decode(buffer.subarray(0, bytesRead), { stream: bytesRead !== 0 });
-      while (true) {
-        const newline = pending.indexOf("\n");
-        if (newline === -1) break;
-        const line = pending.slice(0, newline);
-        pending = pending.slice(newline + 1);
-        if (!line.length || Buffer.byteLength(line) > maxRecordBytes) throw new Error();
-        yield line;
-      }
-      if (Buffer.byteLength(pending) > maxRecordBytes) throw new Error();
       if (bytesRead === 0) {
-        if (pending.length !== 0) throw new Error();
-        return;
+        if (lineBytes === 0) return;
+        // An initial BOM alone was historically an empty decoded file.
+        if (firstLine && lineBytes === 3 && decoder.decode(Buffer.concat(parts, 3)) === "") return;
+        throw new Error();
+      }
+      const chunk = buffer.subarray(0, bytesRead);
+      let offset = 0;
+      while (offset < bytesRead) {
+        const newline = chunk.indexOf(10, offset);
+        const complete = newline !== -1;
+        const end = complete ? newline : bytesRead;
+        lineBytes += end - offset;
+        // The decoder strips only the file's initial UTF-8 BOM. Reserve its
+        // three wire bytes until the first completed line is decoded.
+        if (lineBytes > maxRecordBytes + (firstLine ? 3 : 0)) throw new Error();
+        const fragment = chunk.subarray(offset, complete ? end + 1 : end);
+        if (!complete) {
+          parts.push(fragment);
+          break;
+        }
+        const encoded =
+          parts.length === 0 ? fragment : Buffer.concat([...parts, fragment], lineBytes + 1);
+        // Including LF prevents an incomplete UTF-8 sequence crossing a line.
+        // Streaming preserves the original file-level BOM behavior across lines.
+        const line = decoder.decode(encoded, { stream: true }).slice(0, -1);
+        if (!line.length || Buffer.byteLength(line) > maxRecordBytes) throw new Error();
+        parts = [];
+        lineBytes = 0;
+        firstLine = false;
+        offset = end + 1;
+        yield line;
       }
     }
   } catch (error) {
