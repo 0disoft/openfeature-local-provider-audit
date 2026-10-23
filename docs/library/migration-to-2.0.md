@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.35` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.36` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.36 rejects malformed UTF-8 bytes in file loads/reloads and shared CLI input
+reads with PARSE_ERROR. Previously replacement characters could silently change
+flag keys, values or request attributes. Repair/re-encode such files, or explicitly
+select a supported legacy encoding for snapshot files when intentional. Valid UTF-8,
+byte limits, BOM handling, public signatures and last-good watcher state are unchanged.
 
 Alpha.35 validates watcher `debounceMs` as an integer in 0..2,147,483,647 before
 opening native/polling resources or reading the initial file. Invalid settings now

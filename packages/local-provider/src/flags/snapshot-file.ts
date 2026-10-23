@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { isUtf8 } from "node:buffer";
 import {
   watch,
   watchFile,
@@ -286,7 +287,14 @@ export async function readFileWithinLimit(
       const buffer = Buffer.allocUnsafe(Math.min(SNAPSHOT_READ_CHUNK_BYTES, remainingBytes));
       const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
       if (bytesRead === 0) {
-        return Buffer.concat(chunks, totalBytes).toString(encoding);
+        const contents = Buffer.concat(chunks, totalBytes);
+        if ((encoding === "utf8" || encoding === "utf-8") && !isUtf8(contents)) {
+          throw new LocalProviderError(
+            LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR,
+            "Flag snapshot file must contain valid UTF-8."
+          );
+        }
+        return contents.toString(encoding);
       }
 
       totalBytes += bytesRead;

@@ -52,7 +52,12 @@ because malformed or changed configuration can alter evaluated flag values.
 
 ## Failure Behavior
 
-- Invalid JSON or YAML produces a parse error.
+- Invalid JSON or YAML produces a parse error. Default UTF-8 file reads (including
+  the explicit utf8/utf-8 aliases) reject malformed byte sequences with PARSE_ERROR
+  before schema validation, rather than silently replacing bytes with U+FFFD. Valid
+  U+FFFD characters and Unicode split across read chunks remain supported. Explicit
+  non-UTF-8 encodings retain their existing decoding behavior. File byte limits and
+  their error precedence are unchanged; failed watcher reloads keep the last snapshot.
 - Invalid schema produces a schema error.
 - Unknown fields at the snapshot, flag-definition, or rollout-rule level produce a
   schema error that names the rejected field.
