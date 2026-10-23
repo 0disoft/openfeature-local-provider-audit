@@ -76,3 +76,9 @@ For R2 configure region "auto", the account HTTPS endpoint and a real R2
 credential provider on this same client. For command-based S3Client use
 `client: { getObject: (input, options) => sdk.send(new GetObjectCommand(input), options) }`.
 No credentials belong in snapshots, evaluation contexts, logs or source options.
+
+The body reader yields to the event loop after at most 256 chunks, including empty
+chunks. Custom iterators that resolve immediately cannot indefinitely starve
+timeout/abort callbacks without using the byte budget. The yield observes the
+internal abort signal; cancellation stops further reads and closes the iterator.
+Byte limits, output order and transport retry policy are unchanged.

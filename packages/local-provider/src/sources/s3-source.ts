@@ -1,3 +1,4 @@
+import { setImmediate as yieldToEventLoop } from "node:timers/promises";
 import { retainFailureCause } from "./failure-cause.js";
 import { Readable } from "node:stream";
 import { LocalProviderError } from "../errors/local-provider-error.js";
@@ -15,6 +16,7 @@ import {
   readWithPolicy
 } from "./source-policy.js";
 
+const MAX_CHUNKS_PER_TURN = 256;
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
 const TRANSIENT_CODES = new Set([
   "ECONNRESET",
@@ -145,8 +147,16 @@ async function readAttempt(
     let block: Buffer | undefined;
     let filled = 0;
     let size = 0;
+    let chunksThisTurn = 0;
     while (true) {
+      // Immediately resolved iterators can starve timeout/abort callbacks, even
+      // with a byte cap: empty chunks never consume that budget.
+      if (chunksThisTurn === MAX_CHUNKS_PER_TURN) {
+        await yieldToEventLoop(undefined, { signal: abort.signal });
+        chunksThisTurn = 0;
+      }
       const item = await iterator.next();
+      chunksThisTurn++;
       if (finished || abort.signal.aborted) throw cancelled();
       if (item.done) break;
       if (!(item.value instanceof Uint8Array))

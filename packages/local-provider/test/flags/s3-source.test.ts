@@ -150,6 +150,69 @@ it("streams web, Blob and Node bytes, copies buffers and rejects invalid or over
   ).rejects.toThrow("Unexpected");
 });
 
+it("lets event-loop work run while consuming immediately resolved empty chunks", async () => {
+  let eventLoopRan = false,
+    chunks = 0;
+  const scheduled = setImmediate(() => {
+    eventLoopRan = true;
+  });
+  async function* body() {
+    while (!eventLoopRan && chunks < 10000) {
+      chunks++;
+      yield new Uint8Array();
+    }
+    yield Buffer.from("ok");
+  }
+  try {
+    await expect(
+      source({
+        async getObject() {
+          return { Body: body() };
+        }
+      }).fetch()
+    ).resolves.toEqual({ status: "content", content: Buffer.from("ok") });
+    expect(eventLoopRan).toBe(true);
+    expect(chunks).toBeLessThan(10000);
+  } finally {
+    clearImmediate(scheduled);
+  }
+});
+
+it.each(["abort", "timeout"])(
+  "interrupts an empty-chunk burst on %s without retrying or draining it",
+  async (mode) => {
+    let chunks = 0,
+      closed = false;
+    const controller = new AbortController();
+    const getObject = vi.fn(async () => ({
+      Body: (async function* () {
+        try {
+          while (chunks < 1000000) {
+            chunks++;
+            yield new Uint8Array();
+          }
+        } finally {
+          closed = true;
+        }
+      })()
+    }));
+    const scheduled = mode === "abort" ? setImmediate(() => controller.abort()) : undefined;
+    try {
+      await expect(
+        source({ getObject }, { timeoutMs: mode === "timeout" ? 1 : 1000 }).fetch({
+          signal: controller.signal
+        })
+      ).rejects.toThrow(mode === "timeout" ? "timed out" : "cancelled");
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(chunks).toBeLessThan(1000000);
+      expect(closed).toBe(true);
+      expect(getObject).toHaveBeenCalledOnce();
+    } finally {
+      if (scheduled !== undefined) clearImmediate(scheduled);
+    }
+  }
+);
+
 it("caps stalled SDK waiting at the total deadline without starting another attempt", async () => {
   vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "performance"] });
   const getObject = vi.fn<S3SnapshotClient["getObject"]>(() => new Promise(() => {}));
