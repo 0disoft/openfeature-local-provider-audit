@@ -57,6 +57,54 @@ async function exercise(
 }
 
 describe("offline inspection CLI", () => {
+  it("compares repeated object pairs with key-order equality and array-order differences", async () => {
+    const before = {
+      schemaVersion: 2,
+      flags: {
+        config: {
+          type: "object",
+          defaultVariant: "on",
+          variants: { on: { nested: { a: 1, b: null }, items: [1, "2"] } }
+        }
+      }
+    };
+    const after = {
+      schemaVersion: 2,
+      flags: {
+        config: {
+          type: "object",
+          defaultVariant: "on",
+          variants: {
+            on: { items: [1, "2"], nested: { b: null, a: 1 } },
+            changed: { nested: { a: 1, b: null }, items: ["2", 1] }
+          },
+          rules: [
+            {
+              id: "changed",
+              when: { attribute: ["tier"], op: "eq", value: "changed" },
+              variant: "changed"
+            }
+          ]
+        }
+      }
+    };
+    const requests = ["same", "changed", "same", "changed"].map((tier) => ({
+      flagKey: "config",
+      expectedType: "object",
+      defaultValue: null,
+      context: { tier }
+    }));
+    const result = await exercise(
+      ["compare", "before.json", "after.json", "--requests", "request.json"],
+      requests,
+      after,
+      before
+    );
+    expect(result.code).toBe(0);
+    expect(result.data).toMatchObject({ total: 4, changedValues: 2, changedDecisions: 2 });
+    expect(result.output).not.toContain("nested");
+  });
+
   it.each(["evaluate", "explain"])(
     "%s uses a request file and omits raw values",
     async (command) => {

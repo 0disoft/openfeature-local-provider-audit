@@ -83,3 +83,11 @@ Exit codes: 0 means all requested evaluations succeeded (differences do not caus
 failure), 1 means input/load failure or at least one evaluation error, and 2 means
 invalid CLI usage. Error evaluations still produce summaries; malformed input emits no
 partial report. Existing `validate` behavior and exit codes remain unchanged.
+
+For repeated object-valued decisions, comparison remembers structural equality per
+before/after object pair within that single synchronous comparison. Only booleans
+are retained through weak keys, not serialized payload strings. Every request is
+still evaluated separately; different overrides, values and object pairs remain
+independent. The cache is discarded when comparison returns. Object key order is
+ignored and array order remains significant; reports, counts and exit codes do not
+change. This does not change SDK evaluation or add a process-wide cache.

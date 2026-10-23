@@ -76,11 +76,12 @@ export async function runInspection(
     const candidate = nextRequests.map((request) => evaluateFlag(after, request));
     let changedValues = 0;
     let changedDecisions = 0;
+    const valuesEqual = createValueComparer();
     for (let i = 0; i < baseline.length; i++) {
       const previous = baseline[i];
       const next = candidate[i];
       if (!previous || !next) throw new Error("Mismatched comparison");
-      if (canonical(previous.value) !== canonical(next.value)) changedValues++;
+      if (!valuesEqual(previous.value, next.value)) changedValues++;
       if (
         canonical([
           previous.variant ?? null,
@@ -289,6 +290,27 @@ function canonical(value: unknown): string {
       .map((key) => `${JSON.stringify(key)}:${canonical((value as Record<string, unknown>)[key])}`)
       .join(",")}}`;
   return JSON.stringify(value) ?? "null";
+}
+
+// This cache belongs to one synchronous comparison of CLI-owned values. Store
+// booleans per object pair, without retaining serialized payloads or global state.
+function createValueComparer() {
+  const compared = new WeakMap<object, WeakMap<object, boolean>>();
+  return (left: unknown, right: unknown): boolean => {
+    if (left === right) return true;
+    if (left === null || right === null || typeof left !== "object" || typeof right !== "object")
+      return canonical(left) === canonical(right);
+    let matches = compared.get(left);
+    const cached = matches?.get(right);
+    if (cached !== undefined) return cached;
+    const equal = canonical(left) === canonical(right);
+    if (matches === undefined) {
+      matches = new WeakMap();
+      compared.set(left, matches);
+    }
+    matches.set(right, equal);
+    return equal;
+  };
 }
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

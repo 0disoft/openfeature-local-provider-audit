@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.38` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.39` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.39 avoids repeatedly serializing identical object pairs in the offline compare
+CLI. Equality booleans are cached locally through weak keys; evaluation runs for each
+request, and serialized values are not retained. JSON equality, changed decision
+counts, ordering, privacy, errors and public signatures remain unchanged.
 
 Alpha.38 attempts all owned watcher cleanups when one release fails, including
 polling plus native handles and the two macOS watchers. Compound setup/delivery

@@ -3,7 +3,7 @@
 Status: Stable guidance
 Owner: 0disoft
 
-Current repository package version: `2.0.0-alpha.38`.
+Current repository package version: `2.0.0-alpha.39`.
 
 This remains the historical 1.0 migration guide. The local 2.0 prerelease work is
 covered by `migration-to-2.0.md`; it has not been published.
