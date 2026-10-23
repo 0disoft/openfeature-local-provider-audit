@@ -178,3 +178,20 @@ multi-record recovery before batch writes are enabled.
 
 Local batch validation and workload limits are recorded in
 `../testing/audit-batch-acceptance.md`.
+
+### Operator-only storage diagnostics
+
+Optional `onError(error)` receives the original storage/lock/recovery failure after
+cleanup has been attempted. When both operation and cleanup fail, an AggregateError
+retains the operation as `cause` and `errors[0]`, with the cleanup failure second.
+Nested cleanup failures remain nested, preserving every original error and stage
+message. One storage group reports once even if several grouped requests reject.
+Queue overflow and invalid input rejected before storage do not invoke this hook.
+
+This is a trusted operator interface: raw causes can contain private filesystem
+paths or other sensitive details. Do not serialize them into public status, audit
+events or SDK responses. Public chained sink rejections remain the generic
+AUDIT_SINK_ERROR without raw cause. The callback is captured with its original
+options receiver. It is not awaited; synchronous throws and asynchronous rejections
+are observed and isolated, and a pending callback does not hold the storage queue.
+Caller code must bound callback I/O and keep synchronous work short.

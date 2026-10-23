@@ -474,6 +474,7 @@ export interface FileAuditSinkStats {
 
 export interface ChainedFileAuditSinkOptions {
   readonly directory: string | URL;
+  onError?(error: unknown): void | Promise<void>;
   readonly chainId: string;
   readonly initialCheckpoint?: AuditChainCheckpoint;
   readonly maxSegmentBytes?: number;

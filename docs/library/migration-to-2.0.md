@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.29` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.30` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.26 privately indexes wide validated `in` condition arrays for repeated
@@ -228,3 +228,11 @@ is omitted. Previously that combination could wait forever. Set an explicit fini
 limit for slower sinks. Candidate results remain unchanged under bestEffort;
 returnDefault keeps its existing 1,000 ms deadline and default-on-failure policy.
 Timeout does not cancel or retry storage; pending writes settle and count later.
+
+Alpha.30 preserves simultaneous audit operation/cleanup failures as AggregateError
+with the original cause, including initialization/close/owned-marker and metadata
+publication/temporary-file failures. Callers inspecting raw plain-sink failures
+should inspect cause/errors when multiple failures occur; single errors retain
+identity. Optional chained sink onError receives raw trusted operator diagnostics;
+public chained errors remain sanitized. Callback errors never replace storage
+results and callbacks are not awaited. No automatic append or cleanup retry is added.

@@ -1,3 +1,4 @@
+import { withAuditCleanup } from "./cleanup.js";
 import { constants, type Stats } from "node:fs";
 import { lstat, open, rename, unlink, type FileHandle } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
@@ -27,8 +28,13 @@ export async function openChainFile(path: string): Promise<FileHandle> {
     if (after.ino !== before.ino || after.dev !== before.dev) throw new Error();
     return handle;
   } catch (error) {
-    await handle.close();
-    throw error;
+    return withAuditCleanup(
+      async () => {
+        throw error;
+      },
+      () => handle.close(),
+      "Audit file validation and close failed."
+    );
   }
 }
 export async function readChainRange(
@@ -53,42 +59,53 @@ export async function readChainMetadata(path: string): Promise<unknown | undefin
     if (missing(error)) return undefined;
     throw error;
   }
-  try {
-    const size = (await handle.stat()).size;
-    if (size > 256 * 1024) throw new Error();
-    return JSON.parse(
-      new TextDecoder("utf-8", { fatal: true }).decode(await readChainRange(handle, 0, size))
-    );
-  } finally {
-    await handle.close();
-  }
+  return withAuditCleanup(
+    async () => {
+      const size = (await handle.stat()).size;
+      if (size > 256 * 1024) throw new Error();
+      return JSON.parse(
+        new TextDecoder("utf-8", { fatal: true }).decode(await readChainRange(handle, 0, size))
+      );
+    },
+    () => handle.close(),
+    "Audit metadata read and close failed."
+  );
 }
 export async function writeChainMetadata(path: string, value: unknown): Promise<void> {
   const temporary = join(dirname(path), `.chain-${randomUUID()}.tmp`);
   const handle = await open(temporary, "wx", 0o600);
-  try {
-    try {
-      await handle.writeFile(`${JSON.stringify(value)}\n`, "utf8");
-      await handle.sync();
-    } finally {
-      await handle.close();
-    }
-    await rename(temporary, path);
-    await syncChainDirectory(dirname(path));
-  } finally {
-    await unlink(temporary).catch((error: unknown) => {
-      if (!missing(error)) throw error;
-    });
-  }
+  await withAuditCleanup(
+    async () => {
+      await withAuditCleanup(
+        async () => {
+          await handle.writeFile(`${JSON.stringify(value)}\n`, "utf8");
+          await handle.sync();
+        },
+        () => handle.close(),
+        "Audit metadata write and close failed."
+      );
+      await rename(temporary, path);
+      await syncChainDirectory(dirname(path));
+    },
+    async () => {
+      try {
+        await unlink(temporary);
+      } catch (error) {
+        if (!missing(error)) throw error;
+      }
+    },
+    "Audit metadata publication and temporary-file cleanup failed."
+  );
 }
+
 export async function syncChainDirectory(path: string): Promise<void> {
   if (process.platform === "win32") return;
   const handle = await open(path, "r");
-  try {
-    await handle.sync();
-  } finally {
-    await handle.close();
-  }
+  await withAuditCleanup(
+    () => handle.sync(),
+    () => handle.close(),
+    "Audit directory sync and close failed."
+  );
 }
 export function missing(error: unknown): boolean {
   return error !== null && typeof error === "object" && "code" in error && error.code === "ENOENT";

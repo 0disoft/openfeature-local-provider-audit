@@ -137,3 +137,10 @@ raw user context by default.
 - Multi-process examples share an audit file without advisory locking.
 - Queue overflow behavior changes without tests for both reject and drop-newest modes.
 - Snapshot or override hash ordering depends on host locale.
+
+Audit operations retain both primary and cleanup failures rather than allowing a
+finally failure to replace the original. A lone failure keeps its original identity;
+a simultaneous failure becomes AggregateError with the primary cause first. Lock
+initialization attempts both close and owned-marker removal even if they fail, and
+initialization errors are never retried as contention. Neither append nor cleanup
+is automatically retried. Foreign lock markers remain untouched.

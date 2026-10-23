@@ -1,3 +1,4 @@
+import { withAuditCleanup } from "./cleanup.js";
 import { createQueuedAuditSink } from "./queued-sink.js";
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
@@ -85,21 +86,23 @@ async function appendAuditLine(path: string, auditLine: string): Promise<void> {
   await assertPathIsRegularFile(path);
   const handle = await open(path, AUDIT_OPEN_FLAGS, AUDIT_FILE_MODE);
 
-  try {
-    const fileStats = await handle.stat();
-    if (!fileStats.isFile()) {
-      throw new Error(`Audit path must be a regular file: ${path}`);
-    }
-    if (fileStats.nlink !== 1) {
-      throw new Error(`Audit path must not have multiple hard links: ${path}`);
-    }
-    if (typeof process.geteuid === "function" && fileStats.uid !== process.geteuid()) {
-      throw new Error(`Audit file must be owned by the current user: ${path}`);
-    }
-    await handle.appendFile(auditLine, "utf8");
-  } finally {
-    await handle.close();
-  }
+  await withAuditCleanup(
+    async () => {
+      const fileStats = await handle.stat();
+      if (!fileStats.isFile()) {
+        throw new Error(`Audit path must be a regular file: ${path}`);
+      }
+      if (fileStats.nlink !== 1) {
+        throw new Error(`Audit path must not have multiple hard links: ${path}`);
+      }
+      if (typeof process.geteuid === "function" && fileStats.uid !== process.geteuid()) {
+        throw new Error(`Audit file must be owned by the current user: ${path}`);
+      }
+      await handle.appendFile(auditLine, "utf8");
+    },
+    () => handle.close(),
+    "Audit append and handle close failed."
+  );
 }
 
 async function assertPathIsRegularFile(path: string): Promise<void> {
@@ -200,11 +203,7 @@ export async function withFileLock(
 ): Promise<void> {
   const release = await acquireFileLock(lock);
 
-  try {
-    await operation();
-  } finally {
-    await release();
-  }
+  await withAuditCleanup(operation, release, "Audit operation and lock release failed.");
 }
 
 type LockRecordWriter = (handle: FileHandle, contents: string) => Promise<void>;
@@ -218,52 +217,37 @@ export async function acquireFileLock(
   const startedAt = performance.now();
 
   while (true) {
+    let handle: FileHandle;
     try {
-      const handle = await open(lock.path, "wx");
-      const ownerToken = randomUUID();
-
-      try {
-        await writeLockRecord(
-          handle,
-          `${ownerToken}\n${process.pid}\n${new Date().toISOString()}\n`
-        );
-      } catch (error) {
-        try {
-          await handle.close();
-        } catch {
-          // Preserve the initialization error; ownership cleanup still gets a chance.
-        }
-        await removeLockIfOwned(lock.path, ownerToken, true);
-        throw error;
-      }
-
-      return async () => {
-        const failures: unknown[] = [];
-        try {
-          await handle.close();
-        } catch (error) {
-          failures.push(error);
-        } finally {
-          try {
-            await removeLockIfOwned(lock.path, ownerToken);
-          } catch (error) {
-            failures.push(error);
-          }
-        }
-        if (failures.length === 1) throw failures[0];
-        if (failures.length > 1) throw new AggregateError(failures, "Audit lock release failed.");
-      };
+      handle = await open(lock.path, "wx");
     } catch (error) {
-      if (!isAlreadyExistsError(error)) {
-        throw error;
-      }
-
-      if (performance.now() - startedAt >= lock.timeoutMs) {
+      if (!isAlreadyExistsError(error)) throw error;
+      if (performance.now() - startedAt >= lock.timeoutMs)
         throw new Error(`Timed out acquiring audit file lock: ${lock.path}`);
-      }
-
       await delay(lock.retryMs);
+      continue;
     }
+    const ownerToken = randomUUID();
+    const release = (allowEmpty = false) =>
+      withAuditCleanup(
+        () => handle.close(),
+        () => removeLockIfOwned(lock.path, ownerToken, allowEmpty),
+        "Audit lock close and owned-marker cleanup failed."
+      );
+    try {
+      await writeLockRecord(handle, `${ownerToken}\n${process.pid}\n${new Date().toISOString()}\n`);
+    } catch (error) {
+      // Initialization errors are not lock contention and must never be retried.
+      await withAuditCleanup(
+        async () => {
+          throw error;
+        },
+        () => release(true),
+        "Audit lock initialization and cleanup failed."
+      );
+      throw error;
+    }
+    return () => release();
   }
 }
 

@@ -149,3 +149,9 @@ never adopts a valid prefix of malformed evidence. A rejected batch can contain
 a committed prefix; automatic append retry is forbidden because it can duplicate
 events. This provides durable acceptance, not exactly-once delivery. Upgrade all
 cooperating readers before enabling multi-record batches.
+
+The chained audit sink optional onError hook deliberately receives raw storage
+causes, including paths and nested cleanup failures. It is a trusted operator
+boundary and must not feed public status, flag responses or redacted audit records.
+Public chained errors retain sanitized messages without raw cause. Hook failures
+are observed and isolated, not awaited; caller-owned callback I/O still needs bounds.

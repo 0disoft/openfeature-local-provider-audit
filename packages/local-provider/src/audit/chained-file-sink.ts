@@ -1,3 +1,4 @@
+import { withAuditCleanup } from "./cleanup.js";
 import { lstat, mkdir, open, readdir, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -50,6 +51,9 @@ const name = (previous: AuditChainCheckpoint) => `segment-${previous.sequence + 
 export function createChainedFileAuditSink(
   options: ChainedFileAuditSinkOptions
 ): ChainedFileAuditSink {
+  if (options.onError !== undefined && typeof options.onError !== "function")
+    throw new TypeError("onError must be a function.");
+  const onError = options.onError?.bind(options);
   const directory = resolve(
     typeof options.directory === "string" ? options.directory : fileURLToPath(options.directory)
   );
@@ -118,7 +122,12 @@ export function createChainedFileAuditSink(
         })
       );
       return result;
-    } catch {
+    } catch (error) {
+      try {
+        void Promise.resolve(onError?.(error)).catch(() => {});
+      } catch {
+        // Trusted operator diagnostics must not replace or delay storage failure.
+      }
       throw unavailable();
     }
   }
@@ -233,39 +242,41 @@ export function createChainedFileAuditSink(
       const segment = state.segments[index];
       if (segment === undefined) throw new Error();
       const handle = await openChainFile(join(directory, segment.file));
-      try {
-        const size = (await handle.stat()).size;
-        if (size < segment.size || (index < state.segments.length - 1 && size !== segment.size))
-          throw new Error();
-        if (index === state.segments.length - 1) {
-          const last = await readChainTail(handle, segment.size, maxRecordBytes);
-          const raw = JSON.parse(
-            new TextDecoder("utf-8", { fatal: true }).decode(last.subarray(0, -1))
-          ) as { previousHash: string };
-          const checked = parseLine(last, {
-            schemaVersion: 1,
-            chainId: initial.chainId,
-            sequence: segment.head.sequence - 1,
-            hash: raw.previousHash
-          });
-          if (!same(checked, segment.head)) throw new Error();
-          if (size > segment.size) {
-            if (size - segment.size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1))
-              throw new Error();
-            const accepted = parseSuffix(
-              await readChainRange(handle, segment.size, size - segment.size),
-              segment.head
-            );
-            await handle.sync();
-            state = await commitSegments(state, [
-              ...state.segments.slice(0, -1),
-              { ...segment, head: accepted, size }
-            ]);
+      await withAuditCleanup(
+        async () => {
+          const size = (await handle.stat()).size;
+          if (size < segment.size || (index < state.segments.length - 1 && size !== segment.size))
+            throw new Error();
+          if (index === state.segments.length - 1) {
+            const last = await readChainTail(handle, segment.size, maxRecordBytes);
+            const raw = JSON.parse(
+              new TextDecoder("utf-8", { fatal: true }).decode(last.subarray(0, -1))
+            ) as { previousHash: string };
+            const checked = parseLine(last, {
+              schemaVersion: 1,
+              chainId: initial.chainId,
+              sequence: segment.head.sequence - 1,
+              hash: raw.previousHash
+            });
+            if (!same(checked, segment.head)) throw new Error();
+            if (size > segment.size) {
+              if (size - segment.size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1))
+                throw new Error();
+              const accepted = parseSuffix(
+                await readChainRange(handle, segment.size, size - segment.size),
+                segment.head
+              );
+              await handle.sync();
+              state = await commitSegments(state, [
+                ...state.segments.slice(0, -1),
+                { ...segment, head: accepted, size }
+              ]);
+            }
           }
-        }
-      } finally {
-        await handle.close();
-      }
+        },
+        () => handle.close(),
+        "Audit recovery and segment close failed."
+      );
     }
     if (head(state).sequence < Number.MAX_SAFE_INTEGER) {
       const file = name(head(state));
@@ -276,18 +287,21 @@ export function createChainedFileAuditSink(
         if (!missing(error)) throw error;
       }
       if (handle !== undefined) {
-        try {
-          const size = (await handle.stat()).size;
-          if (size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1)) throw new Error();
-          const accepted = parseSuffix(await readChainRange(handle, 0, size), head(state));
-          await handle.sync();
-          state = await commitSegments(state, [
-            ...state.segments,
-            { file, start: head(state), head: accepted, size }
-          ]);
-        } finally {
-          await handle.close();
-        }
+        const orphan = handle;
+        await withAuditCleanup(
+          async () => {
+            const size = (await handle.stat()).size;
+            if (size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1)) throw new Error();
+            const accepted = parseSuffix(await readChainRange(handle, 0, size), head(state));
+            await handle.sync();
+            state = await commitSegments(state, [
+              ...state.segments,
+              { file, start: head(state), head: accepted, size }
+            ]);
+          },
+          () => orphan.close(),
+          "Audit orphan recovery and close failed."
+        );
       }
     }
     await pruneSegments(state);
@@ -309,12 +323,14 @@ export function createChainedFileAuditSink(
         const handle = rotate
           ? await open(join(directory, file), "wx", 0o600)
           : await openChainFile(join(directory, file));
-        try {
-          await handle.appendFile(lines.join(""), "utf8");
-          await handle.sync();
-        } finally {
-          await handle.close();
-        }
+        await withAuditCleanup(
+          async () => {
+            await handle.appendFile(lines.join(""), "utf8");
+            await handle.sync();
+          },
+          () => handle.close(),
+          "Audit batch append and close failed."
+        );
         const segment: Segment = {
           file,
           start: rotate ? head(state) : (previous?.start ?? head(state)),

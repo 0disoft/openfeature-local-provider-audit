@@ -1,3 +1,4 @@
+import { cleanupAuditResource } from "./cleanup.js";
 import { constants } from "node:fs";
 import { lstat, open } from "node:fs/promises";
 export async function* readChainLines(
@@ -11,6 +12,7 @@ export async function* readChainLines(
     path,
     constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0)
   );
+  let failure: { cause: unknown } | undefined;
   try {
     const stat = await handle.stat();
     if (
@@ -42,7 +44,10 @@ export async function* readChainLines(
         return;
       }
     }
+  } catch (error) {
+    failure = { cause: error };
+    throw error;
   } finally {
-    await handle.close();
+    await cleanupAuditResource(() => handle.close(), failure, "Audit chain read and close failed.");
   }
 }

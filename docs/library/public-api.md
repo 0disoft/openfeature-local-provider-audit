@@ -260,3 +260,6 @@ attempt/backoff envelope. No persistence or activation retries are added.
 ChainedFileAuditSinkOptions adds optional batchSize (1..64, default 64) and
 maxBatchBytes (1..4 MiB, default 1 MiB). See audit-chain.md for durable completion,
 encoded byte splitting and ambiguous group-failure semantics. No new exports.
+
+ChainedFileAuditSinkOptions adds optional onError(error: unknown): void | Promise<void>
+for trusted raw storage diagnostics. Callback failures are isolated; see audit-chain.md.

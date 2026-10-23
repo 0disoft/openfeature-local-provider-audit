@@ -501,12 +501,52 @@ describe("chained file audit sink", () => {
     }
   );
 
+  it("reports raw primary and cleanup failures only through the trusted diagnostic hook", async () => {
+    const onError = vi.fn();
+    const target = sink({ onError });
+    await target.write(event());
+    const primary = new Error("private manifest path"),
+      cleanup = new Error("private temporary path");
+    vi.mocked(rename).mockRejectedValueOnce(primary);
+    vi.mocked(unlink).mockRejectedValueOnce(cleanup);
+    const error = await target.write(event()).catch((cause: unknown) => cause);
+    expect(error).toMatchObject({
+      code: "AUDIT_SINK_ERROR",
+      message: "Chained audit storage is unavailable."
+    });
+    expect(error).not.toHaveProperty("cause");
+    expect(onError).toHaveBeenCalledOnce();
+    expect(onError.mock.calls[0]?.[0]).toMatchObject({
+      cause: primary,
+      errors: [primary, cleanup]
+    });
+    await expect(target.flush?.()).rejects.toBe(error);
+  });
+
+  it.each(["throw", "reject", "pending"])(
+    "isolates a diagnostic callback that %s",
+    async (mode) => {
+      const onError = vi.fn(() => {
+        if (mode === "throw") throw new Error("callback failed");
+        if (mode === "reject") return Promise.reject(new Error("callback failed"));
+        return new Promise<void>(() => {});
+      });
+      const target = sink({ onError });
+      await target.write(event());
+      vi.mocked(rename).mockRejectedValueOnce(new Error("storage failed"));
+      await expect(target.write(event())).rejects.toThrow("Chained audit storage is unavailable.");
+      await expect(target.flush?.()).rejects.toThrow("Chained audit storage is unavailable.");
+      expect(onError).toHaveBeenCalledOnce();
+    }
+  );
+
   it("rejects unsafe settings and queue overflow, and preserves foreign lock ownership", async () => {
     for (const extra of [
       { lock: false },
       { staleLockMs: 1 },
       { queueOverflowPolicy: "dropNewest" },
       { maxSegments: 0 },
+      { onError: "invalid" },
       { batchSize: 0 },
       { batchSize: 65 },
       { batchSize: Number.NaN },
