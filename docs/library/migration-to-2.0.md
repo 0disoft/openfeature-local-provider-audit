@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.33` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.34` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.34 makes provider freshness independent of wall-clock adjustments. Optional
+`staleAfterMs` now measures monotonic elapsed time from the last successful refresh,
+including unchanged content; failures do not renew it. Status timestamps remain epoch
+milliseconds, and evaluation behavior and public signatures are unchanged.
 
 Alpha.26 privately indexes wide validated `in` condition arrays for repeated
 membership evaluation. Only validator-owned frozen copies are indexed; direct

@@ -22,6 +22,7 @@ class ManualReader extends MetricReader {
 
 describe("optional metrics", () => {
   it("records and collects through an actual OpenTelemetry Meter without globals or exporters", async () => {
+    const elapsed = vi.spyOn(performance, "now").mockReturnValue(0);
     const reader = new ManualReader();
     const telemetry = new MeterProvider({ readers: [reader] });
     const meter: Meter = telemetry.getMeter("local-provider-test");
@@ -58,7 +59,7 @@ describe("optional metrics", () => {
       fail = true;
       await second.resolveBooleanEvaluation("private-missing-flag", false, {}, logger);
       first.reportRefreshFailure("fetch");
-      vi.spyOn(Date, "now").mockReturnValue(Date.now() + 10);
+      elapsed.mockReturnValue(10);
       const collected = await reader.collect();
       expect(collected.errors).toEqual([]);
       const data = collected.resourceMetrics.scopeMetrics.flatMap((scope) => scope.metrics);

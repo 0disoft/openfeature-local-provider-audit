@@ -16,6 +16,7 @@ const FAILURE_KINDS = new Set<RefreshFailureKind>([
 
 export class OperationalState {
   private lastSuccessfulRefreshAt = Date.now();
+  private lastSuccessfulRefreshTick = performance.now();
   private lastChangedAt = this.lastSuccessfulRefreshAt;
   private successfulRefreshes = 1;
   private failedRefreshes = 0;
@@ -39,6 +40,7 @@ export class OperationalState {
     this.successfulRefreshes++;
     this.consecutiveRefreshFailures = 0;
     this.lastSuccessfulRefreshAt = Date.now();
+    this.lastSuccessfulRefreshTick = performance.now();
     if (changed) this.lastChangedAt = this.lastSuccessfulRefreshAt;
   }
 
@@ -95,7 +97,7 @@ export class OperationalState {
         : {}),
       stale:
         this.staleAfterMs !== undefined &&
-        Date.now() - this.lastSuccessfulRefreshAt >= this.staleAfterMs,
+        performance.now() - this.lastSuccessfulRefreshTick >= this.staleAfterMs,
       audit: Object.freeze({
         enabled: sink !== undefined,
         attemptedWrites: this.attemptedWrites,

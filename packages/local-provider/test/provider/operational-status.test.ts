@@ -7,8 +7,43 @@ const logger = { debug() {}, info() {}, warn() {}, error() {} };
 afterEach(() => vi.restoreAllMocks());
 
 describe("provider operational status", () => {
+  it.each([-86_400_000, 86_400_000])(
+    "keeps freshness deadlines across a %s ms wall-clock adjustment",
+    (adjustment) => {
+      const wall = vi.spyOn(Date, "now").mockReturnValue(1_000);
+      const elapsed = vi.spyOn(performance, "now").mockReturnValue(100);
+      const provider = createReloadableLocalProvider({
+        snapshot: staticSnapshot,
+        staleAfterMs: 500,
+        env: {}
+      });
+      wall.mockReturnValue(1_000 + adjustment);
+      elapsed.mockReturnValue(599);
+      expect(provider.getStatus().stale).toBe(false);
+      elapsed.mockReturnValue(600);
+      provider.reportRefreshFailure("fetch");
+      expect(provider.getStatus()).toMatchObject({
+        stale: true,
+        lastSuccessfulRefreshAt: 1_000,
+        lastRefreshFailureAt: 1_000 + adjustment
+      });
+      elapsed.mockReturnValue(750);
+      provider.updateSnapshot(staticSnapshot);
+      expect(provider.getStatus()).toMatchObject({
+        stale: false,
+        lastSuccessfulRefreshAt: 1_000 + adjustment,
+        lastChangedAt: 1_000
+      });
+      elapsed.mockReturnValue(1_249);
+      expect(provider.getStatus().stale).toBe(false);
+      elapsed.mockReturnValue(1_250);
+      expect(provider.getStatus().stale).toBe(true);
+    }
+  );
+
   it("tracks age and unchanged refreshes separately from semantic changes", () => {
     const clock = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const elapsed = vi.spyOn(performance, "now").mockReturnValue(0);
     const provider = createReloadableLocalProvider({
       snapshot: staticSnapshot,
       staleAfterMs: 500,
@@ -25,6 +60,7 @@ describe("provider operational status", () => {
       audit: { enabled: false, pendingWrites: 0 }
     });
     clock.mockReturnValue(1_500);
+    elapsed.mockReturnValue(500);
     expect(provider.getStatus().stale).toBe(true);
     provider.updateSnapshot(structuredClone(staticSnapshot));
     expect(provider.getStatus()).toMatchObject({
@@ -35,6 +71,7 @@ describe("provider operational status", () => {
       stale: false
     });
     clock.mockReturnValue(2_000);
+    elapsed.mockReturnValue(1_000);
     provider.updateSnapshot({ ...staticSnapshot, metadata: { release: "two" } });
     expect(provider.getStatus()).toMatchObject({
       successfulRefreshes: 3,

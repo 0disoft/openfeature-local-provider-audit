@@ -36,8 +36,11 @@ to the last provider validation, not the watcher's liveness or the file's mtime.
 Status is a fresh frozen snapshot, including nested audit counters, with no context,
 flag values, paths, raw exceptions, environment overrides or user identifiers.
 `snapshotHash` identifies the active content, not authentication or confidentiality.
-All timestamps are epoch milliseconds from the wall clock. Clock rollback can defer
-staleness; this is an operational age indication, not a security expiry guarantee.
+All timestamps are epoch milliseconds from the wall clock. Staleness instead uses
+monotonic elapsed time since the last successful provider refresh, so forward or
+backward wall-clock adjustments neither expire fresh content early nor defer stale
+status. A successful unchanged refresh also restarts this elapsed interval; a failed
+refresh does not. This is an operational age indication, not a security expiry guarantee.
 
 The initial validated snapshot counts as one successful refresh. Every successful
 `updateSnapshot` counts, including identical content, updates
