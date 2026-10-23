@@ -101,6 +101,12 @@ snapshotHash }`. A 200 with unchanged semantic content and a valid 304 both rene
 provider freshness without configuration-change events. No snapshot download,
 parse or apply failure replaces the previous snapshot or advances its ETag.
 
+The refresher captures response status and ETag before verification, persistence
+or provider callbacks. Reusing or mutating a custom source response afterward cannot
+relabel the applied content with another ETag. Custom-source ETags follow the same
+quoted strong/weak, 1,024-character policy as built-in transports; malformed ETags
+are discarded so the next refresh requests content unconditionally.
+
 The ETag is sent only while the provider hash matches the snapshot to which this
 refresher committed it. An external semantic update invalidates conditional reuse.
 If the provider changes while a source is being awaited, the refresher rejects the

@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.39` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.40` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.40 captures custom source response status and ETag before verification,
+persistence or provider callbacks. Later mutation of a reused response cannot attach
+a different validator to the applied snapshot and skip a subsequent update. Malformed
+ETags are discarded consistently with the built-in transports, leaving the next
+request unconditional. Public signatures, content validation and replay rules remain.
 
 Alpha.39 avoids repeatedly serializing identical object pairs in the offline compare
 CLI. Equality booleans are cached locally through weak keys; evaluation runs for each

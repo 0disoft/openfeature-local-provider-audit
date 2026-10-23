@@ -80,6 +80,116 @@ afterEach(async () => {
 });
 
 describe("durable signed refresh", () => {
+  it.each(["etag", "status"] as const)(
+    "captures response %s before awaiting persistence",
+    async (field) => {
+      const target = provider();
+      const started = deferred<void>();
+      const finish = deferred<void>();
+      const response = { status: "content" as const, content: token(), etag: '"one"' };
+      const commit = vi.fn<SignedSnapshotStore["commit"]>(async (bytes) => {
+        started.resolve();
+        await finish.promise;
+        return store.commit(bytes);
+      });
+      const fetch = vi
+        .fn<SnapshotSource["fetch"]>()
+        .mockResolvedValueOnce(response)
+        .mockImplementation(async (request) =>
+          request?.etag === '"two"'
+            ? { status: "notModified" }
+            : { status: "content", content: token(2, false), etag: '"two"' }
+        );
+      const refresher = createSnapshotRefresher({
+        provider: target,
+        source: { fetch },
+        verifier: createSnapshotVerifier(verification),
+        store: { load: () => store.load(), commit }
+      });
+      try {
+        const running = refresher.refresh();
+        await started.promise;
+        Object.assign(response, field === "etag" ? { etag: '"two"' } : { status: "notModified" });
+        finish.resolve();
+        await running;
+        await refresher.refresh();
+        expect(fetch.mock.calls[1]?.[0]?.etag).toBe('"one"');
+        expect(target.getSnapshot()).toEqual(snapshot(false));
+        expect(refresher.getProvenance()?.sequence).toBe(2);
+      } finally {
+        finish.resolve();
+        refresher.close();
+      }
+    }
+  );
+
+  it("captures response metadata before synchronous configuration callbacks", async () => {
+    const target = provider();
+    const response = {
+      status: "content" as const,
+      content: Buffer.from(JSON.stringify(snapshot())),
+      etag: '"one"'
+    };
+    const fetch = vi
+      .fn<SnapshotSource["fetch"]>()
+      .mockResolvedValueOnce(response)
+      .mockResolvedValue({ status: "notModified" });
+    target.events?.addHandler(ProviderEvents.ConfigurationChanged, () => {
+      response.etag = '"two"';
+    });
+    const refresher = createSnapshotRefresher({ provider: target, source: { fetch } });
+    try {
+      await refresher.refresh();
+      await refresher.refresh();
+      expect(fetch.mock.calls[1]?.[0]?.etag).toBe('"one"');
+      expect(target.getSnapshot()).toEqual(snapshot());
+    } finally {
+      refresher.close();
+    }
+  });
+
+  it.each([
+    ["unquoted", "unquoted"],
+    ["line break", '"line\r\nbreak"'],
+    ["over limit", `"${"x".repeat(1023)}"`]
+  ])("discards malformed custom-source ETags: %s", async (_label, etag) => {
+    const target = provider();
+    const fetch = vi.fn<SnapshotSource["fetch"]>().mockResolvedValue({
+      status: "content",
+      content: Buffer.from(JSON.stringify(snapshot())),
+      etag
+    });
+    const refresher = createSnapshotRefresher({ provider: target, source: { fetch } });
+    try {
+      await refresher.refresh();
+      await refresher.refresh();
+      expect(fetch.mock.calls[1]?.[0]?.etag).toBeUndefined();
+      expect(target.getSnapshot()).toEqual(snapshot());
+    } finally {
+      refresher.close();
+    }
+  });
+
+  it.each(['""', 'W/"weak"', `"${"x".repeat(1022)}"`])(
+    "retains valid custom-source ETags (case %#)",
+    async (etag) => {
+      const target = provider();
+      const fetch = vi.fn<SnapshotSource["fetch"]>().mockResolvedValue({
+        status: "content",
+        content: Buffer.from(JSON.stringify(snapshot())),
+        etag
+      });
+      const refresher = createSnapshotRefresher({ provider: target, source: { fetch } });
+      try {
+        await refresher.refresh();
+        await refresher.refresh();
+        expect(fetch.mock.calls[1]?.[0]?.etag).toBe(etag);
+      } finally {
+        refresher.close();
+      }
+    }
+  );
+
   it("keeps evaluations/audit on old origin until persistence and publishes only after durable acceptance", async () => {
     const events: AuditEvent[] = [];
     const target = createReloadableLocalProvider({

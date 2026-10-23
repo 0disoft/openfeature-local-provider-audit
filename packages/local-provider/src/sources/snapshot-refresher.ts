@@ -15,7 +15,7 @@ import type {
   SnapshotVerifier,
   VerifiedFlagSnapshot
 } from "../public-types.js";
-import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./source-policy.js";
+import { DEFAULT_SOURCE_BYTES, sourceInteger, validEtag } from "./source-policy.js";
 import { waitForSnapshotOperation } from "./abortable.js";
 import { RefreshOperation } from "./refresh-operation.js";
 import { failureCause, retainFailureCause } from "./failure-cause.js";
@@ -218,6 +218,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       operation.stage = "validation";
       let artifact: Uint8Array | undefined;
       try {
+        response = captureSourceResponse(response);
         artifact = captureSourceArtifact(
           response,
           maxBytes,
@@ -345,6 +346,19 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
   };
 }
 
+// Detach cache metadata before verifier callbacks, persistence or provider events.
+function captureSourceResponse(response: SnapshotSourceResponse): SnapshotSourceResponse {
+  const status = response.status;
+  if (status === "notModified") return { status };
+  if (status !== "content") throw new Error("Unknown source response.");
+  const { content, etag } = response;
+  return {
+    status,
+    content,
+    ...(typeof etag === "string" && validEtag(etag) ? { etag } : {})
+  };
+}
+
 function captureSourceArtifact(
   response: SnapshotSourceResponse,
   maxBytes: number,
@@ -355,7 +369,6 @@ function captureSourceArtifact(
     if (conditionalEtag === undefined) throw new Error("Unexpected not-modified response.");
     return undefined;
   }
-  if (response.status !== "content") throw new Error("Unknown source response.");
   if (response.content.byteLength > maxBytes) throw new Error("Snapshot exceeds maxBytes.");
   return signed ? Uint8Array.from(response.content) : response.content;
 }
