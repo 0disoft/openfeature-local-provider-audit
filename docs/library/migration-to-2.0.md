@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.24` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.25` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.25 prepares a lazy per-snapshot envVar index for local CLI inspection.
+Simulation/comparison no longer scan all flags for each request's env mapping.
+Each name maps to all referring flags, with original snapshot order, JSON override
+precedence and per-flag parse errors preserved. Before/after indexes are separate,
+and each request still parses its own values. Mutable direct API inputs retain the
+ordinary uncached path; no public signature, hash, report or error contract changes.
 
 Alpha.24 removes repeated whole-journal serialization while trimming snapshot
 history to maxBytes. It retains the same newest contiguous prefix, duplicate/order

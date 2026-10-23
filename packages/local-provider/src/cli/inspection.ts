@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 import { createSnapshotHash } from "../audit/audit-event.js";
-import { createEnvOverrides } from "../env/env-overrides.js";
+import { createIndexedEnvOverrides } from "../env/indexed-overrides.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
 import { explainEvaluation } from "../evaluator/explain.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
@@ -8,7 +8,6 @@ import { loadFlagSnapshotFile, readFileWithinLimit } from "../flags/snapshot-fil
 import type {
   EvaluationRequest,
   EvaluationResult,
-  FlagSnapshot,
   ReplayOverrideInput,
   SnapshotFileFormat
 } from "../public-types.js";
@@ -54,15 +53,16 @@ export async function runInspection(
       await readFileWithinLimit(resolve(io.cwd, options.input), 10 * 1024 * 1024, "utf8")
     );
     assertBoundedJson(raw);
+    const beforeOverrides = createIndexedEnvOverrides(before);
     if (command === "evaluate" || command === "explain") {
-      const request = parseRequest(raw, before);
+      const request = parseRequest(raw, beforeOverrides);
       const explanation = explainEvaluation(before, request);
       io.stdout(`${JSON.stringify(explanation)}\n`);
       return explanation.errorCode === undefined ? 0 : 1;
     }
     if (!Array.isArray(raw) || !raw.length || raw.length > 10_000)
       throw new Error("Invalid request count");
-    const requests = raw.map((entry) => parseRequest(entry, before));
+    const requests = raw.map((entry) => parseRequest(entry, beforeOverrides));
     const baseline = requests.map((request) => evaluateFlag(before, request));
     const after = snapshots[1];
     if (!after) {
@@ -71,7 +71,8 @@ export async function runInspection(
       );
       return baseline.some((result) => result.errorCode !== undefined) ? 1 : 0;
     }
-    const nextRequests = raw.map((entry) => parseRequest(entry, after));
+    const afterOverrides = createIndexedEnvOverrides(after);
+    const nextRequests = raw.map((entry) => parseRequest(entry, afterOverrides));
     const candidate = nextRequests.map((request) => evaluateFlag(after, request));
     let changedValues = 0;
     let changedDecisions = 0;
@@ -145,7 +146,10 @@ function parseOptions(command: string, args: readonly string[]): InspectionOptio
   return { files, input, format };
 }
 
-function parseRequest(raw: unknown, snapshot: FlagSnapshot): EvaluationRequest {
+function parseRequest(
+  raw: unknown,
+  createOverrides: ReturnType<typeof createIndexedEnvOverrides>
+): EvaluationRequest {
   if (
     !record(raw) ||
     !onlyKeys(raw, [
@@ -216,7 +220,7 @@ function parseRequest(raw: unknown, snapshot: FlagSnapshot): EvaluationRequest {
     ...(targetingKey !== undefined ? { targetingKey } : {}),
     ...(overrideInput
       ? {
-          overrides: createEnvOverrides(snapshot, {
+          overrides: createOverrides({
             ...overrideInput,
             env: overrideInput.env ?? {}
           })

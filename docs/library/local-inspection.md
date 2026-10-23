@@ -61,6 +61,12 @@ An evaluation input is:
 Simulation/comparison request files contain an array of these objects. Optionally add
 `overrides: { overridesJson: "...", env: { EXPLICIT_FLAG: "true" } }`; only the provided
 environment is used and override mapping is recomputed for each compared snapshot.
+An inspection-local, lazy envVar-to-flags index avoids scanning the full snapshot
+for every request. Shared environment names still affect every referring flag in
+snapshot order, and JSON overrides still take precedence over per-flag errors.
+Before/after indexes are independent; request values/results are never cached and
+the index is discarded with the inspection. No index is built for requests without
+overrides. Existing validation, generic errors and first-encounter group order remain.
 An explicit targeting key wins over `context.targetingKey`; the latter is used if the
 explicit field is omitted, as in the SDK path. Unknown request fields and mismatched
 default types are rejected. Object defaults may be null.
