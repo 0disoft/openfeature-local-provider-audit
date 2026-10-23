@@ -15,6 +15,10 @@ passes the exact quoted ETag from the existing refresher and maps conditional 30
 responses/exceptions to notModified. Unexpected 304, partial/error statuses and
 missing/invalid bodies reject. ETags are opaque validators, not integrity digests.
 Signing and durable acceptance remain the existing verifier/store/refresher's job.
+The adapter captures the response ETag before consuming its asynchronous body.
+Later mutation or reuse of the SDK response object cannot attach another version's
+validator to those bytes. Missing or malformed initial ETags stay absent; subsequent
+refreshes remain unconditional until a valid validator is successfully applied.
 
 Defaults/ranges match HTTPS: 10 MiB bytes (1..100 MiB), 5-second per-attempt total
 deadline (1..60,000 ms), 3 attempts (1..5), exponential retry delay starting at

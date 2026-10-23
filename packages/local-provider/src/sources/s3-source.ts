@@ -137,6 +137,11 @@ async function readAttempt(
     const length = response.ContentLength;
     if (length !== undefined && (!Number.isSafeInteger(length) || length < 0 || length > maxBytes))
       throw new S3ReadError("S3 snapshot content length is invalid or exceeds maxBytes.");
+    // Keep the validator paired with this delivery, even if client middleware
+    // reuses its response object while the asynchronous body is consumed.
+    const responseEtag = response.ETag;
+    const capturedEtag =
+      typeof responseEtag === "string" && validEtag(responseEtag) ? responseEtag : undefined;
     if (body instanceof Blob) body = body.stream();
     if (body instanceof ReadableStream)
       body = Readable.fromWeb(body as Parameters<typeof Readable.fromWeb>[0]);
@@ -185,7 +190,7 @@ async function readAttempt(
     return {
       status: "content",
       content: Buffer.concat(chunks, size),
-      ...(response.ETag !== undefined && validEtag(response.ETag) ? { etag: response.ETag } : {})
+      ...(capturedEtag !== undefined ? { etag: capturedEtag } : {})
     };
   };
   try {

@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.40` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.41` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.41 captures the S3 SDK response ETag before asynchronous body consumption.
+Client middleware reusing or mutating its response during streaming cannot associate
+another version's validator with the delivered bytes and skip the next update. Missing
+or invalid initial ETags remain absent; signatures, byte limits and retries are unchanged.
 
 Alpha.40 captures custom source response status and ETag before verification,
 persistence or provider callbacks. Later mutation of a reused response cannot attach

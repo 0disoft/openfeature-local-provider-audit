@@ -87,6 +87,50 @@ it("uses the actual AWS SDK protocol and conditional exception without credentia
   }
 });
 
+it.each(['"one"', undefined])(
+  "captures SDK response ETag %j before consuming its body",
+  async (etag) => {
+    const snapshot = (variant: "on" | "off") => ({
+      schemaVersion: 1 as const,
+      flags: {
+        feature: {
+          type: "boolean" as const,
+          defaultVariant: variant,
+          variants: { off: false, on: true }
+        }
+      }
+    });
+    const bytes = Buffer.from(JSON.stringify(snapshot("on")));
+    async function* body() {
+      yield bytes.subarray(0, 10);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      response.ETag = '"two"';
+      yield bytes.subarray(10);
+    }
+    const response = { ETag: etag, ContentLength: bytes.length, Body: body() };
+    const getObject = vi
+      .fn<S3SnapshotClient["getObject"]>()
+      .mockResolvedValueOnce(response)
+      .mockImplementation(async (input) =>
+        input.IfNoneMatch === '"two"'
+          ? { $metadata: { httpStatusCode: 304 } }
+          : { ETag: '"two"', Body: Readable.from([Buffer.from(JSON.stringify(snapshot("off")))]) }
+      );
+    const provider = createReloadableLocalProvider({ snapshot: snapshot("off"), env: {} });
+    const refresher = createSnapshotRefresher({ provider, source: source({ getObject }) });
+    try {
+      await refresher.refresh();
+      expect(provider.getSnapshot()).toEqual(snapshot("on"));
+      await refresher.refresh();
+      expect(provider.getSnapshot()).toEqual(snapshot("off"));
+      expect(getObject.mock.calls[1]?.[0].IfNoneMatch).toBe(etag);
+    } finally {
+      refresher.close();
+      await provider.onClose?.();
+    }
+  }
+);
+
 it("streams web, Blob and Node bytes, copies buffers and rejects invalid or oversized bodies", async () => {
   const reused = Buffer.alloc(1);
   async function* tinyChunks() {
