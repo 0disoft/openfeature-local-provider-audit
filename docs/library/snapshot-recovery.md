@@ -125,3 +125,28 @@ check fails. A signed 304 is reverified and acknowledged before renewing freshne
 No automatic scheduler, evaluation-time I/O or background worker is added.
 The executable GitOps recipe is in `gitops-snapshots.md`; audit integrity tools
 remain a separate delivery slice.
+
+## Compound storage failure diagnostics
+
+File-store load/commit sanitize errors only after owned resource cleanup finishes.
+A single failure retains its original identity privately. When an operation and
+cleanup both fail, trusted diagnostics receive an AggregateError: the primary
+cause is first in errors and in cause, followed by the cleanup failure. Multiple
+cleanup layers remain nested, preserving journal read/write/fsync/publication,
+handle close, temporary deletion and owned-lock release failures and stage messages.
+No native error is replaced merely because finally cleanup also failed.
+
+All acquired handles receive one close attempt. A failed close does not stop the
+owned temporary/lock cleanup attempt, and close is not automatically retried.
+Lock deletion still requires the acquired handle identity to match the current
+marker. A foreign replacement or an identity that could not be read is preserved;
+operators must confirm the writer stopped before manually recovering such a marker.
+
+Raw causes remain in the private failure registry and reach only the existing
+refresher onFailure({ kind: "persist", cause, timedOut }) operator callback. Public
+store/refresh errors retain generic messages without raw cause/errors properties;
+provider status and candidate activation do not gain private paths or details.
+No callback, public option, journal format or retry policy is added. A cleanup error
+can follow a successful journal rename, so rejection does not prove rollback. Load
+explicitly to reconcile; never automatically retry a durable write or restore an
+older journal in response to a diagnostic failure.

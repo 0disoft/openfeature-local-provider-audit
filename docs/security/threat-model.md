@@ -155,3 +155,10 @@ causes, including paths and nested cleanup failures. It is a trusted operator
 boundary and must not feed public status, flag responses or redacted audit records.
 Public chained errors retain sanitized messages without raw cause. Hook failures
 are observed and isolated, not awaited; caller-owned callback I/O still needs bounds.
+
+Snapshot recovery store compound operation/cleanup failures are retained only in
+the private failure registry for trusted refresher onFailure diagnostics. Nested
+AggregateError causes may contain paths and native details; operator callbacks must
+redact them. Public store/refresh errors and provider status do not expose raw
+cause/errors. Cleanup never deletes a foreign or unverified lock identity and never
+automatically retries an ambiguous durable write.

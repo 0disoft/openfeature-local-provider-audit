@@ -1,3 +1,4 @@
+import { withStoreCleanup } from "./store-cleanup.js";
 import { retainFailureCause } from "./failure-cause.js";
 import { constants, type Stats } from "node:fs";
 import { lstat, mkdir, open, rename, unlink, type FileHandle } from "node:fs/promises";
@@ -50,39 +51,41 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
       path,
       constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0)
     );
-    try {
-      const stats = await handle.stat();
-      assertRegular(stats);
-      if (!sameFile(before, stats) || stats.size > maxBytes) throw unavailable();
-      const chunks: Buffer[] = [];
-      let total = 0;
-      while (true) {
-        const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, maxBytes - total + 1));
-        const { bytesRead } = await handle.read(buffer);
-        if (bytesRead === 0) break;
-        total += bytesRead;
-        if (total > maxBytes) throw unavailable();
-        chunks.push(buffer.subarray(0, bytesRead));
-      }
-      const journal: unknown = JSON.parse(
-        new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, total))
-      );
-      if (journal === null || typeof journal !== "object" || Array.isArray(journal))
-        throw unavailable();
-      const record = journal as Record<string, unknown>;
-      if (
-        Object.keys(record).length !== 2 ||
-        record.schemaVersion !== 1 ||
-        !Array.isArray(record.artifacts) ||
-        record.artifacts.length < 1 ||
-        record.artifacts.length > 32 ||
-        !record.artifacts.every((artifact) => typeof artifact === "string" && artifact.length > 0)
-      )
-        throw unavailable();
-      return record as unknown as Journal;
-    } finally {
-      await handle.close();
-    }
+    return withStoreCleanup(
+      async () => {
+        const stats = await handle.stat();
+        assertRegular(stats);
+        if (!sameFile(before, stats) || stats.size > maxBytes) throw unavailable();
+        const chunks: Buffer[] = [];
+        let total = 0;
+        while (true) {
+          const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, maxBytes - total + 1));
+          const { bytesRead } = await handle.read(buffer);
+          if (bytesRead === 0) break;
+          total += bytesRead;
+          if (total > maxBytes) throw unavailable();
+          chunks.push(buffer.subarray(0, bytesRead));
+        }
+        const journal: unknown = JSON.parse(
+          new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, total))
+        );
+        if (journal === null || typeof journal !== "object" || Array.isArray(journal))
+          throw unavailable();
+        const record = journal as Record<string, unknown>;
+        if (
+          Object.keys(record).length !== 2 ||
+          record.schemaVersion !== 1 ||
+          !Array.isArray(record.artifacts) ||
+          record.artifacts.length < 1 ||
+          record.artifacts.length > 32 ||
+          !record.artifacts.every((artifact) => typeof artifact === "string" && artifact.length > 0)
+        )
+          throw unavailable();
+        return record as unknown as Journal;
+      },
+      () => handle.close(),
+      "Snapshot journal read and close failed."
+    );
   }
 
   function authenticate(journal: Journal): SnapshotRecovery {
@@ -121,34 +124,36 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
 
   async function writeJournal(serialized: string): Promise<void> {
     const temporary = join(directory, `.${basename(path)}.${randomUUID()}.tmp`);
-    let handle: FileHandle | undefined;
-    let created = false;
-    try {
-      handle = await open(temporary, "wx", 0o600);
-      created = true;
-      await handle.writeFile(serialized, "utf8");
-      await handle.sync();
-      await handle.close();
-      handle = undefined;
-      await rename(temporary, path);
-      if (process.platform !== "win32") {
-        const parent = await open(directory, "r");
-        try {
-          await parent.sync();
-        } finally {
-          await parent.close();
+    const handle = await open(temporary, "wx", 0o600);
+    await withStoreCleanup(
+      async () => {
+        await withStoreCleanup(
+          async () => {
+            await handle.writeFile(serialized, "utf8");
+            await handle.sync();
+          },
+          () => handle.close(),
+          "Snapshot journal write and close failed."
+        );
+        await rename(temporary, path);
+        if (process.platform !== "win32") {
+          const parent = await open(directory, "r");
+          await withStoreCleanup(
+            parent.sync.bind(parent),
+            parent.close.bind(parent),
+            "Snapshot directory sync and close failed."
+          );
         }
-      }
-    } finally {
-      try {
-        await handle?.close();
-      } finally {
-        if (created)
-          await unlink(temporary).catch((error: unknown) => {
-            if (!isMissing(error)) throw error;
-          });
-      }
-    }
+      },
+      async () => {
+        try {
+          await unlink(temporary);
+        } catch (error) {
+          if (!isMissing(error)) throw error;
+        }
+      },
+      "Snapshot journal publication and temporary-file cleanup failed."
+    );
   }
 
   return {
@@ -171,25 +176,27 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
       } catch (cause) {
         throw unavailable(cause);
       }
-      let lock: FileHandle | undefined;
-      let lockStats: Stats | undefined;
       try {
         if (createDirectory) await mkdir(directory, { recursive: true, mode: 0o700 });
-        lock = await open(lockPath, "wx", 0o600);
-        lockStats = await lock.stat();
-        const previous = await readJournal();
-        const recovery = previous === undefined ? undefined : authenticate(previous);
-        const verified = verifier.verify(bytes, recovery?.floor);
-        if (verified.provenance.artifactHash === recovery?.floor.artifactHash) return verified;
-        const token = new TextDecoder("utf-8", { fatal: true }).decode(bytes).trim();
-        const artifacts = [token, ...(previous?.artifacts ?? [])].slice(0, maxHistory);
-        await writeJournal(boundedSnapshotJournal(artifacts, maxBytes));
-        return verified;
+        const lock = await open(lockPath, "wx", 0o600);
+        let lockStats: Stats | undefined;
+        return await withStoreCleanup(
+          async () => {
+            lockStats = await lock.stat();
+            const previous = await readJournal();
+            const recovery = previous === undefined ? undefined : authenticate(previous);
+            const verified = verifier.verify(bytes, recovery?.floor);
+            if (verified.provenance.artifactHash === recovery?.floor.artifactHash) return verified;
+            const token = new TextDecoder("utf-8", { fatal: true }).decode(bytes).trim();
+            const artifacts = [token, ...(previous?.artifacts ?? [])].slice(0, maxHistory);
+            await writeJournal(boundedSnapshotJournal(artifacts, maxBytes));
+            return verified;
+          },
+          () => releaseLock(lock, lockStats, lockPath),
+          "Snapshot commit and lock release failed."
+        );
       } catch (cause) {
         throw unavailable(cause);
-      } finally {
-        // No stale takeover: only the owner of this acquired marker may release it.
-        if (lock !== undefined) await releaseLock(lock, lockStats, lockPath);
       }
     }
   };
@@ -221,17 +228,18 @@ async function releaseLock(
   expected: Stats | undefined,
   path: string
 ): Promise<void> {
-  let failed = false;
-  try {
-    await lock.close();
-  } catch {
-    failed = true;
-  }
-  try {
-    const current = await lstat(path);
-    if (expected !== undefined && sameFile(current, expected)) await unlink(path);
-  } catch (error) {
-    if (!isMissing(error)) failed = true;
-  }
-  if (failed) throw unavailable();
+  await withStoreCleanup(
+    () => lock.close(),
+    async () => {
+      // No stale takeover: only an identity verified from this acquired marker
+      // may be removed, including when close fails. Preserve foreign replacements.
+      try {
+        const current = await lstat(path);
+        if (expected !== undefined && sameFile(current, expected)) await unlink(path);
+      } catch (error) {
+        if (!isMissing(error)) throw error;
+      }
+    },
+    "Snapshot lock close and owned-marker cleanup failed."
+  );
 }
