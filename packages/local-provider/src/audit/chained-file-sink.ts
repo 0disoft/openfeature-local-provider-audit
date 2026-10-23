@@ -2,6 +2,7 @@ import { lstat, mkdir, open, readdir, unlink } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
+  AuditEvent,
   AuditChainCheckpoint,
   AuditChainFileCheckpoint,
   ChainedFileAuditSink,
@@ -65,6 +66,16 @@ export function createChainedFileAuditSink(
     untyped.queueOverflowPolicy === "dropNewest"
   )
     throw new TypeError("Chained audit requires locking, no stale takeover and rejected overflow.");
+  const batchSize = chainInteger(
+    options.batchSize ?? MAX_CHAIN_BATCH_RECORDS,
+    1,
+    MAX_CHAIN_BATCH_RECORDS
+  );
+  const maxBatchBytes = chainInteger(
+    options.maxBatchBytes ?? 1024 * 1024,
+    1,
+    MAX_CHAIN_BATCH_BYTES
+  );
   const maxRecordBytes = chainInteger(options.maxRecordBytes ?? 1024 * 1024, 1, 16 * 1024 * 1024);
   const maxSegmentBytes = chainInteger(
     options.maxSegmentBytes ?? 10 * 1024 * 1024,
@@ -205,7 +216,11 @@ export function createChainedFileAuditSink(
     let records = 0;
     if (bytes.length === 0) throw new Error();
     while (offset < bytes.length) {
-      if (++records > MAX_CHAIN_BATCH_RECORDS) throw new Error();
+      if (
+        ++records > MAX_CHAIN_BATCH_RECORDS ||
+        (records > 1 && bytes.length > MAX_CHAIN_BATCH_BYTES)
+      )
+        throw new Error();
       const end = bytes.indexOf(10, offset);
       if (end < 0) throw new Error();
       current = parseLine(bytes.subarray(offset, end + 1), current);
@@ -278,47 +293,77 @@ export function createChainedFileAuditSink(
     await pruneSegments(state);
     return state;
   }
+  async function writeEvents(events: readonly AuditEvent[]): Promise<void> {
+    return exclusive(async () => {
+      let state = await recover(await load());
+      let lines: string[] = [];
+      let bytes = 0;
+      let end = head(state);
+      let baseSize = 0;
+      let rotate = false;
+      async function persist(): Promise<void> {
+        if (lines.length === 0) return;
+        const previous = state.segments[state.segments.length - 1];
+        const file = rotate ? name(head(state)) : previous?.file;
+        if (file === undefined) throw new Error();
+        const handle = rotate
+          ? await open(join(directory, file), "wx", 0o600)
+          : await openChainFile(join(directory, file));
+        try {
+          await handle.appendFile(lines.join(""), "utf8");
+          await handle.sync();
+        } finally {
+          await handle.close();
+        }
+        const segment: Segment = {
+          file,
+          start: rotate ? head(state) : (previous?.start ?? head(state)),
+          head: end,
+          size: baseSize + bytes
+        };
+        // Publish each chunk before touching the next segment: recovery needs at
+        // most one bounded suffix or one next-sequence orphan, even across rotation.
+        state = await commitSegments(
+          state,
+          rotate ? [...state.segments, segment] : [...state.segments.slice(0, -1), segment]
+        );
+        lines = [];
+        bytes = 0;
+      }
+      for (const event of events) {
+        const record = createChainedAuditEvent(event, end, { maxRecordBytes });
+        const line = `${JSON.stringify(record)}\n`;
+        const size = Buffer.byteLength(line);
+        if (
+          lines.length > 0 &&
+          (bytes + size > maxBatchBytes || baseSize + bytes + size > maxSegmentBytes)
+        )
+          await persist();
+        if (lines.length === 0) {
+          const previous = state.segments[state.segments.length - 1];
+          rotate = previous === undefined || previous.size + size > maxSegmentBytes;
+          baseSize = rotate ? 0 : (previous?.size ?? 0);
+        }
+        lines.push(line);
+        bytes += size;
+        end = {
+          schemaVersion: 1,
+          chainId: record.chainId,
+          sequence: record.sequence,
+          hash: record.hash
+        };
+      }
+      await persist();
+    });
+  }
   const queued = createQueuedAuditSink(
     {
       path,
       ...(options.maxQueueSize !== undefined ? { maxQueueSize: options.maxQueueSize } : {}),
       ...(options.maxQueueBytes !== undefined ? { maxQueueBytes: options.maxQueueBytes } : {})
     },
-    (event) =>
-      exclusive(async () => {
-        let state = await recover(await load());
-        const record = createChainedAuditEvent(event, head(state), { maxRecordBytes });
-        const line = `${JSON.stringify(record)}\n`,
-          size = Buffer.byteLength(line);
-        const previous = state.segments[state.segments.length - 1];
-        const rotate = previous === undefined || previous.size + size > maxSegmentBytes;
-        const file = rotate ? name(head(state)) : previous.file;
-        const handle = rotate
-          ? await open(join(directory, file), "wx", 0o600)
-          : await openChainFile(join(directory, file));
-        try {
-          await handle.appendFile(line, "utf8");
-          await handle.sync();
-        } finally {
-          await handle.close();
-        }
-        const end: AuditChainCheckpoint = {
-          schemaVersion: 1,
-          chainId: record.chainId,
-          sequence: record.sequence,
-          hash: record.hash
-        };
-        const segment: Segment = {
-          file,
-          start: rotate ? head(state) : previous.start,
-          head: end,
-          size: (rotate ? 0 : previous.size) + size
-        };
-        state = await commitSegments(
-          state,
-          rotate ? [...state.segments, segment] : [...state.segments.slice(0, -1), segment]
-        );
-      })
+    (event) => writeEvents([event]),
+    { maxSize: batchSize, maxBytes: maxBatchBytes, write: writeEvents }
   );
   return {
     ...queued,

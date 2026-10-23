@@ -141,3 +141,11 @@ are operator-owned. Adapter/public errors, status and audit events stay sanitize
 callback exceptions and rejected promises do not replace refresh results. Shared
 deadlines bound waiting, not cancellation-ignoring custom I/O; ownership and durable
 reservations remain held until actual settlement to prevent overlapping writes.
+
+Chained audit batching holds the owner lock across ordered hash assignment and
+per-chunk durable publication. Recovery reads at most 4 MiB (or one larger allowed
+record) and verifies at most 64 uncommitted records before changing metadata. It
+never adopts a valid prefix of malformed evidence. A rejected batch can contain
+a committed prefix; automatic append retry is forbidden because it can duplicate
+events. This provides durable acceptance, not exactly-once delivery. Upgrade all
+cooperating readers before enabling multi-record batches.

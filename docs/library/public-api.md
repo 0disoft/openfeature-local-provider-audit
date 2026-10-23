@@ -256,3 +256,7 @@ and `../testing/core-runtime-acceptance.md`; it does not extend root API support
 HTTPS/S3 source options accept optional `totalTimeoutMs` (1..320,000 ms) to bound
 all read attempts and jittered backoff. Omission derives the previous maximum
 attempt/backoff envelope. No persistence or activation retries are added.
+
+ChainedFileAuditSinkOptions adds optional batchSize (1..64, default 64) and
+maxBatchBytes (1..4 MiB, default 1 MiB). See audit-chain.md for durable completion,
+encoded byte splitting and ambiguous group-failure semantics. No new exports.

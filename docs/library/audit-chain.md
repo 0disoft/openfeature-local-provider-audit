@@ -79,7 +79,7 @@ and retention belong to the operator; no remote writer is installed here.
 
 `createChainedFileAuditSink({ directory, chainId, initialCheckpoint?,
 maxSegmentBytes?, maxSegments?, maxRecordBytes?, maxVerificationBytes?,
-maxQueueSize?, maxQueueBytes?, lockTimeoutMs? })` implements AuditSink including confirmed writes,
+maxQueueSize?, maxQueueBytes?, batchSize?, maxBatchBytes?, lockTimeoutMs? })` implements AuditSink including confirmed writes,
 flush and queue stats. The plain file sink remains compatible. The chained sink
 uses a dedicated directory, stable `segment-<first-sequence>.jsonl` names and an
 atomically replaced `manifest.json`; these files must not be shared with plain
@@ -150,3 +150,31 @@ record up to maxRecordBytes + 1 when larger). Missing newlines, invalid UTF-8,
 invalid hashes, gaps and overflow preserve both the evidence and the committed
 manifest. Recovery limits are shared with the batch writer, independent of its
 local configuration. No valid prefix of a malformed suffix is adopted.
+
+### Bounded durable batches
+
+The chained sink coalesces already waiting requests in FIFO order, without a timer.
+`batchSize` defaults to 64 (range 1..64); set it to 1 for singleton writes.
+`maxBatchBytes` defaults to 1 MiB (range 1..4 MiB). Queue grouping counts captured
+UTF-8 event JSON Lines bytes; storage splits again using actual encoded chain
+record bytes and segment boundaries. A larger valid individual record is written
+alone, up to maxRecordBytes + 1. Queue count/byte reservations remain held until
+the actual group completes. The plain file sink retains singleton writes.
+
+Each group rereads and recovers the manifest under the same process queue and
+mandatory owner lock. Each chunk is appended and fsynced before the manifest is
+atomically replaced and synced; the next segment is never written before that
+commit. Confirmations resolve only after every chunk and retention cleanup succeed.
+Batching reduces lock acquisition, metadata replacement and fsync calls; it adds no
+network I/O, idle timer, concurrent file writes or cached cross-process manifest.
+
+A group is not an atomic transaction across chunks. An error rejects every request
+in that group, even when a committed prefix or a complete recoverable suffix exists.
+No append is automatically retried. Later groups recover before proceeding; a
+malformed/partial suffix blocks them and preserves evidence. Retrying a rejected
+request manually may duplicate its event. Flush reports each failed request once,
+with its existing bounded cause ledger. Mixed-version readers must all support
+multi-record recovery before batch writes are enabled.
+
+Local batch validation and workload limits are recorded in
+`../testing/audit-batch-acceptance.md`.

@@ -8,7 +8,7 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.27` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.28` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
 
 Alpha.26 privately indexes wide validated `in` condition arrays for repeated
@@ -217,3 +217,8 @@ non-Node support remains pending real runtime evidence.
 Alpha.27 recovers bounded multi-record uncommitted audit suffixes atomically.
 Upgrade all processes reading the same chain before enabling batched writes;
 older readers cannot recover a multi-record suffix left by an interrupted batch.
+
+Alpha.28 enables bounded coalescing of concurrent chained audit writes by default.
+Set batchSize: 1 to retain singleton groups. Existing write/writeConfirmed/flush
+signatures and chain schema/hash format are unchanged. A failed group may have a
+durable prefix; all callers reject and no automatic retry occurs. See audit-chain.md.

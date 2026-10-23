@@ -600,6 +600,8 @@ interface ChainedFileAuditSinkOptions {
   readonly initialCheckpoint?: AuditChainCheckpoint;
   readonly maxSegmentBytes?: number;
   readonly maxSegments?: number;
+  readonly batchSize?: number;
+  readonly maxBatchBytes?: number;
   readonly maxRecordBytes?: number;
   readonly maxVerificationBytes?: number;
   readonly maxQueueSize?: number | null;

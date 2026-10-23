@@ -356,7 +356,7 @@ describe("chained file audit sink", () => {
     const script = `const api = await import(${JSON.stringify(new URL("../../dist/index.js", import.meta.url).href)});
       const sink = api.createChainedFileAuditSink({ directory: ${JSON.stringify(directory)}, chainId: "writer/test", lockTimeoutMs: 10000 });
       const snapshot = { schemaVersion: 1, flags: {} }, request = { flagKey: "feature", expectedType: "boolean", defaultValue: false };
-      for (let index=0; index<5; index++) await sink.write(api.createAuditEvent({ snapshot, request, result: api.evaluateFlag(snapshot, request), providerName: "child" }));
+      await Promise.all(Array.from({ length: 5 }, () => sink.write(api.createAuditEvent({ snapshot, request, result: api.evaluateFlag(snapshot, request), providerName: "child" }))));
       await sink.flush();`;
     await Promise.all([
       promisify(execFile)(process.execPath, ["--input-type=module", "-e", script]),
@@ -372,12 +372,146 @@ describe("chained file audit sink", () => {
     ).toBe(10);
   });
 
+  it("coalesces a 65-write burst into two durable ordered chunks", async () => {
+    const target = sink();
+    await target.write(event());
+    vi.mocked(rename).mockClear();
+    await Promise.all(
+      Array.from({ length: 65 }, (_, index) =>
+        target.write({ ...event(), eventId: `batch-${index}` })
+      )
+    );
+    expect(rename).toHaveBeenCalledTimes(2);
+    const checkpoint = await target.getCheckpoint();
+    expect(checkpoint.head.sequence).toBe(66);
+    const rows = await records(checkpoint.files);
+    expect(rows.slice(1).map((row) => row.event.eventId)).toEqual(
+      Array.from({ length: 65 }, (_, index) => `batch-${index}`)
+    );
+    expect(
+      verifyAuditChain(rows, { start: checkpoint.start, expectedHead: checkpoint.head }).records
+    ).toBe(66);
+  });
+
+  it("waits for metadata durability before confirming every grouped caller", async () => {
+    const target = sink();
+    await target.write(event());
+    const actual = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+    let entered!: () => void, release!: () => void;
+    const blocked = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.mocked(rename).mockImplementationOnce(async (...args) => {
+      entered();
+      await gate;
+      return actual.rename(...args);
+    });
+    let completed = 0;
+    const writes = Array.from({ length: 3 }, () =>
+      target.writeConfirmed?.(event())?.then(() => {
+        completed++;
+      })
+    );
+    try {
+      await blocked;
+      expect(completed).toBe(0);
+      expect(target.getStats?.()).toMatchObject({ pendingWrites: 3 });
+    } finally {
+      release();
+    }
+    await Promise.all(writes);
+    expect(completed).toBe(3);
+    expect(target.getStats?.()).toMatchObject({ pendingWrites: 0, pendingBytes: 0 });
+  });
+
+  it.each(["tail", "orphan"])(
+    "rejects an ambiguous batch once and recovers its complete %s",
+    async (kind) => {
+      const target = sink();
+      if (kind === "tail") await target.write(event());
+      else await target.getCheckpoint();
+      vi.mocked(rename).mockRejectedValueOnce(new Error("manifest unavailable"));
+      const results = await Promise.allSettled([
+        target.write(event()),
+        target.write(event()),
+        target.write(event())
+      ]);
+      expect(results.every((result) => result.status === "rejected")).toBe(true);
+      await expect(target.flush?.()).rejects.toThrow("3 audit writes failed");
+      const recovered = await sink().getCheckpoint();
+      expect(recovered.head.sequence).toBe(kind === "tail" ? 4 : 3);
+      await sink().write(event());
+      expect((await sink().getCheckpoint()).head.sequence).toBe(kind === "tail" ? 5 : 4);
+    }
+  );
+
+  it("preserves a committed prefix and stops rotation after an ambiguous later chunk", async () => {
+    const target = sink({ maxSegmentBytes: 1 });
+    await target.write(event());
+    const actual = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+    vi.mocked(rename)
+      .mockImplementationOnce(actual.rename)
+      .mockRejectedValueOnce(new Error("second chunk failed"));
+    const results = await Promise.allSettled([
+      target.write(event()),
+      target.write(event()),
+      target.write(event())
+    ]);
+    expect(results.every((result) => result.status === "rejected")).toBe(true);
+    await expect(target.flush?.()).rejects.toThrow("3 audit writes failed");
+    const manifest = JSON.parse(await readFile(join(directory, "manifest.json"), "utf8"));
+    expect(manifest.segments.at(-1).head.sequence).toBe(2);
+    expect(await readdir(directory)).not.toContain("segment-4.jsonl");
+    expect((await sink().getCheckpoint()).head.sequence).toBe(3);
+  });
+
+  it("splits at exact encoded-byte boundaries and commits each rotation before the next", async () => {
+    const initial = sink();
+    await initial.write(event());
+    const before = await initial.getCheckpoint();
+    const value = event();
+    const size = Buffer.byteLength(
+      `${JSON.stringify(createChainedAuditEvent(value, before.head))}\n`
+    );
+    const target = sink({ maxBatchBytes: size * 2 });
+    vi.mocked(rename).mockClear();
+    await Promise.all([target.write(value), target.write(value), target.write(value)]);
+    expect(rename).toHaveBeenCalledTimes(2);
+    expect((await target.getCheckpoint()).head.sequence).toBe(4);
+    const rotating = sink({ maxSegmentBytes: 1, maxSegments: 2 });
+    await Promise.all([rotating.write(value), rotating.write(value), rotating.write(value)]);
+    const checkpoint = await rotating.getCheckpoint();
+    expect(checkpoint.head.sequence).toBe(7);
+    expect(checkpoint.start.sequence).toBe(5);
+    expect(checkpoint.files).toEqual(["segment-6.jsonl", "segment-7.jsonl"]);
+  });
+
+  it.each([{ batchSize: 1 }, { maxBatchBytes: 1 }])(
+    "supports singleton writes with %j",
+    async (extra) => {
+      const target = sink(extra);
+      await target.write(event());
+      vi.mocked(rename).mockClear();
+      await Promise.all([target.write(event()), target.write(event()), target.write(event())]);
+      expect(rename).toHaveBeenCalledTimes(3);
+      expect((await target.getCheckpoint()).head.sequence).toBe(4);
+    }
+  );
+
   it("rejects unsafe settings and queue overflow, and preserves foreign lock ownership", async () => {
     for (const extra of [
       { lock: false },
       { staleLockMs: 1 },
       { queueOverflowPolicy: "dropNewest" },
       { maxSegments: 0 },
+      { batchSize: 0 },
+      { batchSize: 65 },
+      { batchSize: Number.NaN },
+      { maxBatchBytes: 0 },
+      { maxBatchBytes: 4 * 1024 * 1024 + 1 },
       { maxVerificationBytes: 1 }
     ])
       expect(() => sink(extra)).toThrow();

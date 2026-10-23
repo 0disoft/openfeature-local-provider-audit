@@ -1,12 +1,15 @@
+import { createBatchWriter, type AuditBatchWriter } from "./batch-writer.js";
 import type { AuditEvent, AuditSink, FileAuditSinkOptions } from "../public-types.js";
 const DEFAULT_AUDIT_QUEUE_SIZE = 5_000;
 const DEFAULT_AUDIT_QUEUE_BYTES = 64 * 1024 * 1024;
 const MAX_RETAINED_FAILURE_CAUSES = 16;
 export function createQueuedAuditSink(
   options: FileAuditSinkOptions,
-  writer: (event: AuditEvent) => Promise<void>
+  writer: (event: AuditEvent) => Promise<void>,
+  batch?: AuditBatchWriter
 ): AuditSink {
   const queue = createQueueOptions(options);
+  const dispatch = batch === undefined ? undefined : createBatchWriter(batch);
   const pendingWrites = new Set<Promise<void>>();
   const failureCauses: unknown[] = [];
   let unreportedFailureCount = 0;
@@ -38,8 +41,9 @@ export function createQueuedAuditSink(
 
     queuedWrites += 1;
     pendingBytes += bytes;
-    const writeOperation = writeQueue.then(() => writer(event));
-    writeQueue = writeOperation.catch(() => undefined);
+    const writeOperation =
+      dispatch === undefined ? writeQueue.then(() => writer(event)) : dispatch(event, bytes);
+    if (dispatch === undefined) writeQueue = writeOperation.catch(() => undefined);
     const trackedWrite = writeOperation
       .catch((error: unknown) => {
         unreportedFailureCount += 1;
