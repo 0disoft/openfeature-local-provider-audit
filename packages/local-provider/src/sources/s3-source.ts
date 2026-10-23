@@ -88,10 +88,19 @@ async function readAttempt(
   let finished = false;
   let body: unknown;
   let iterator: AsyncIterator<unknown> | undefined;
+  let closedBody: unknown;
+  let returnedIterator: AsyncIterator<unknown> | undefined;
   const close = () => {
-    closeBody(body);
+    // Abort, timeout and finally can converge here. Mark each acquired resource
+    // before invoking caller code; a late response still owns a fresh body.
+    if (body !== closedBody) {
+      closedBody = body;
+      closeBody(body);
+    }
+    if (iterator === undefined || iterator === returnedIterator) return;
+    returnedIterator = iterator;
     try {
-      void Promise.resolve(iterator?.return?.()).catch(() => {});
+      void Promise.resolve(iterator.return?.()).catch(() => {});
     } catch {
       /* Cleanup must not replace the request outcome. */
     }

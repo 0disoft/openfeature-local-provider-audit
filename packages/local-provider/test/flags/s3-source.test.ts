@@ -271,6 +271,67 @@ it("caps stalled SDK waiting at the total deadline without starting another atte
   expect(vi.getTimerCount()).toBe(0);
 });
 
+it.each(["abort", "timeout"])("releases each body and iterator once on %s", async (mode) => {
+  const controller = new AbortController();
+  let started!: () => void;
+  const reading = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  let finishRead!: () => void;
+  const returned = vi.fn(async () => {
+    finishRead();
+    return { done: true as const, value: undefined };
+  });
+  const body = {
+    destroy: vi.fn(() => {
+      if (mode === "abort") throw new Error("private cleanup failure");
+    }),
+    [Symbol.asyncIterator]() {
+      return {
+        next: () =>
+          new Promise<IteratorResult<Uint8Array>>((resolve) => {
+            finishRead = () => resolve({ done: true, value: undefined });
+            started();
+          }),
+        return: returned
+      };
+    }
+  };
+  const adapter = source(
+    {
+      async getObject() {
+        return { Body: body };
+      }
+    },
+    {
+      timeoutMs: mode === "timeout" ? 15 : 1000
+    }
+  );
+  const rejected = expect(adapter.fetch({ signal: controller.signal })).rejects.toThrow(
+    mode === "timeout" ? "timed out" : "cancelled"
+  );
+  await reading;
+  if (mode === "abort") controller.abort();
+  await rejected;
+  expect(body.destroy).toHaveBeenCalledOnce();
+  expect(returned).toHaveBeenCalledOnce();
+});
+
+it("releases a late body once even when cancellation had no body to close", async () => {
+  let deliver!: (value: { Body: unknown }) => void;
+  const pending = new Promise<{ Body: unknown }>((resolve) => {
+    deliver = resolve;
+  });
+  await expect(source({ getObject: () => pending }, { timeoutMs: 15 }).fetch()).rejects.toThrow(
+    "timed out"
+  );
+  const body = { destroy: vi.fn(), [Symbol.asyncIterator]: vi.fn() };
+  deliver({ Body: body });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  expect(body.destroy).toHaveBeenCalledOnce();
+  expect(body[Symbol.asyncIterator]).not.toHaveBeenCalled();
+});
+
 it("bounds ignored transport and iterator aborts and closes late bodies", async () => {
   let resolve!: (response: { Body: Readable }) => void;
   const pending = new Promise<{ Body: Readable }>((done) => {

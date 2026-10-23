@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.41` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.42` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.42 attempts S3 body and iterator cleanup once per acquired resource when
+abort, timeout and finalization converge. Throwing or asynchronous cleanup remains
+best effort and never replaces the request outcome. Late response bodies still get
+their own cleanup attempt. Public signatures and transport retry policy are unchanged.
 
 Alpha.41 captures the S3 SDK response ETag before asynchronous body consumption.
 Client middleware reusing or mutating its response during streaming cannot associate

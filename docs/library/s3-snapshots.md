@@ -33,6 +33,10 @@ The deadline covers credential/transport wait and body consumption. Cancellation
 interrupts waiting/backoff and closes available streams. Late bodies after timeout
 are closed too. A custom client that ignores abort may continue its own work;
 the adapter does not wait indefinitely for its promise or iterator cleanup.
+Each acquired body and iterator receives at most one explicit cleanup attempt per
+adapter attempt, even when abort, timeout and finalization overlap or cleanup throws.
+Cleanup failures remain best effort; no ambiguous release is retried. A body arriving
+after cancellation still receives its own cleanup attempt.
 Successful bytes are copied into bounded memory. Node async-iterable byte streams,
 Web readable streams and Blob streams are supported, with runtime validation.
 No transformToByteArray call may bypass streaming bounds. Declared length is checked
