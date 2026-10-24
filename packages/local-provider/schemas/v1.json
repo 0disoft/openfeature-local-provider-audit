@@ -1,0 +1,221 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:openfeature-local-provider:snapshot:v1",
+  "title": "OpenFeature Local Provider flag snapshot v1",
+  "description": "Offline authoring schema. validateFlagSnapshot remains authoritative for semantic constraints; see docs/library/authoring.md.",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "flags": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "\\S"
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/flag"
+      }
+    },
+    "metadata": {
+      "$ref": "#/definitions/metadata"
+    }
+  },
+  "required": ["schemaVersion", "flags"],
+  "additionalProperties": false,
+  "definitions": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/json"
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "rollout": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "percentage": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 100,
+            "description": "Runtime also checks three decimal places and total percentage <= 100."
+          },
+          "seed": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
+        "required": ["variant", "percentage"],
+        "additionalProperties": false
+      }
+    },
+    "flag": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["boolean", "string", "number", "object"]
+        },
+        "variants": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
+        "defaultVariant": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "rollout": {
+          "$ref": "#/definitions/rollout"
+        },
+        "envVar": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        }
+      },
+      "required": ["type", "variants", "defaultVariant"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "string"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/definitions/json"
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/definitions/json"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

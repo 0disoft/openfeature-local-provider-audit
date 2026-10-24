@@ -8,8 +8,12 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.45` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.46` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.46 adds offline v1/v2 JSON Schema exports and authoring guidance. Runtime
+validation remains authoritative for semantic invariants. No evaluator behavior
+or existing public TypeScript signatures change.
 
 Alpha.45 adds opt-in compare percentage limits and exit3 for policy rejection.
 Default differences still exit0; evaluation/input errors retain exit1 and usage

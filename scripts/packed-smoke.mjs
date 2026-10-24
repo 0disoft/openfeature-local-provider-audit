@@ -243,6 +243,16 @@ flags:
 import * as provider from "${PACKAGE_NAME}";
 import exerciseRuntimeContract from "./runtime-contract.cjs";
 
+${
+  installTarget.source === "packed"
+    ? `const { readFile } = await import("node:fs/promises");
+for (const version of [1, 2]) {
+  const schema = JSON.parse(await readFile(new URL(import.meta.resolve("${PACKAGE_NAME}/schemas/v" + version + ".json")), "utf8"));
+  if (schema.properties.schemaVersion.const !== version) throw new Error("Packaged schema version mismatch");
+}
+`
+    : ""
+}
 await exerciseRuntimeContract(provider, ProviderEvents, "ESM", "audit-esm.jsonl");
 `,
     "utf8"

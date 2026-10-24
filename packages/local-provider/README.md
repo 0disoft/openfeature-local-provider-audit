@@ -101,6 +101,14 @@ YAML input must parse into the same snapshot contract used by JSON input.
 Snapshot objects, flag definitions, and rollout rules reject unknown fields; flag names,
 variant names, and metadata keys remain caller-defined.
 
+## Editor Schemas
+
+Offline JSON Schemas are exported as `@0disoft/openfeature-local-provider/schemas/v1.json`
+and `@0disoft/openfeature-local-provider/schemas/v2.json`. Associate them with files in
+your editor; do not insert `$schema` into snapshots. Runtime validation still checks
+references, rollout totals and other semantic constraints. See the
+[authoring contract](https://github.com/0disoft/openfeature-local-provider-audit/blob/main/docs/library/authoring.md).
+
 ## CLI Validation
 
 ```sh

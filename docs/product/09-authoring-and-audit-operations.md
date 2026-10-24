@@ -21,8 +21,9 @@ Preserve unrelated changes and resume unfinished work before selecting another u
 4. Inspection policy and diagnostics: completed in alpha.45. Opt-in comparison thresholds with
    explicit exit status; safe bounded error code/location without raw user input.
    Preserve default reports, privacy and evaluation-error precedence.
-5. Authoring support: pending. Versioned JSON Schema consistent with runtime
-   validation, then flag-key/value type generation and editor/package usage.
+5. Authoring support: in progress. Alpha.46 adds offline versioned JSON Schema,
+   structural conformance tests and explicit runtime-only semantic constraints;
+   see `../library/authoring.md`. Flag-key/value type generation is next.
 6. Audit outcome correlation: pending. Opt-in event ID and confirmation outcome for
    the final SDK resolution; preserve candidate records and default privacy. Do not
    claim business execution or attempt to confirm an error through a failing sink.
