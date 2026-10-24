@@ -302,7 +302,10 @@ export async function readFileWithinLimit(
 
       totalBytes += bytesRead;
       assertSnapshotSizeWithinLimit(totalBytes, maxBytes);
-      chunks.push(Buffer.from(buffer.subarray(0, bytesRead)));
+      // Each read owns its buffer; compact short reads to avoid retaining unused capacity.
+      chunks.push(
+        bytesRead === buffer.length ? buffer : Buffer.from(buffer.subarray(0, bytesRead))
+      );
     }
   } catch (error) {
     failure = { cause: error };

@@ -197,7 +197,10 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
 - `AuditRedactionOptions` with optional `contextKeys: "names" | "count" | "none"`.
   Omitting `contextKeys` selects `count`; `names` is an explicit metadata-disclosure opt-in.
 - `LoadFlagSnapshotFileOptions` with optional `format`, optional `encoding`, and optional
-  `maxBytes`.
+  `maxBytes`. File loads read into separate buffers of at most 64 KiB. Full read buffers
+  are retained without a second payload copy; short reads still compact their bytes
+  to avoid retaining unused capacity. Final concatenation, byte-limit enforcement,
+  strict UTF-8 validation and exception-safe handle cleanup remain in place.
 - `WatchFlagSnapshotFileOptions` with optional `debounceMs`, `persistent`, and
   `consistencyPollIntervalMs`. Consistency polling is disabled when omitted; supplied values
   must be integers of at least 50 ms. `debounceMs` defaults to 50 ms and must be an
