@@ -40,7 +40,7 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
   variant selection (unpublished 2.0 development version).
 - Redacted evaluation explanations and local simulation/comparison CLI commands.
 - Local CLI validation for JSON/YAML flag snapshots.
-- Offline versioned JSON Schema for editors ([authoring](docs/library/authoring.md)).
+- Offline JSON Schema and CLI flag-key/value type generation ([authoring](docs/library/authoring.md)).
 - Typed OpenFeature evaluation for boolean, string, number, and object values.
 - Explicit per-flag environment overrides.
 - Deterministic percentage rollout with replayable bucketing.

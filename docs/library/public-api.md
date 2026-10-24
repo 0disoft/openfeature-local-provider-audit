@@ -52,6 +52,12 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+Authoring support adds JSON-only package subpaths `/schemas/v1.json` and
+`/schemas/v2.json`, with no new root/core runtime exports. The read-only
+`generate-types <file> [--format auto|json|yaml]` CLI validates before emitting
+standalone flag-key and declared-value types. See `authoring.md` for semantic
+validation boundaries, override-safe types and output replacement guidance.
+
 P3 object delivery adds `createS3SnapshotSource`, `S3SnapshotClient` and
 `S3SnapshotSourceOptions`; see `s3-snapshots.md`. Caller-owned AWS SDK v3 clients
 provide S3/R2 transport and credentials, without a library SDK runtime dependency.

@@ -280,6 +280,45 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
     createTypedConsumerSource("cjs", Number(installTarget.version.split(".")[0]) >= 2),
     "utf8"
   );
+  if (installTarget.source === "packed") {
+    await writeFile(
+      path.join(consumerDirectory, "type-flags.json"),
+      JSON.stringify({
+        schemaVersion: 2,
+        flags: {
+          "checkout.enabled": { type: "boolean", variants: { on: true }, defaultVariant: "on" },
+          data: {
+            type: "object",
+            variants: { configured: { private: "not-emitted" } },
+            defaultVariant: "configured"
+          }
+        }
+      })
+    );
+    const generated = await run(
+      "pnpm",
+      ["exec", "openfeature-local-provider", "generate-types", "type-flags.json"],
+      consumerDirectory
+    );
+    if (generated.stdout.includes("not-emitted"))
+      throw new Error("Generated types exposed variant values");
+    await writeFile(path.join(consumerDirectory, "flags.generated.d.ts"), generated.stdout, "utf8");
+    await writeFile(
+      path.join(consumerDirectory, "typed-generated.mts"),
+      `import type { FlagKey, FlagValue } from "./flags.generated.js";
+const key: FlagKey = "checkout.enabled";
+const fallback: FlagValue<typeof key> = false;
+const objectOverride: FlagValue<"data"> = { unconfigured: [null, false, 1] };
+const arrayOverride: FlagValue<"data"> = [null, { value: "new" }];
+// @ts-expect-error unknown flag must fail
+const unknown: FlagKey = "missing";
+// @ts-expect-error incorrect value type must fail
+const wrong: FlagValue<"checkout.enabled"> = "true";
+void [key, fallback, objectOverride, arrayOverride, unknown, wrong];
+`,
+      "utf8"
+    );
+  }
   await writeFile(
     path.join(consumerDirectory, "tsconfig.strict.json"),
     `${JSON.stringify(
@@ -294,7 +333,11 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
           target: "ES2022",
           types: ["node"]
         },
-        files: ["typed-smoke.mts", "typed-smoke.cts"]
+        files: [
+          "typed-smoke.mts",
+          "typed-smoke.cts",
+          ...(installTarget.source === "packed" ? ["typed-generated.mts"] : [])
+        ]
       },
       null,
       2
@@ -315,7 +358,11 @@ exerciseRuntimeContract(provider, ProviderEvents, "CJS", "audit-cjs.jsonl").catc
           target: "ES2022",
           types: ["node"]
         },
-        files: ["typed-smoke.mts", "typed-smoke.cts"]
+        files: [
+          "typed-smoke.mts",
+          "typed-smoke.cts",
+          ...(installTarget.source === "packed" ? ["typed-generated.mts"] : [])
+        ]
       },
       null,
       2

@@ -109,6 +109,18 @@ your editor; do not insert `$schema` into snapshots. Runtime validation still ch
 references, rollout totals and other semantic constraints. See the
 [authoring contract](https://github.com/0disoft/openfeature-local-provider-audit/blob/main/docs/library/authoring.md).
 
+## Flag Type Generation
+
+```sh
+openfeature-local-provider generate-types ./flags.yaml > flags.d.ts.tmp
+```
+
+After exit 0, replace your declarations with the temporary output. The CLI emits
+standalone `FlagValues`, `FlagKey` and `FlagValue<K>` declarations, sorted and escaped,
+without variant values. Primitive types remain broad and objects remain JSON
+objects/arrays because environment overrides may differ from configured variants.
+Regenerate when keys or types change; see the authoring contract above for details.
+
 ## CLI Validation
 
 ```sh

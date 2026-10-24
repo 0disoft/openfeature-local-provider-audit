@@ -8,8 +8,12 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.46` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.47` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.47 adds the read-only generate-types CLI for validated JSON/YAML snapshots.
+Standalone declarations quote/sort keys and preserve broad declared value types
+for environment overrides. No existing evaluator or SDK signatures change.
 
 Alpha.46 adds offline v1/v2 JSON Schema exports and authoring guidance. Runtime
 validation remains authoritative for semantic invariants. No evaluator behavior

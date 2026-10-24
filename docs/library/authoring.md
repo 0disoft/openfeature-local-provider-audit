@@ -39,9 +39,43 @@ before use; editor acceptance alone is insufficient.
 ## Maintaining the contract
 
 `scripts/snapshot-schema.mjs` is the schema source. Run `pnpm schemas:generate` to
-regenerate packaged files; `pnpm schemas:check` detects semantic drift and is part
-of `pnpm check`. The dev-only Ajv conformance tests compile both schemas in strict
+regenerate packaged files; `pnpm schemas:check` detects semantic drift and runs
+before both root test commands, including existing CI jobs and `pnpm check`. The dev-only Ajv conformance tests compile both schemas in strict
 mode, compare representative runtime-valid/invalid documents and explicitly cover
 semantic checks outside JSON Schema. Ajv is not shipped as a runtime dependency.
 Draft-07 provides the required features with broad editor support; see the
 [Ajv JSON Schema documentation](https://ajv.js.org/json-schema.html).
+
+## Generate flag keys and declared value types
+
+```sh
+openfeature-local-provider generate-types ./flags.yaml > flags.d.ts.tmp
+openfeature-local-provider generate-types ./flags.json --format json
+```
+
+The command uses the same bounded, strict JSON/YAML loader and semantic runtime
+validator. Only after successful validation does it print standalone declarations
+to stdout. Exit codes are 0 success/help, 1 invalid/unreadable snapshot, 2 invalid
+arguments. Errors are bounded messages without file contents or paths. No files
+are written by the command. Check the exit status before replacing an existing
+`flags.d.ts` with the temporary output: shell redirection can truncate a target
+even when generation fails.
+
+Generated declarations export `FlagValues`, `FlagKey`, and `FlagValue<K>`. Keys are
+quoted/escaped and sorted by UTF-16 code units for deterministic output. Values,
+metadata and environment contents are not emitted. Declarations have no imports
+and need no provider SDK or Node types. For example:
+
+```ts
+import type { FlagKey, FlagValue } from "./flags.js";
+const key: FlagKey = "checkout.enabled";
+const fallback: FlagValue<typeof key> = false;
+```
+
+Primitive values use their declared boolean/string/number type, not a union of
+configured variant literals: environment overrides can supply other valid values.
+Object values accept JSON objects or arrays, including nested nulls; configured
+object shapes are not a guarantee about overrides. Caller defaults on resolution
+errors can further widen result types. Empty snapshots produce no valid flag keys.
+Regenerate whenever flag keys or declared types change. This provides compile-time
+authoring support; it does not alter SDK signatures or replace runtime validation.

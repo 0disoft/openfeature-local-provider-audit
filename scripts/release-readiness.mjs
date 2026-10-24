@@ -321,8 +321,10 @@ function checkRootPackage(rootPackage) {
   expectScript(
     rootPackage,
     "test:coverage",
-    "pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools"
+    "pnpm run schemas:check && pnpm --filter @0disoft/openfeature-local-provider exec vitest run --coverage && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools"
   );
+  expectScript(rootPackage, "schemas:check", "node scripts/snapshot-schema.mjs --check");
+  expectScriptIncludes(rootPackage, "test", "pnpm run schemas:check");
   expectScriptIncludes(rootPackage, "test", "pnpm run test:benchmark-tools");
   expectScriptIncludes(rootPackage, "test", "pnpm run test:release-tools");
   expectScriptIncludes(rootPackage, "test", "pnpm run test:api-tools");
