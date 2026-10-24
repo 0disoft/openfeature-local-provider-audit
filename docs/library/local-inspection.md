@@ -95,3 +95,30 @@ still evaluated separately; different overrides, values and object pairs remain
 independent. The cache is discarded when comparison returns. Object key order is
 ignored and array order remains significant; reports, counts and exit codes do not
 change. This does not change SDK evaluation or add a process-wide cache.
+
+## Optional change policy and safe diagnostics
+
+Compare accepts `--max-changed-values-percent <percent>` and
+`--max-changed-decisions-percent <percent>`. Each is optional, may appear once,
+and accepts an unsigned decimal in 0..100 with at most four decimal places.
+These flags reject on other inspection commands. No threshold is implicit.
+
+The denominator is every supplied request, including error evaluations; errors
+always exit1 even if the policy also fails. Each limit is inclusive: 50% allows
+exactly one changed value in two requests. Comparisons use scaled integer cross
+multiplication, without rounding the observed rate. Limits are independently
+checked against changedValues and changedDecisions. With any limit, the JSON
+report adds `policy: { passed, maxChangedValuesPercent?,
+maxChangedDecisionsPercent?, violations }`. Violations contain only bounded codes
+`CHANGED_VALUES_LIMIT` and `CHANGED_DECISIONS_LIMIT`. Failed policy exits3 only
+when evaluations succeeded. No flags preserves the existing output and exit codes.
+This checks the supplied corpus, not an estimate of production traffic percentages.
+
+`--diagnostics` opts into a second JSON stderr line after the existing generic
+failure text: `{ "error": { "code": "REQUEST_SCHEMA", "requestIndex": 1 } }`.
+The zero-based request index appears only for a malformed request in a list.
+Other bounded categories are SNAPSHOT_INPUT, REQUEST_INPUT (read/JSON),
+REQUEST_LIMIT (file-level JSON/request count bounds), and INSPECTION_FAILED.
+Single malformed requests omit the index. No raw exception, file path, flag key,
+attribute name, value or input fragment is included. Successful inspection emits
+no diagnostic. Usage errors retain the existing usage response and exit2.

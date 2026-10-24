@@ -57,6 +57,180 @@ async function exercise(
 }
 
 describe("offline inspection CLI", () => {
+  it.each([
+    ["33.3333", 3],
+    ["33.3334", 0]
+  ] as const)(
+    "checks fractional change rates without rounding to the threshold %s",
+    async (percent, code) => {
+      const result = await exercise(
+        [
+          "compare",
+          "before.json",
+          "after.json",
+          "--requests",
+          "request.json",
+          "--max-changed-values-percent",
+          percent
+        ],
+        [
+          request,
+          { ...request, context: { tenant: "other" } },
+          { ...request, context: { tenant: "other" } }
+        ]
+      );
+      expect(result.code).toBe(code);
+      expect(result.data.changedValues).toBe(1);
+    }
+  );
+
+  it("allows unchanged comparisons at zero and reports both failed limits", async () => {
+    const args = [
+      "compare",
+      "before.json",
+      "after.json",
+      "--requests",
+      "request.json",
+      "--max-changed-values-percent",
+      "0",
+      "--max-changed-decisions-percent",
+      "0"
+    ];
+    const same = await exercise(args, [request], snapshot, snapshot);
+    expect(same.code).toBe(0);
+    expect(same.data.policy.violations).toEqual([]);
+    const changed = await exercise(args, [request]);
+    expect(changed.code).toBe(3);
+    expect(changed.data.policy.violations).toEqual([
+      "CHANGED_VALUES_LIMIT",
+      "CHANGED_DECISIONS_LIMIT"
+    ]);
+    const exact = await exercise(
+      [...args.slice(0, 5), "--max-changed-values-percent", "100.0000"],
+      [request]
+    );
+    expect(exact.code).toBe(0);
+  });
+
+  it.each([
+    ["before.json", "not JSON", "REQUEST_INPUT"],
+    ["before.json", [], "REQUEST_LIMIT"],
+    ["missing.json", [request], "SNAPSHOT_INPUT"]
+  ])("diagnoses input failures without echoing inputs: case %#", async (file, input, code) => {
+    const result = await exercise(
+      ["simulate", file as string, "--requests", "request.json", "--diagnostics"],
+      input
+    );
+    expect(result.code).toBe(1);
+    expect(result.error).toContain(`"code":"${code}"`);
+    expect(result.error).not.toContain("requestIndex");
+  });
+
+  it.each([
+    ["--max-changed-values-percent", "50", 0],
+    ["--max-changed-values-percent", "49.9", 3],
+    ["--max-changed-decisions-percent", "100", 0],
+    ["--max-changed-decisions-percent", "99", 3]
+  ] as const)("enforces comparison limit %s=%s", async (option, limit, code) => {
+    const result = await exercise(
+      ["compare", "before.json", "after.json", "--requests", "request.json", option, limit],
+      [request, { ...request, context: { tenant: "other" } }]
+    );
+    expect(result.code).toBe(code);
+    expect(result.data).toMatchObject({
+      total: 2,
+      changedValues: 1,
+      changedDecisions: 2,
+      policy: { passed: code === 0 }
+    });
+    expect(result.output).not.toContain("tenant");
+  });
+
+  it("keeps evaluation errors ahead of comparison-policy failure", async () => {
+    const result = await exercise(
+      [
+        "compare",
+        "before.json",
+        "after.json",
+        "--requests",
+        "request.json",
+        "--max-changed-decisions-percent",
+        "0"
+      ],
+      [request, { ...request, flagKey: "missing" }]
+    );
+    expect(result.code).toBe(1);
+    expect(result.data.policy.passed).toBe(false);
+  });
+
+  it("reports safe request indexes only when diagnostics are requested", async () => {
+    const result = await exercise(
+      ["simulate", "before.json", "--requests", "request.json", "--diagnostics"],
+      [request, { ...request, expectedType: "private@example.test" }]
+    );
+    expect(result.code).toBe(1);
+    expect(result.output).toBe("");
+    expect(result.error).toContain('"code":"REQUEST_SCHEMA"');
+    expect(result.error).toContain('"requestIndex":1');
+    expect(result.error).not.toContain("expectedType");
+    const single = await exercise(
+      ["evaluate", "before.json", "--request", "request.json", "--diagnostics"],
+      { ...request, expectedType: "private@example.test" }
+    );
+    expect(single.error).toContain('"code":"REQUEST_SCHEMA"');
+    expect(single.error).not.toContain("requestIndex");
+    const ordinary = await exercise(["evaluate", "before.json", "--request", "request.json"], {
+      ...request,
+      expectedType: "private@example.test"
+    });
+    expect(ordinary.error).not.toContain("REQUEST_SCHEMA");
+  });
+
+  it.each(["-1", "101", "NaN", "Infinity", "0x10", "1e2", "0.00001"])(
+    "rejects invalid comparison percentages: %s",
+    async (value) => {
+      const result = await exercise(
+        [
+          "compare",
+          "before.json",
+          "after.json",
+          "--requests",
+          "request.json",
+          "--max-changed-values-percent",
+          value
+        ],
+        [request]
+      );
+      expect(result.code).toBe(2);
+      expect(result.output).toBe("");
+    }
+  );
+
+  it("rejects comparison limits on other commands and duplicate limits", async () => {
+    for (const args of [
+      [
+        "simulate",
+        "before.json",
+        "--requests",
+        "request.json",
+        "--max-changed-values-percent",
+        "0"
+      ],
+      [
+        "compare",
+        "before.json",
+        "after.json",
+        "--requests",
+        "request.json",
+        "--max-changed-values-percent",
+        "0",
+        "--max-changed-values-percent",
+        "100"
+      ]
+    ])
+      expect((await exercise(args, [request])).code).toBe(2);
+  });
+
   it.each(["evaluate", "explain", "simulate", "compare"])(
     "%s accepts long keys already supported by the snapshot parser",
     async (command) => {
@@ -166,6 +340,7 @@ describe("offline inspection CLI", () => {
       requests
     );
     expect(compared.code).toBe(0);
+    expect(compared.data).not.toHaveProperty("policy");
     expect(compared.data).toMatchObject({
       total: 3,
       changedValues: 2,

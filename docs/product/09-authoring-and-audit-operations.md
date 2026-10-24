@@ -18,7 +18,7 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    units, no sensitive labels, shared-sink deduplication and lifecycle cleanup.
    Unknown/unbounded counts distinguish partial capacity; explicit zero replaces
    old observable values when the SDK retains unobserved series.
-4. Inspection policy and diagnostics: pending. Opt-in comparison thresholds with
+4. Inspection policy and diagnostics: completed in alpha.45. Opt-in comparison thresholds with
    explicit exit status; safe bounded error code/location without raw user input.
    Preserve default reports, privacy and evaluation-error precedence.
 5. Authoring support: pending. Versioned JSON Schema consistent with runtime

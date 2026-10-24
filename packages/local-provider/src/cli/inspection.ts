@@ -21,12 +21,18 @@ export const INSPECTION_HELP = `Usage:
 
 All output is JSON. Evaluation/explanation omits values and raw context.
 Simulation/comparison emits aggregate counts only. No process environment is read.
+Compare accepts --max-changed-values-percent and --max-changed-decisions-percent
+(0..100, up to four decimal places). Policy rejection exits 3; errors still exit 1.
+--diagnostics adds a safe error code and optional zero-based requestIndex to stderr.
 `;
 
 interface InspectionOptions {
   readonly files: readonly string[];
   readonly input: string;
   readonly format: SnapshotFileFormat;
+  readonly diagnostics: boolean;
+  readonly maxChangedValuesPercent?: number;
+  readonly maxChangedDecisionsPercent?: number;
 }
 
 export async function runInspection(
@@ -43,26 +49,30 @@ export async function runInspection(
     io.stderr(`Usage error: invalid inspection arguments\n\n${INSPECTION_HELP}`);
     return 2;
   }
+  let failureCode = "SNAPSHOT_INPUT";
   try {
     const snapshots = [];
     for (const file of options.files)
       snapshots.push(await loadFlagSnapshotFile(resolve(io.cwd, file), { format: options.format }));
     const before = snapshots[0];
     if (!before) throw new Error("Missing snapshot");
+    failureCode = "REQUEST_INPUT";
     const raw: unknown = JSON.parse(
       await readFileWithinLimit(resolve(io.cwd, options.input), 10 * 1024 * 1024, "utf8")
     );
+    failureCode = "REQUEST_LIMIT";
     assertBoundedJson(raw);
     const beforeOverrides = createIndexedEnvOverrides(before);
     if (command === "evaluate" || command === "explain") {
-      const request = parseRequest(raw, beforeOverrides);
+      const request = parseIndexedRequest(raw, undefined, beforeOverrides);
       const explanation = explainEvaluation(before, request);
       io.stdout(`${JSON.stringify(explanation)}\n`);
       return explanation.errorCode === undefined ? 0 : 1;
     }
     if (!Array.isArray(raw) || !raw.length || raw.length > 10_000)
       throw new Error("Invalid request count");
-    const requests = raw.map((entry) => parseRequest(entry, beforeOverrides));
+    const requests = raw.map((entry, index) => parseIndexedRequest(entry, index, beforeOverrides));
+    failureCode = "INSPECTION_FAILED";
     const baseline = requests.map((request) => evaluateFlag(before, request));
     const after = snapshots[1];
     if (!after) {
@@ -72,7 +82,9 @@ export async function runInspection(
       return baseline.some((result) => result.errorCode !== undefined) ? 1 : 0;
     }
     const afterOverrides = createIndexedEnvOverrides(after);
-    const nextRequests = raw.map((entry) => parseRequest(entry, afterOverrides));
+    const nextRequests = raw.map((entry, index) =>
+      parseIndexedRequest(entry, index, afterOverrides)
+    );
     const candidate = nextRequests.map((request) => evaluateFlag(after, request));
     let changedValues = 0;
     let changedDecisions = 0;
@@ -104,20 +116,36 @@ export async function runInspection(
       )
         changedDecisions++;
     }
+    const policy = comparisonPolicy(options, requests.length, changedValues, changedDecisions);
     io.stdout(
       `${JSON.stringify({
         total: requests.length,
+        ...(policy !== undefined ? { policy } : {}),
         changedValues,
         changedDecisions,
         before: { snapshotHash: createSnapshotHash(before), ...summarize(baseline) },
         after: { snapshotHash: createSnapshotHash(after), ...summarize(candidate) }
       })}\n`
     );
-    return [...baseline, ...candidate].some((result) => result.errorCode !== undefined) ? 1 : 0;
-  } catch {
+    if ([...baseline, ...candidate].some((result) => result.errorCode !== undefined)) return 1;
+    return policy?.passed === false ? 3 : 0;
+  } catch (cause) {
     io.stderr(
       "Local inspection failed: check snapshot/request schema, file access, size and limits. Inputs and values are omitted.\n"
     );
+    if (options.diagnostics) {
+      const indexed = cause instanceof InspectionRequestError;
+      io.stderr(
+        `${JSON.stringify({
+          error: {
+            code: indexed ? "REQUEST_SCHEMA" : failureCode,
+            ...(indexed && cause.requestIndex !== undefined
+              ? { requestIndex: cause.requestIndex }
+              : {})
+          }
+        })}\n`
+      );
+    }
     return 1;
   }
 }
@@ -126,11 +154,34 @@ function parseOptions(command: string, args: readonly string[]): InspectionOptio
   const files: string[] = [];
   let input: string | undefined;
   let format: SnapshotFileFormat = "auto";
+  let diagnostics = false;
+  let maxChangedValuesPercent: number | undefined;
+  let maxChangedDecisionsPercent: number | undefined;
   const inputOption = command === "evaluate" || command === "explain" ? "--request" : "--requests";
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (!arg) return undefined;
-    if (arg === inputOption) {
+    if (arg === "--diagnostics") {
+      if (diagnostics) return undefined;
+      diagnostics = true;
+    } else if (
+      arg === "--max-changed-values-percent" ||
+      arg === "--max-changed-decisions-percent"
+    ) {
+      if (command !== "compare") return undefined;
+      const value = args[++i];
+      if (value === undefined || value.length > 16 || !/^\d+(?:\.\d{1,4})?$/.test(value))
+        return undefined;
+      const percent = Number(value);
+      if (!Number.isFinite(percent) || percent > 100) return undefined;
+      if (arg === "--max-changed-values-percent") {
+        if (maxChangedValuesPercent !== undefined) return undefined;
+        maxChangedValuesPercent = percent;
+      } else {
+        if (maxChangedDecisionsPercent !== undefined) return undefined;
+        maxChangedDecisionsPercent = percent;
+      }
+    } else if (arg === inputOption) {
       if (input !== undefined) return undefined;
       input = args[++i];
       if (!input || input.startsWith("-")) return undefined;
@@ -144,7 +195,60 @@ function parseOptions(command: string, args: readonly string[]): InspectionOptio
     else files.push(arg);
   }
   if (!input || files.length !== (command === "compare" ? 2 : 1)) return undefined;
-  return { files, input, format };
+  return {
+    files,
+    input,
+    format,
+    diagnostics,
+    ...(maxChangedValuesPercent !== undefined ? { maxChangedValuesPercent } : {}),
+    ...(maxChangedDecisionsPercent !== undefined ? { maxChangedDecisionsPercent } : {})
+  };
+}
+
+const PERCENT_SCALE = 10_000;
+function comparisonPolicy(
+  options: InspectionOptions,
+  total: number,
+  values: number,
+  decisions: number
+) {
+  const { maxChangedValuesPercent, maxChangedDecisionsPercent } = options;
+  if (maxChangedValuesPercent === undefined && maxChangedDecisionsPercent === undefined)
+    return undefined;
+  const violations: string[] = [];
+  if (
+    maxChangedValuesPercent !== undefined &&
+    values * 100 * PERCENT_SCALE > Math.round(maxChangedValuesPercent * PERCENT_SCALE) * total
+  )
+    violations.push("CHANGED_VALUES_LIMIT");
+  if (
+    maxChangedDecisionsPercent !== undefined &&
+    decisions * 100 * PERCENT_SCALE > Math.round(maxChangedDecisionsPercent * PERCENT_SCALE) * total
+  )
+    violations.push("CHANGED_DECISIONS_LIMIT");
+  return {
+    passed: violations.length === 0,
+    ...(maxChangedValuesPercent !== undefined ? { maxChangedValuesPercent } : {}),
+    ...(maxChangedDecisionsPercent !== undefined ? { maxChangedDecisionsPercent } : {}),
+    violations
+  };
+}
+
+class InspectionRequestError extends Error {
+  constructor(readonly requestIndex: number | undefined) {
+    super("Invalid inspection request.");
+  }
+}
+function parseIndexedRequest(
+  raw: unknown,
+  index: number | undefined,
+  createOverrides: ReturnType<typeof createIndexedEnvOverrides>
+): EvaluationRequest {
+  try {
+    return parseRequest(raw, createOverrides);
+  } catch {
+    throw new InspectionRequestError(index);
+  }
 }
 
 function parseRequest(
