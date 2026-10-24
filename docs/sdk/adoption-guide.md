@@ -11,9 +11,16 @@ adoption remains unverified.
 | Conditional object delivery | Caller-owned AWS SDK S3/R2 client and the bounded S3 source; no evaluation-time fetch |
 | Current published stable behavior | npm v1; it does not include v2 targeting/schedule/core APIs |
 
-The local v2 prerelease is 2.0.0-alpha.18. A read-only registry check on 2026-10-22
-KST found latest=1.0.0 and next=1.0.0-rc.2. Installing @next does not install this
-preview. No package, branch, tag or workflow was published for this work.
+The exact local v2 prerelease version is declared in the
+[package metadata](../../packages/local-provider/package.json). From the repository
+root, print it with `node -p "require('./packages/local-provider/package.json').version"`.
+The build/pack commands below operate on that version; no registry tag is needed.
+
+Historical registry evidence: a read-only check on 2026-10-22 KST found
+latest=1.0.0 and next=1.0.0-rc.2. These are dated observations, not a current registry
+query. Do not assume installing @next installs this preview. No package, branch,
+tag or workflow was published for this work. Older runtime evidence keeps its
+original tested version; it does not establish current-checkout runtime coverage.
 
 ## Run a complete preview
 

@@ -77,9 +77,10 @@ Local evaluation also exists in other providers, including flagd. See the
 for current gaps and local issue/PR disposition. Independent external adoption has
 not yet been established; published consumer evidence identifies same-maintainer use.
 
-The working tree stages `2.0.0-alpha.18`; npm `latest` is still `1.0.0`. New v2
-features require building this checkout and are not available from the stable install
-command above. See [v2 targeting](docs/library/flag-file-schema-v2.md),
+This checkout stages an unpublished v2 development prerelease. Read its exact
+version from the [package metadata](packages/local-provider/package.json), rather
+than an older runtime evidence record. New v2 features require building this
+checkout; the stable install command above is not an installation of this preview. See [v2 targeting](docs/library/flag-file-schema-v2.md),
 [inspection CLI](docs/library/local-inspection.md), and
 [migration](docs/library/migration-to-2.0.md).
 

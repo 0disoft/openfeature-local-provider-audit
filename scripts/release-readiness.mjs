@@ -148,6 +148,17 @@ const registryReleaseTest = await readText(REGISTRY_RELEASE_TEST);
 const stableReleaseGateScript = await readText(STABLE_RELEASE_GATE_SCRIPT);
 const stableReleaseGateTest = await readText(STABLE_RELEASE_GATE_TEST);
 
+for (const [file, packageLink] of [
+  ["README.md", "packages/local-provider/package.json"],
+  ["docs/sdk/adoption-guide.md", "../../packages/local-provider/package.json"]
+]) {
+  const source = await readText(path.join(ROOT, file));
+  if (!source.includes(`](${packageLink})`))
+    blockers.push(`${file} must link to authoritative package metadata for the checkout version`);
+  if (/(?:working tree stages|local v2 prerelease is)\s+`?\d+\.\d+\.\d+/i.test(source))
+    blockers.push(`${file} must not duplicate a hard-coded current checkout version`);
+}
+
 await checkRequiredFiles();
 checkRootPackage(rootPackageJson);
 checkPackageMetadata(packageJson);
