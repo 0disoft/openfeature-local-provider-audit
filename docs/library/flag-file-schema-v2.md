@@ -12,7 +12,9 @@ and freezes accepted input. Existing value and rollout validation still applies.
 
 Rules are ordered, at most 100 per flag. Each has a unique non-empty `id` of at most
 128 characters, a `when` condition, and exactly one of `variant` or `rollout`.
-Variant references must exist. Rollouts contain at most 100 entries in v2 and retain
+Variant references must exist. Variant names and references do not inherit the
+128-character rule-ID limit; the existing nonblank-name contract and input limits
+remain in effect. Rollouts contain at most 100 entries in v2 and retain
 v1 percentage precision, sum, seed, and variant requirements.
 
 Leaf conditions have `attribute` (an array of 1..8 non-empty path segments, each at

@@ -282,8 +282,7 @@
         },
         "variant": {
           "type": "string",
-          "pattern": "\\S",
-          "maxLength": 128
+          "pattern": "\\S"
         },
         "rollout": {
           "$ref": "#/definitions/rollout"

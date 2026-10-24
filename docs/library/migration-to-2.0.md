@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.48` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.49` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.49 corrects the authoring schema for targeting rule variant references.
+Existing names longer than 128 characters now pass the editor schema, matching
+runtime validation. Rule IDs retain their 128-character limit; nonexistent variant
+references still fail at runtime. No evaluator or public API signatures change.
 
 Alpha.48 memoizes snapshot hashes only for captured, deeply frozen validator-owned
 snapshots. Repeated explanations and direct audit-event creation avoid rehashing

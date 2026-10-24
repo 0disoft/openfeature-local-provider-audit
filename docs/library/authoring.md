@@ -36,6 +36,11 @@ schedule stages, condition depth/node budgets, UTF-16 string limits and file/inp
 limits remain runtime checks. Always run `openfeature-local-provider validate`
 before use; editor acceptance alone is insufficient.
 
+Targeting `rule.variant` follows the same nonblank variant-name contract as the
+other variant references. It does not inherit the 128-character `rule.id` limit.
+The runtime still rejects references to variants that do not exist; removing an
+incorrect authoring limit does not relax runtime validation or input budgets.
+
 ## Maintaining the contract
 
 `scripts/snapshot-schema.mjs` is the schema source. Run `pnpm schemas:generate` to

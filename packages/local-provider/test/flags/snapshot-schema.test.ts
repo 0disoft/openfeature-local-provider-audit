@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
+import { evaluateFlag } from "../../src/evaluator/evaluate.js";
 import { validateFlagSnapshot } from "../../src/flags/validate-snapshot.js";
 
 const ajv = new Ajv({ strict: true, allErrors: true });
@@ -22,6 +23,46 @@ const rule = {
 };
 
 describe("packaged authoring schemas", () => {
+  it.each([127, 128, 129, 256, 4096])(
+    "accepts runtime-valid targeting variant references of %i characters",
+    (length) => {
+      const name = "v".repeat(length);
+      const value = snapshot(2, {
+        ...flag(),
+        variants: { [name]: true, off: false },
+        rules: [{ ...rule, variant: name }]
+      });
+      const validated = validateFlagSnapshot(value);
+      expect(
+        evaluateFlag(validated, {
+          flagKey: "feature",
+          expectedType: "boolean",
+          defaultValue: false,
+          context: { region: "KR" }
+        })
+      ).toMatchObject({ value: true, variant: name, reason: "TARGETING_MATCH" });
+      expect(matches(value), JSON.stringify(validators[1]?.errors)).toBe(true);
+    }
+  );
+
+  it.each([
+    { length: 127, accepted: true },
+    { length: 128, accepted: true },
+    { length: 129, accepted: false }
+  ])("retains the rule-ID boundary at $length characters", ({ length, accepted }) => {
+    const value = snapshot(2, { ...flag(), rules: [{ ...rule, id: "r".repeat(length) }] });
+    if (accepted) expect(() => validateFlagSnapshot(value)).not.toThrow();
+    else expect(() => validateFlagSnapshot(value)).toThrow();
+    expect(matches(value)).toBe(accepted);
+  });
+
+  it("still requires long variant references to exist at runtime", () => {
+    const value = snapshot(2, { ...flag(), rules: [{ ...rule, variant: "missing".repeat(20) }] });
+    expect(() => validateFlagSnapshot(value)).toThrow("rule variant must exist");
+    // Cross-reference validation stays at runtime, just as for shorter names.
+    expect(matches(value)).toBe(true);
+  });
+
   it.each([1, 2])("accepts runtime-valid v%i values, long keys and JSON variants", (version) => {
     const value = {
       schemaVersion: version,

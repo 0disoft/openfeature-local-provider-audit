@@ -95,7 +95,13 @@ function schema(version) {
     };
     definitions.rule = {
       ...object(
-        { id: shortString, when: ref("condition"), variant: shortString, rollout: ref("rollout") },
+        {
+          id: shortString,
+          when: ref("condition"),
+          // Variant references share the existing name contract, not the rule-ID limit.
+          variant: nonblank,
+          rollout: ref("rollout")
+        },
         ["id", "when"]
       ),
       oneOf: [
