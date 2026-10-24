@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.50` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.51` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.51 reuses each targeting condition's parsed SemVer operand while its value
+is unchanged. Context versions are still parsed per evaluation; mutable operands
+invalidate their own cache entry. The weak cache retains at most one parsed operand
+per live condition. SemVer ordering and public signatures are unchanged.
 
 Alpha.50 checks sealed audit segment metadata with lstat instead of opening each
 file read/write before append. Type, ownership, single-link and exact-size checks

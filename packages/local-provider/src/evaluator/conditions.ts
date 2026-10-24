@@ -6,6 +6,20 @@ import type {
   TargetingCondition
 } from "../core-types.js";
 
+const semverOperands = new WeakMap<
+  TargetingCondition,
+  { readonly value: string; readonly parsed: SemVer | undefined }
+>();
+
+// Keep one operand per live condition. Check its current value even for mutable caller inputs.
+function operandSemver(condition: TargetingCondition, value: string): SemVer | undefined {
+  const cached = semverOperands.get(condition);
+  if (cached !== undefined && cached.value === value) return cached.parsed;
+  const parsed = strictSemver(value);
+  semverOperands.set(condition, { value, parsed });
+  return parsed;
+}
+
 const MIN_INDEXED_MEMBERSHIP_SIZE = 16;
 const membershipIndexes = new WeakMap<readonly ConditionScalar[], ReadonlySet<ConditionScalar>>();
 
@@ -68,7 +82,7 @@ export function matchesCondition(
             : actual <= condition.value;
     default: {
       const left = strictSemver(actual);
-      const right = strictSemver(condition.value);
+      const right = operandSemver(condition, condition.value);
       if (!left || !right) return false;
       const comparison = left.compare(right);
       switch (condition.op) {

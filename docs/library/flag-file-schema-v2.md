@@ -46,6 +46,16 @@ arrays (including caller-frozen arrays that bypass validation) retain live stric
 equality, avoiding stale caches or a changed NaN comparison. Rule/group order and
 short-circuit behavior are unchanged in Node and the portable core.
 
+SemVer comparisons reuse a private parsed operand per condition when the operand
+string is unchanged. Each evaluation still reads and parses the current context
+version. A changed caller-owned operand replaces its entry, including transitions
+to/from invalid versions. Entries are weakly keyed by condition and keep at most
+one operand each; discarded snapshots do not remain alive through this cache.
+Strict parsing, prerelease/build precedence, rule order and short-circuit behavior
+are unchanged. For N comparisons of valid context versions against one unchanged
+valid operand, evaluation constructs N + 1 SemVer objects instead of 2N (N after
+the first comparison).
+
 ## Selection and failure
 
 After flag existence and requested type checks, `disabledVariant` immediately selects
