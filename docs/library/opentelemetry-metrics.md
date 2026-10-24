@@ -22,6 +22,7 @@ resource attributes and destination is the application's responsibility.
 | `openfeature.local_provider.evaluation.errors` | Counter / evaluation | Final resolutions with an error code or ERROR reason |
 | `openfeature.local_provider.evaluation.duration` | Histogram / seconds | Provider resolution, including blocking audit wait |
 | `openfeature.local_provider.operational` | Observable gauge / item | Current process-local operational counts |
+| `openfeature.local_provider.audit.queue.bytes` | Observable gauge / By | Pending bytes and bounded-sink capacity |
 
 The first three use only `type`, `reason`, `source`, `error_code`. Values are
 bounded documented enums, `none` or `unknown`; arbitrary values cannot become
@@ -52,9 +53,23 @@ Sink counts cover the entire sink, including writers outside the attached
 providers. Missing/broken sink diagnostics are omitted. Staleness retains the
 operational status wall-clock meaning, not a signature-expiry guarantee.
 
+The queue byte gauge uses only `state: pending | bounded_capacity`. Values aggregate
+reported valid sink bytes and finite positive byte limits, with each shared sink
+object counted once. Zero is emitted when no matching bytes/finite limits exist;
+this replaces previous observable values rather than relying on omission to clear
+SDK aggregation state. `bounded_capacity` is the sum for bounded sinks only, never
+a total limit for a mixed bounded/unbounded collection.
+
+The item-unit operational gauge additionally reports `sink_byte_limits_unbounded`
+and `sink_byte_limits_unknown`. Null limits count as unbounded; missing byte counts,
+limits or diagnostics count as unknown. Do not calculate global headroom from
+bounded capacity unless both counts are zero. No infinite numeric sample or
+sensitive label is emitted. Status may be read once per instrument. Closing the
+last binding removes both callbacks; partial registration cleans up both as well.
+
 ## Lifecycle and failures
 
-One observable callback is registered at first binding and removed at last close.
+Two observable callbacks are registered at first binding and removed at last close.
 Sharing an adapter is supported; close is idempotent and a later provider can bind
 again. Providers remove their binding in the close finally path, including when
 audit flush fails, without closing the caller-owned meter or other providers.

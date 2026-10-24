@@ -14,8 +14,10 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    keeps its original version and does not imply fresh verification.
 2. CLI key compatibility: completed in alpha.43. Accept existing nonempty keys longer than 256
    characters without narrowing the parser; preserve file/node/depth/count limits.
-3. Queue byte metrics: pending. Export pending bytes and finite capacity with byte
+3. Queue byte metrics: completed in alpha.44. Export pending bytes and finite capacity with byte
    units, no sensitive labels, shared-sink deduplication and lifecycle cleanup.
+   Unknown/unbounded counts distinguish partial capacity; explicit zero replaces
+   old observable values when the SDK retains unobserved series.
 4. Inspection policy and diagnostics: pending. Opt-in comparison thresholds with
    explicit exit status; safe bounded error code/location without raw user input.
    Preserve default reports, privacy and evaluation-error precedence.

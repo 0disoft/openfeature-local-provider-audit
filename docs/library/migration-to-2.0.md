@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.43` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.44` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.44 adds an optional-telemetry audit queue byte gauge (unit By) with pending
+and bounded_capacity states. Shared sinks are counted once; item-unit states report
+unknown/unbounded byte limits so a partial capacity is not mistaken for a total.
+Zero byte observations clear previously collected finite values. Existing counts remain.
+Both callbacks are released on close or partial registration failure. No signatures change.
 
 Alpha.43 accepts inspection request flag keys longer than 256 characters, matching
 the existing snapshot parser and evaluator. Nonempty-key, input byte/node/depth and

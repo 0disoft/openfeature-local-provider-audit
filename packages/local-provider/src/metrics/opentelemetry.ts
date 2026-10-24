@@ -1,3 +1,4 @@
+import { cleanupResources } from "../errors/resource-cleanup.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import type {
@@ -24,6 +25,7 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
   const errors = meter.createCounter(`${PREFIX}.evaluation.errors`, { unit: "{evaluation}" });
   const duration = meter.createHistogram(`${PREFIX}.evaluation.duration`, { unit: "s" });
   const operational = meter.createObservableGauge(`${PREFIX}.operational`, { unit: "{item}" });
+  const queueBytes = meter.createObservableGauge(`${PREFIX}.audit.queue.bytes`, { unit: "By" });
   const bindings = new Set<Binding>();
 
   const collect: Parameters<typeof operational.addCallback>[0] = (result) => {
@@ -40,7 +42,9 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
       audit_timeouts: 0,
       sink_pending: 0,
       sink_dropped: 0,
-      sink_rejected: 0
+      sink_rejected: 0,
+      sink_byte_limits_unbounded: 0,
+      sink_byte_limits_unknown: 0
     };
     const seenSinks = new Set<AuditSink>();
     for (const binding of bindings) {
@@ -56,13 +60,23 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
         counts.audit_resolved += status.audit.resolvedWrites;
         counts.audit_failed += status.audit.failedWrites;
         counts.audit_timeouts += status.audit.timedOutWrites;
-        if (binding.sink !== undefined && !seenSinks.has(binding.sink) && status.audit.sinkStats) {
+        if (binding.sink !== undefined && !seenSinks.has(binding.sink)) {
           seenSinks.add(binding.sink);
-          counts.sink_pending += status.audit.sinkStats.pendingWrites;
-          counts.sink_dropped += status.audit.sinkStats.droppedWrites;
-          counts.sink_rejected += status.audit.sinkStats.rejectedWrites;
+          const stats = status.audit.sinkStats;
+          if (stats !== undefined) {
+            counts.sink_pending += stats.pendingWrites;
+            counts.sink_dropped += stats.droppedWrites;
+            counts.sink_rejected += stats.rejectedWrites;
+          }
+          if (stats?.maxQueueBytes === null) counts.sink_byte_limits_unbounded++;
+          if (stats?.maxQueueBytes === undefined || stats.pendingBytes === undefined)
+            counts.sink_byte_limits_unknown++;
         }
       } catch {
+        if (binding.sink !== undefined && !seenSinks.has(binding.sink)) {
+          seenSinks.add(binding.sink);
+          counts.sink_byte_limits_unknown++;
+        }
         // A faulty diagnostic source cannot prevent collection from other providers.
       }
     }
@@ -75,9 +89,59 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
     }
   };
 
+  const collectBytes: Parameters<typeof queueBytes.addCallback>[0] = (result) => {
+    let pending = 0;
+    let capacity = 0;
+    const seen = new Set<AuditSink>();
+    for (const binding of bindings) {
+      if (binding.sink === undefined || seen.has(binding.sink)) continue;
+      seen.add(binding.sink);
+      try {
+        const stats = binding.read().audit.sinkStats;
+        if (
+          stats?.pendingBytes !== undefined &&
+          Number.isSafeInteger(stats.pendingBytes) &&
+          stats.pendingBytes >= 0
+        )
+          pending += stats.pendingBytes;
+        const limit = stats?.maxQueueBytes;
+        if (typeof limit === "number" && Number.isSafeInteger(limit) && limit > 0)
+          capacity += limit;
+      } catch {
+        /* Faulty diagnostics do not prevent collection from other sinks. */
+      }
+    }
+    for (const [state, value] of [
+      ["pending", pending],
+      ["bounded_capacity", capacity]
+    ] as const) {
+      if (!Number.isSafeInteger(value)) continue;
+      try {
+        result.observe(value, { state });
+      } catch {
+        /* Optional instrumentation; isolate each measurement. */
+      }
+    }
+  };
+  function releaseGauges(failure?: { cause: unknown }): void {
+    cleanupResources(
+      [() => operational.removeCallback(collect), () => queueBytes.removeCallback(collectBytes)],
+      "Metric callback cleanup failed.",
+      failure
+    );
+  }
+
   return {
     bindStatus(read, sink) {
-      if (bindings.size === 0) operational.addCallback(collect);
+      if (bindings.size === 0) {
+        try {
+          operational.addCallback(collect);
+          queueBytes.addCallback(collectBytes);
+        } catch (cause) {
+          releaseGauges({ cause });
+          throw cause;
+        }
+      }
       const binding: Binding = { read, sink };
       bindings.add(binding);
       let closed = false;
@@ -114,7 +178,7 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
           if (closed) return;
           closed = true;
           bindings.delete(binding);
-          if (bindings.size === 0) operational.removeCallback(collect);
+          if (bindings.size === 0) releaseGauges();
         }
       };
     }

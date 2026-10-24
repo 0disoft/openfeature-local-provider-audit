@@ -21,6 +21,54 @@ class ManualReader extends MetricReader {
 }
 
 describe("optional metrics", () => {
+  it("cleans both gauges after partial registration and cleanup failures", async () => {
+    const fixture = testMeter();
+    const metrics = createOpenTelemetryMetrics(fixture.meter);
+    const provider = createLocalProvider(options);
+    const failure = new Error("registration failed");
+    fixture.register
+      .mockImplementationOnce((callback) => {
+        fixture.callbacks.add(callback);
+      })
+      .mockImplementationOnce(() => {
+        throw failure;
+      });
+    expect(() => metrics.bindStatus(() => provider.getStatus())).toThrow(failure);
+    expect(fixture.callbacks.size).toBe(0);
+    const session = metrics.bindStatus(() => provider.getStatus());
+    const cleanupFailure = new Error("remove failed");
+    fixture.remove.mockImplementationOnce((callback) => {
+      fixture.callbacks.delete(callback);
+      throw cleanupFailure;
+    });
+    expect(() => session.close()).toThrow(cleanupFailure);
+    expect(fixture.callbacks.size).toBe(0);
+    expect(() => session.close()).not.toThrow();
+    await provider.onClose?.();
+  });
+
+  it("reports unknown byte limits and isolates faulty shared diagnostics", async () => {
+    const fixture = testMeter();
+    const metrics = createOpenTelemetryMetrics(fixture.meter);
+    const provider = createLocalProvider(options);
+    const legacy: AuditSink = { async write() {} };
+    const broken: AuditSink = { async write() {} };
+    const a = metrics.bindStatus(() => provider.getStatus(), legacy);
+    const b = metrics.bindStatus(() => provider.getStatus(), legacy);
+    const c = metrics.bindStatus(() => {
+      throw new Error("status failed");
+    }, broken);
+    const observe = vi.fn();
+    for (const callback of fixture.callbacks) callback({ observe });
+    expect(observe).toHaveBeenCalledWith(2, { state: "sink_byte_limits_unknown" });
+    expect(observe).toHaveBeenCalledWith(0, { state: "pending" });
+    expect(observe).toHaveBeenCalledWith(0, { state: "bounded_capacity" });
+    a.close();
+    b.close();
+    c.close();
+    await provider.onClose?.();
+  });
+
   it("records and collects through an actual OpenTelemetry Meter without globals or exporters", async () => {
     const elapsed = vi.spyOn(performance, "now").mockReturnValue(0);
     const reader = new ManualReader();
@@ -28,12 +76,20 @@ describe("optional metrics", () => {
     const meter: Meter = telemetry.getMeter("local-provider-test");
     const metrics = createOpenTelemetryMetrics(meter);
     let fail = false;
+    let capacity: number | null = 64;
     const sink: AuditSink = {
       async write() {
         if (fail) throw new Error("private failure");
       },
       getStats() {
-        return { pendingWrites: 3, droppedWrites: 2, rejectedWrites: 1, maxQueueSize: 5 };
+        return {
+          pendingWrites: 3,
+          droppedWrites: 2,
+          rejectedWrites: 1,
+          maxQueueSize: 5,
+          pendingBytes: 17,
+          maxQueueBytes: capacity
+        };
       }
     };
     const first = createLocalProvider({
@@ -99,6 +155,33 @@ describe("optional metrics", () => {
           expect.objectContaining({ attributes: { state: "sink_pending" }, value: 3 })
         ])
       );
+      const bytes = data.find((metric) => metric.descriptor.name.endsWith(".audit.queue.bytes"));
+      expect(bytes?.descriptor.unit).toBe("By");
+      expect(bytes?.dataPoints).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ attributes: { state: "pending" }, value: 17 }),
+          expect.objectContaining({ attributes: { state: "bounded_capacity" }, value: 64 })
+        ])
+      );
+      capacity = null;
+      const unlimited = await reader.collect();
+      const unlimitedBytes = unlimited.resourceMetrics.scopeMetrics
+        .flatMap((scope) => scope.metrics)
+        .find((metric) => metric.descriptor.name.endsWith(".audit.queue.bytes"));
+      expect(unlimitedBytes?.dataPoints).toHaveLength(2);
+      expect(unlimitedBytes?.dataPoints).toContainEqual(
+        expect.objectContaining({ attributes: { state: "bounded_capacity" }, value: 0 })
+      );
+      const unlimitedStates = unlimited.resourceMetrics.scopeMetrics
+        .flatMap((scope) => scope.metrics)
+        .find((metric) => metric.descriptor.name.endsWith(".operational"));
+      expect(unlimitedStates?.dataPoints).toContainEqual(
+        expect.objectContaining({ attributes: { state: "sink_byte_limits_unbounded" }, value: 1 })
+      );
+      expect(unlimitedBytes?.dataPoints[0]).toMatchObject({
+        attributes: { state: "pending" },
+        value: 17
+      });
       const serialized = JSON.stringify(data);
       expect(serialized).not.toContain("private");
       expect(serialized).not.toContain("checkout.enabled");
@@ -188,7 +271,7 @@ describe("optional metrics", () => {
     const b = metrics.bindStatus(() => {
       throw new Error("source unavailable");
     });
-    expect(fixture.callbacks.size).toBe(1);
+    expect(fixture.callbacks.size).toBe(2);
     fixture.add.mockImplementation(() => {
       throw new Error("counter failed");
     });
@@ -214,10 +297,10 @@ describe("optional metrics", () => {
       throw new Error("observer failed");
     });
     for (const callback of fixture.callbacks) expect(() => callback({ observe })).not.toThrow();
-    expect(observe).toHaveBeenCalledTimes(13);
+    expect(observe).toHaveBeenCalledTimes(17);
     a.close();
     a.close();
-    expect(fixture.callbacks.size).toBe(1);
+    expect(fixture.callbacks.size).toBe(2);
     b.close();
     expect(fixture.callbacks.size).toBe(0);
     fixture.add.mockClear();
@@ -229,7 +312,7 @@ describe("optional metrics", () => {
     });
     expect(fixture.add).not.toHaveBeenCalled();
     const restarted = metrics.bindStatus(() => provider.getStatus());
-    expect(fixture.callbacks.size).toBe(1);
+    expect(fixture.callbacks.size).toBe(2);
     restarted.close();
     await provider.onClose?.();
   });
@@ -242,17 +325,19 @@ function testMeter() {
   const callbacks = new Set<Callback>();
   const add = vi.fn();
   const record = vi.fn();
+  const register = vi.fn((callback: Callback) => {
+    callbacks.add(callback);
+  });
+  const remove = vi.fn((callback: Callback) => {
+    callbacks.delete(callback);
+  });
   const meter: OpenTelemetryMeter = {
     createCounter: () => ({ add }),
     createHistogram: () => ({ record }),
     createObservableGauge: () => ({
-      addCallback(callback) {
-        callbacks.add(callback);
-      },
-      removeCallback(callback) {
-        callbacks.delete(callback);
-      }
+      addCallback: register,
+      removeCallback: remove
     })
   };
-  return { meter, callbacks, add, record };
+  return { meter, callbacks, add, record, register, remove };
 }
