@@ -8,8 +8,12 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.52` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.53` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.53 bounds HTTPS response bookkeeping by coalescing network fragments into
+owned blocks of at most 64 KiB before final concatenation. Byte limits, response
+cleanup, conditional responses, retry policy and public signatures are unchanged.
 
 Alpha.52 removes redundant copies of full snapshot-file read buffers. Short reads
 still compact their bytes so unused capacity is not retained. File limits, strict

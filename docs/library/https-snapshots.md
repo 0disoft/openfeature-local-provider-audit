@@ -51,6 +51,14 @@ oversized streams rather than consuming unbounded bodies.
 | `retryDelayMs` | 100 | Integer, 0 to 5,000 ms |
 
 Declared Content-Length and streamed bytes are checked before accepting the body.
+The body reader coalesces fragments into owned blocks of at most 64 KiB. For B
+accepted bytes and block size L = min(64 KiB, maxBytes), final concatenation retains
+ceil(B / L) blocks, independent of incoming fragment count. For the default 10 MiB
+limit this is at most 160 blocks, rather than one buffer per fragment. This bounds
+bookkeeping and avoids retaining every upstream buffer/slab; it adds a payload copy
+into owned blocks. A partial final block can retain up to L bytes of capacity until
+concatenation. Byte-budget checks precede copying; response destruction remains in
+the enclosing finally on success, overflow, stream failure and cancellation.
 The attempt deadline covers DNS, connect, TLS, headers and body, not synchronous
 snapshot parsing. Retries are limited to timeouts, transient socket/DNS failures,
 and HTTP 408/429/500/502/503/504. Backoff uses full jitter from zero to the exponentially growing delay, capped at

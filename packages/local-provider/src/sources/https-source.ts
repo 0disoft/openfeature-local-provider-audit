@@ -161,24 +161,45 @@ async function readResponse(
     if (length !== undefined && Number(length) > maxBytes) {
       throw new HttpsReadError("HTTPS snapshot exceeds maxBytes.");
     }
-    const chunks: Buffer[] = [];
-    let size = 0;
-    for await (const chunk of response) {
-      const bytes = chunk as Buffer;
-      size += bytes.byteLength;
-      if (size > maxBytes) throw new HttpsReadError("HTTPS snapshot exceeds maxBytes.");
-      chunks.push(bytes);
-    }
+    const content = await readResponseBody(response, maxBytes);
     const etag = response.headers.etag;
     return {
       status: "content",
-      content: Buffer.concat(chunks, size),
+      content,
       ...(etag !== undefined && validEtag(etag) ? { etag } : {})
     };
   } finally {
     // Also closes redirect/error/oversized streams without retaining their bodies.
     response.destroy();
   }
+}
+
+// Retain fixed-size owned blocks, rather than one upstream buffer per network fragment.
+async function readResponseBody(response: IncomingMessage, maxBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let block: Buffer | undefined;
+  let filled = 0;
+  let size = 0;
+  for await (const chunk of response) {
+    const bytes = chunk as Buffer;
+    size += bytes.byteLength;
+    if (size > maxBytes) throw new HttpsReadError("HTTPS snapshot exceeds maxBytes.");
+    let offset = 0;
+    while (offset < bytes.byteLength) {
+      block ??= Buffer.allocUnsafe(Math.min(64 * 1024, maxBytes));
+      const count = Math.min(block.byteLength - filled, bytes.byteLength - offset);
+      block.set(bytes.subarray(offset, offset + count), filled);
+      offset += count;
+      filled += count;
+      if (filled === block.byteLength) {
+        chunks.push(block);
+        block = undefined;
+        filled = 0;
+      }
+    }
+  }
+  if (block !== undefined) chunks.push(block.subarray(0, filled));
+  return Buffer.concat(chunks, size);
 }
 
 function cancelled(cause?: unknown): HttpsReadError {
