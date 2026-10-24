@@ -615,13 +615,13 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
       throw new Error(moduleKind + " operational status contract failed");
     }
     const measurements = [];
-    const callbacks = new Set();
+    const callbacks = new Map();
     const metrics = api.createOpenTelemetryMetrics({
       createCounter(name) { return { add(value, attributes) { measurements.push({ name, value, attributes }); } }; },
       createHistogram(name) { return { record(value, attributes) { measurements.push({ name, value, attributes }); } }; },
-      createObservableGauge(name) {
+      createObservableGauge(name, options) {
         return {
-          addCallback(callback) { callbacks.add(callback); },
+          addCallback(callback) { callbacks.set(callback, { name, unit: options?.unit }); },
           removeCallback(callback) { callbacks.delete(callback); }
         };
       }
@@ -633,7 +633,9 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
       auditFailurePolicy: "returnDefault",
       auditSink: {
         async write() { throw new Error("Unconfirmed write must not be selected"); },
-        async writeConfirmed() { throw new Error("expected storage failure"); }
+        async writeConfirmed() { throw new Error("expected storage failure"); },
+        getStats() { return { pendingWrites: 1, droppedWrites: 0, rejectedWrites: 0,
+          maxQueueSize: 5, pendingBytes: 7, maxQueueBytes: 64 }; }
       }
     });
     const auditFallback = await strictAuditProvider.resolveBooleanEvaluation(
@@ -644,7 +646,16 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
         strictAuditProvider.getStatus().audit.failedWrites !== 1) {
       throw new Error(moduleKind + " audit failure policy contract failed");
     }
-    if (callbacks.size !== 1 || !measurements.some((metric) =>
+    for (const [callback, instrument] of callbacks) {
+      callback({ observe(value, attributes) { measurements.push({ ...instrument, value, attributes }); } });
+    }
+    if (!measurements.some((metric) => metric.name.endsWith(".audit.queue.bytes") &&
+        metric.unit === "By" && metric.attributes.state === "pending" && metric.value === 7) ||
+        !measurements.some((metric) => metric.name.endsWith(".audit.queue.bytes") &&
+        metric.unit === "By" && metric.attributes.state === "bounded_capacity" && metric.value === 64)) {
+      throw new Error(moduleKind + " audit queue bytes contract failed");
+    }
+    if (callbacks.size !== 2 || !measurements.some((metric) =>
         metric.name.endsWith(".evaluations") && metric.attributes.reason === "ERROR" &&
         metric.attributes.error_code === "AUDIT_SINK_ERROR")) {
       throw new Error(moduleKind + " optional metrics contract failed");
