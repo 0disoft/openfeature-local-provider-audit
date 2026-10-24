@@ -112,6 +112,11 @@ also syncs the directory. Rotation commits the new retained-file manifest before
 unlinking pruned segments. Acknowledgment therefore defines durable acceptance,
 subject to filesystem/storage guarantees. An error after metadata commit can still
 mean the record was accepted. It cannot safely be undone by retrying an older head.
+Append checks sealed segment metadata with no-follow lstat: regular file, current
+owner where supported, single link and exact committed size. These checks require
+no open file descriptor. The active tip still uses no-follow open/descriptor identity
+validation, tail hashing and bounded suffix recovery with finally-bound close. All
+checks run under the same mandatory owner lock, without an in-memory file cache.
 Append checks retained file sizes and the current committed tip; `getCheckpoint()`
 drains writes, fully re-verifies retained records under the lock and returns frozen
 `{ start, head, files }`, with safe relative filenames in oldest-first order.

@@ -241,37 +241,42 @@ export function createChainedFileAuditSink(
     for (let index = 0; index < state.segments.length; index++) {
       const segment = state.segments[index];
       if (segment === undefined) throw new Error();
-      const handle = await openChainFile(join(directory, segment.file));
+      const path = join(directory, segment.file);
+      if (index < state.segments.length - 1) {
+        // Sealed files need metadata checks only, under the same mandatory writer lock.
+        const stats = await lstat(path);
+        assertOwnedFile(stats);
+        if (stats.size !== segment.size) throw new Error();
+        continue;
+      }
+      const handle = await openChainFile(path);
       await withAuditCleanup(
         async () => {
           const size = (await handle.stat()).size;
-          if (size < segment.size || (index < state.segments.length - 1 && size !== segment.size))
-            throw new Error();
-          if (index === state.segments.length - 1) {
-            const last = await readChainTail(handle, segment.size, maxRecordBytes);
-            const raw = JSON.parse(
-              new TextDecoder("utf-8", { fatal: true }).decode(last.subarray(0, -1))
-            ) as { previousHash: string };
-            const checked = parseLine(last, {
-              schemaVersion: 1,
-              chainId: initial.chainId,
-              sequence: segment.head.sequence - 1,
-              hash: raw.previousHash
-            });
-            if (!same(checked, segment.head)) throw new Error();
-            if (size > segment.size) {
-              if (size - segment.size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1))
-                throw new Error();
-              const accepted = parseSuffix(
-                await readChainRange(handle, segment.size, size - segment.size),
-                segment.head
-              );
-              await handle.sync();
-              state = await commitSegments(state, [
-                ...state.segments.slice(0, -1),
-                { ...segment, head: accepted, size }
-              ]);
-            }
+          if (size < segment.size) throw new Error();
+          const last = await readChainTail(handle, segment.size, maxRecordBytes);
+          const raw = JSON.parse(
+            new TextDecoder("utf-8", { fatal: true }).decode(last.subarray(0, -1))
+          ) as { previousHash: string };
+          const checked = parseLine(last, {
+            schemaVersion: 1,
+            chainId: initial.chainId,
+            sequence: segment.head.sequence - 1,
+            hash: raw.previousHash
+          });
+          if (!same(checked, segment.head)) throw new Error();
+          if (size > segment.size) {
+            if (size - segment.size > Math.max(MAX_CHAIN_BATCH_BYTES, maxRecordBytes + 1))
+              throw new Error();
+            const accepted = parseSuffix(
+              await readChainRange(handle, segment.size, size - segment.size),
+              segment.head
+            );
+            await handle.sync();
+            state = await commitSegments(state, [
+              ...state.segments.slice(0, -1),
+              { ...segment, head: accepted, size }
+            ]);
           }
         },
         () => handle.close(),
