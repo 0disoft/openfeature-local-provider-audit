@@ -45,6 +45,9 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - stable-release-gate: `pnpm run stable-release-gate`
 - registry-smoke: `pnpm run registry-smoke`
 - smoke: `pnpm run build` and `pnpm run pack:check`
+- Explanation hash benchmark (targeted, optional): `pnpm benchmark:explanation`;
+  builds then compares repeated snapshot hashing on fixed local workloads without
+  disk/network I/O in timed sections. See `docs/library/audit-event-v1.md`.
 - Portable adoption example: `pnpm run smoke:core-example`; builds and runs the
   private core-basic preview. The existing contract also copies its unchanged
   source into a real tarball-installed consumer and executes it there.

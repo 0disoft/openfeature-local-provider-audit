@@ -1,3 +1,4 @@
+import { isValidatedSnapshot } from "../flags/snapshot-ownership.js";
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { captureAuditPseudonym } from "./pseudonym.js";
 import { captureScheduleEvaluation } from "../evaluator/schedule.js";
@@ -61,8 +62,15 @@ function resolveOverrideHash(
   return {};
 }
 
+const snapshotHashes = new WeakMap<FlagSnapshot, string>();
+
 export function createSnapshotHash(snapshot: FlagSnapshot): string {
-  return sha256Hex(stableStringify(snapshot));
+  const owned = isValidatedSnapshot(snapshot);
+  const cached = owned ? snapshotHashes.get(snapshot) : undefined;
+  if (cached !== undefined) return cached;
+  const hash = sha256Hex(stableStringify(snapshot));
+  if (owned) snapshotHashes.set(snapshot, hash);
+  return hash;
 }
 
 export function createOverrideHash(overrides: EnvOverrideState | ReplayOverrideInput): string {

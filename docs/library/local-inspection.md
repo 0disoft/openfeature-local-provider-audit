@@ -13,8 +13,10 @@ It returns `EvaluationExplanation`: flag key, reason, source, snapshot hash, opt
 override hash, selected variant/rule ID, optional bucket/error code, and ordered
 `RuleExplanation` entries (`ruleId`, `matched`) for visited rules only. It never returns
 evaluated values, context values/names, condition operands, flag metadata or raw errors.
-Override/emergency/early error selection has no visited rules. Explanation hashes are
-computed on demand; normal provider evaluation still uses cached hashes.
+Override/emergency/early error selection has no visited rules. Snapshot hashes are
+computed on first demand and reused only for validator-owned, deeply frozen copies.
+Mutable or caller-frozen snapshots are recomputed; override hashes remain on demand.
+Normal provider evaluation already supplies cached hashes. See `audit-event-v1.md`.
 
 IDs, flag/variant names, rule match outcomes and hashes are still potentially sensitive
 metadata. Define non-sensitive identifiers and restrict access to explanations. A

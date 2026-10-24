@@ -10,6 +10,7 @@ import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
 import { hasRolloutPrecision } from "../evaluator/rollout-precision.js";
+import { registerValidatedSnapshot } from "./snapshot-ownership.js";
 import { captureSnapshotInput } from "./capture-snapshot-input.js";
 import { validateScheduledRollout } from "./validate-schedule.js";
 import { validateTargetingRules } from "./validate-targeting.js";
@@ -61,11 +62,9 @@ export function validateFlagSnapshot(value: unknown): FlagSnapshot {
   };
 
   const metadata = validateMetadata(value.metadata, "snapshot metadata");
-  if (metadata !== undefined) {
-    return deepFreeze({ ...snapshot, metadata });
-  }
-
-  return deepFreeze(snapshot);
+  return registerValidatedSnapshot(
+    deepFreeze(metadata === undefined ? snapshot : { ...snapshot, metadata })
+  );
 }
 
 function validateFlagDefinition(flagKey: string, value: unknown, version: 1 | 2): FlagDefinition {

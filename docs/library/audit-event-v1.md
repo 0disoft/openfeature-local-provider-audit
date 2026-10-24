@@ -144,3 +144,26 @@ a simultaneous failure becomes AggregateError with the primary cause first. Lock
 initialization attempts both close and owned-marker removal even if they fail, and
 initialization errors are never retried as contention. Neither append nor cleanup
 is automatically retried. Foreign lock markers remain untouched.
+
+## Immutable snapshot hash reuse
+
+The shared snapshot-hash path used by explanations and audit-event creation reuses
+a hash only for a captured, deeply frozen snapshot registered by this module
+instance's validator. Merely freezing a caller object is not sufficient: nested
+values or accessor results may change. Such inputs always use the original hash
+calculation. Independent parses have independent identities; hashes and evaluation
+results retain their existing semantics. Another loaded package copy/entry can
+fall back to recalculation rather than assuming shared ownership.
+
+A WeakSet tracks validated ownership and a WeakMap stores only the 64-character
+SHA-256 result per live snapshot. Neither retains discarded snapshots. No canonical
+JSON payload or evaluation result is cached. Overrides still recompute from their
+current contents. For R static explanations of an unchanged snapshot containing
+F fixed-size flag definitions and S serialized bytes, canonicalization/hashing work changes from
+O(R * (F log F + S)) to O(F log F + S + R), excluding request-specific evaluation.
+
+Run `pnpm benchmark:explanation` for a fixed local workload (1/1,000 flags, 200
+explanations, five warm timing samples). It also counts full-root canonicalizations
+across a separate cold sequence and checks every explanation against the uncached
+raw-input result. Timings exclude parsing, disk and network; they do not measure
+whole-server throughput or the provider path that already supplied cached hashes.
