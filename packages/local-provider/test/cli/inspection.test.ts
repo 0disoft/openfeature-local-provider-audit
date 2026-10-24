@@ -57,6 +57,25 @@ async function exercise(
 }
 
 describe("offline inspection CLI", () => {
+  it.each(["evaluate", "explain", "simulate", "compare"])(
+    "%s accepts long keys already supported by the snapshot parser",
+    async (command) => {
+      const flagKey = "a".repeat(264);
+      const longSnapshot = { schemaVersion: 2, flags: { [flagKey]: flag } };
+      const one = { ...request, flagKey };
+      const many = command === "simulate" || command === "compare";
+      const args = [command, "before.json"];
+      if (command === "compare") args.push("after.json");
+      args.push(many ? "--requests" : "--request", "request.json");
+      const result = await exercise(args, many ? [one] : one, longSnapshot, longSnapshot);
+      expect(result.code).toBe(0);
+      expect(result.error).toBe("");
+      if (command === "compare") expect(result.data.changedValues).toBe(0);
+      else if (many) expect(result.data.errors).toBe(0);
+      else expect(result.data.variant).toBe("on");
+    }
+  );
+
   it("compares repeated object pairs with key-order equality and array-order differences", async () => {
     const before = {
       schemaVersion: 2,

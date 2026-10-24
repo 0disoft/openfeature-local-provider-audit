@@ -167,7 +167,6 @@ function parseRequest(
   if (
     typeof raw.flagKey !== "string" ||
     !raw.flagKey.trim() ||
-    raw.flagKey.length > 256 ||
     !Object.hasOwn(raw, "defaultValue") ||
     !isFlagValue(raw.defaultValue)
   )

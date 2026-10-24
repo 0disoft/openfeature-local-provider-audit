@@ -12,7 +12,7 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    metadata instead of duplicating a current version. Release readiness guards the
    link and rejects the old hard-coded introductions. Dated registry/runtime evidence
    keeps its original version and does not imply fresh verification.
-2. CLI key compatibility: pending. Accept existing nonempty keys longer than 256
+2. CLI key compatibility: completed in alpha.43. Accept existing nonempty keys longer than 256
    characters without narrowing the parser; preserve file/node/depth/count limits.
 3. Queue byte metrics: pending. Export pending bytes and finite capacity with byte
    units, no sensitive labels, shared-sink deduplication and lifecycle cleanup.

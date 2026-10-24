@@ -8,8 +8,12 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.42` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.43` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.43 accepts inspection request flag keys longer than 256 characters, matching
+the existing snapshot parser and evaluator. Nonempty-key, input byte/node/depth and
+request-count limits remain. No existing key is rejected and public signatures stay.
 
 Alpha.42 attempts S3 body and iterator cleanup once per acquired resource when
 abort, timeout and finalization converge. Throwing or asynchronous cleanup remains
