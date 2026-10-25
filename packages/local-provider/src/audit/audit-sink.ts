@@ -1,7 +1,7 @@
 import { withAuditCleanup } from "./cleanup.js";
 import { createQueuedAuditSink } from "./queued-sink.js";
 import { randomUUID } from "node:crypto";
-import { constants } from "node:fs";
+import { constants, type Stats } from "node:fs";
 import { lstat, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -244,13 +244,15 @@ export async function acquireFileLock(
       continue;
     }
     const ownerToken = randomUUID();
-    const release = (allowEmpty = false) =>
+    let identity: Stats | undefined;
+    const release = (allowIncomplete = false) =>
       withAuditCleanup(
         () => handle.close(),
-        () => removeLockIfOwned(lock.path, ownerToken, allowEmpty),
+        () => removeLockIfOwned(lock.path, ownerToken, identity, allowIncomplete),
         "Audit lock close and owned-marker cleanup failed."
       );
     try {
+      identity = await handle.stat();
       await writeLockRecord(handle, `${ownerToken}\n${process.pid}\n${new Date().toISOString()}\n`);
     } catch (error) {
       // Initialization errors are not lock contention and must never be retried.
@@ -274,14 +276,20 @@ async function defaultWriteLockRecord(handle: FileHandle, contents: string): Pro
 async function removeLockIfOwned(
   path: string,
   ownerToken: string,
-  allowEmpty = false
+  expected: Stats | undefined,
+  allowIncomplete = false
 ): Promise<void> {
   try {
-    const contents = await readFile(path, "utf8");
-    const recordedOwner = contents.split("\n", 1)[0];
-    if (recordedOwner === ownerToken || (allowEmpty && recordedOwner === "")) {
-      await removeIfExists(path);
+    if (expected === undefined) return;
+    const current = await lstat(path);
+    if (!current.isFile() || current.dev !== expected.dev || current.ino !== expected.ino) return;
+    if (!allowIncomplete) {
+      const contents = await readFile(path, "utf8");
+      if (contents.split("\n", 1)[0] !== ownerToken) return;
     }
+    // A failed write may leave any prefix, not just an empty marker. Its acquired
+    // file identity is the ownership evidence; a different marker is preserved.
+    await removeIfExists(path);
   } catch (error) {
     if (!isNotFoundError(error)) {
       throw error;

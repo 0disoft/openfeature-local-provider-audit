@@ -113,8 +113,17 @@ raw user context by default.
   `lockTimeoutMs`. Lock wait deadlines use monotonic elapsed time.
   `staleLockMs` is deprecated and supplying it throws: time-based takeover cannot
   safely exclude live writers or conditionally remove only an inspected owner.
-- Each acquired lock records an owner token. Release checks that token and attempts
-  marker cleanup even after a handle-close error; both failures remain observable.
+- Each acquired lock captures its handle's device/inode identity before writing
+  an owner token. Normal release checks the current regular file identity and token.
+  If initialization fails (including a partial token written before ENOSPC), cleanup
+  removes the same acquired file regardless of the incomplete record contents.
+  Empty/different-file replacements and copied tokens on another file are preserved.
+  If handle identity could not be read, preserve the marker for operator recovery.
+  Release attempts marker cleanup even after a handle-close error; compound failures
+  remain observable. No failed initialization or audit write is automatically retried.
+  Identity checks add one handle stat and one pathname lstat per acquired/released lock;
+  they are not atomic conditional unlink, filesystem fencing or stale-lock takeover.
+  Keep the directory trusted and stop writers before manually changing lock markers.
 - File audit sinks bound their in-memory write queue to 5,000 writes by default.
   `maxQueueSize` accepts a positive caller-owned limit, while `null` explicitly selects
   unbounded count behavior. `maxQueueBytes` independently defaults to 64 MiB and

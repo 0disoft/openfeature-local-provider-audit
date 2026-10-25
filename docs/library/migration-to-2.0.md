@@ -8,8 +8,17 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.65` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.66` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.66 captures the acquired plain audit lock file identity before writing its
+owner record. Failed initialization now removes its own partially written marker,
+allowing later acquisition without manual cleanup. Release preserves different
+file identities, even empty replacements or copied owner records; normal release
+still requires the matching token. Missing identity is preserved for operator
+recovery. This is cooperative local locking, not atomic conditional unlink/fencing.
+Public signatures, records, no-takeover and no-retry policies remain unchanged.
+See `audit-event-v1.md`.
 
 Alpha.65 reads optional selection policies, rollout/schedule seeds, result variants,
 flag metadata and global override errors only from own properties. Host prototype
