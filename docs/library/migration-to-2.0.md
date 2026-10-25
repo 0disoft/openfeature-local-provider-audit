@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.60` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.61` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.61 recognizes condition groups only from their own `all`/`any` fields.
+Inherited group arrays or getters can no longer reinterpret validated leaf/group
+conditions after a host prototype change. Normal rule order, short circuiting,
+hashes and public signatures are unchanged. See `flag-file-schema-v2.md`; this
+is a condition-dispatch fix, not process-wide prototype-pollution protection.
 
 Alpha.60 reuses derived provider state only when an update passes the exact
 current, provider-owned deeply frozen snapshot. Unsigned conditional not-modified

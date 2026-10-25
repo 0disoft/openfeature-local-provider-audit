@@ -32,6 +32,15 @@ otherwise an own context property. No context normalization or GeoIP lookup occu
 - `{ all: [condition, ...] }` / `{ any: [condition, ...] }`: non-empty groups of at
   most 20 children. Each rule is limited to 8 levels and 100 condition nodes.
 
+Group dispatch uses only own `all`/`any` fields, matching the validator. Inherited
+arrays/getters are ignored, including fields introduced on `Object.prototype`
+after validation; they cannot turn a leaf into a group or shadow its actual group.
+This prevents false matches from inherited empty `all` arrays and false negatives
+from inherited empty `any` arrays without invoking inherited getters. Each visited
+node uses at most two O(1) own-property checks; rule/group order and short circuit
+behavior are preserved in Node and portable core. This limited dispatch guarantee
+does not provide process-wide protection against arbitrary prototype mutation.
+
 Condition strings and runtime comparison strings are limited to 4,096 characters;
 SemVer strings are at most 256 characters. Missing, accessor, inherited, oversized,
 non-finite, or wrong-type context values do not match. Missing is distinct from null.

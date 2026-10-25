@@ -54,14 +54,22 @@ export interface ConditionEvaluation {
   value: string | undefined;
   parsed: SemVer | undefined;
 }
+
+function hasOwnGroup<K extends "all" | "any">(
+  condition: TargetingCondition,
+  key: K
+): condition is Extract<TargetingCondition, Record<K, readonly TargetingCondition[]>> {
+  return Object.hasOwn(condition, key);
+}
+
 export function matchesCondition(
   condition: TargetingCondition,
   request: EvaluationRequest<FlagValue>,
   evaluation: ConditionEvaluation = { value: undefined, parsed: undefined }
 ): boolean {
-  if ("all" in condition)
+  if (hasOwnGroup(condition, "all"))
     return condition.all.every((child) => matchesCondition(child, request, evaluation));
-  if ("any" in condition)
+  if (hasOwnGroup(condition, "any"))
     return condition.any.some((child) => matchesCondition(child, request, evaluation));
   const actual = readAttribute(condition.attribute, request);
   if (typeof actual === "string" && actual.length > 4096) return false;
