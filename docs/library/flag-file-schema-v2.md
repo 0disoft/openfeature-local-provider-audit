@@ -47,14 +47,24 @@ equality, avoiding stale caches or a changed NaN comparison. Rule/group order an
 short-circuit behavior are unchanged in Node and the portable core.
 
 SemVer comparisons reuse a private parsed operand per condition when the operand
-string is unchanged. Each evaluation still reads and parses the current context
-version. A changed caller-owned operand replaces its entry, including transitions
-to/from invalid versions. Entries are weakly keyed by condition and keep at most
-one operand each; discarded snapshots do not remain alive through this cache.
-Strict parsing, prerelease/build precedence, rule order and short-circuit behavior
-are unchanged. For N comparisons of valid context versions against one unchanged
-valid operand, evaluation constructs N + 1 SemVer objects instead of 2N (N after
-the first comparison).
+string is unchanged. A changed caller-owned operand replaces its weakly keyed entry,
+including transitions to/from invalid versions. Discarded snapshots are not retained.
+
+Each evaluation reads the current own-data attribute for every visited leaf. Within
+that synchronous evaluation, a private one-entry slot reuses the last actual string
+(up to the existing 256-character parsing limit) and its parsed result, including
+invalid results. It is shared across visited groups/rules, then discarded: context
+objects/requests are not cache keys, no actual versions enter a global cache, and
+changes in a reused request are read again on the next evaluation. Alternating
+strings replace the slot rather than accumulating entries, so added storage is O(1).
+
+For N visited comparisons with the same actual version and already cached operands,
+actual-version parsing/construction falls from N to 1. Rule traversal remains O(N);
+alternating actual strings may still parse N times. Strict parsing, prerelease/build
+precedence, own-property reads, rule/group order and short circuit behavior are
+unchanged in Node and portable core. The existing `benchmark:evaluation` script adds
+1-/100-rule valid and invalid version workloads; setup and operand warmup are outside
+timing. Its developer-machine samples are not production throughput guarantees.
 
 ## Selection and failure
 

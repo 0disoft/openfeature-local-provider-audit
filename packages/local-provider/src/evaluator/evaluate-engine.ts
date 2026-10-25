@@ -8,7 +8,7 @@ import type {
 } from "../core-types.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { selectRolloutVariant, type ComputeBucket } from "./bucketing-rules.js";
-import { matchesCondition } from "./conditions.js";
+import { matchesCondition, type ConditionEvaluation } from "./conditions.js";
 import { flagValueMatchesType } from "./type-guards.js";
 import { selectScheduledVariant, validScheduleTime } from "./schedule.js";
 
@@ -85,8 +85,10 @@ export function evaluateWithTrace<T extends FlagValue>(
   }
 
   if (snapshot.schemaVersion === 2) {
+    let conditionEvaluation: ConditionEvaluation | undefined;
     for (const rule of flag.rules ?? []) {
-      const matched = matchesCondition(rule.when, request);
+      conditionEvaluation ??= { value: undefined, parsed: undefined };
+      const matched = matchesCondition(rule.when, request, conditionEvaluation);
       trace?.(rule.id, matched);
       if (!matched) continue;
       if (rule.variant !== undefined) {

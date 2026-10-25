@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.57` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.58` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.58 reuses the last actual SemVer parse within one synchronous evaluation,
+including invalid versions, across visited rules/groups. The one-entry slot is
+never retained across requests; context reads, selection/trace and public signatures
+are unchanged. See `flag-file-schema-v2.md` for O(1) storage and alternating inputs.
 
 Alpha.57 indexes validator-owned rollout arrays of at least 16 entries for logarithmic
 selection and cached seed lookup. Buckets, percentages, strict boundaries, default

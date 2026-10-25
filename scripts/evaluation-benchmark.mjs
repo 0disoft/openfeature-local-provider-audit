@@ -110,6 +110,34 @@ try {
       )
     );
   }
+  for (const ruleCount of [1, 100]) {
+    const source = JSON.parse(JSON.stringify(makeSnapshot(1)));
+    source.schemaVersion = 2;
+    source.flags["flag.0"].rules = Array.from({ length: ruleCount }, (_, i) => ({
+      id: `version-${i}`,
+      variant: "off",
+      when: { attribute: ["appVersion"], op: "semverGte", value: "9.0.0" }
+    }));
+    const snapshot = parseJsonFlagSnapshot(JSON.stringify(source));
+    for (const version of ["2.1.0", "1.0.0-"]) {
+      const request = {
+        flagKey: "flag.0",
+        expectedType: "boolean",
+        defaultValue: false,
+        context: { appVersion: version }
+      };
+      if (evaluateFlag(snapshot, request).reason !== "STATIC")
+        throw new Error("Repeated SemVer benchmark did not retain its default.");
+      for (let i = 0; i < 500; i++) evaluateFlag(snapshot, request);
+      cases.push(
+        await measure(
+          `pure-semver-${ruleCount}-rules-${version === "2.1.0" ? "valid" : "invalid"}`,
+          () => evaluateFlag(snapshot, request)
+        )
+      );
+    }
+  }
+
   const versioned = parseJsonFlagSnapshot(
     JSON.stringify({
       schemaVersion: 2,

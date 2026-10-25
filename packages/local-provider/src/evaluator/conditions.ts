@@ -6,6 +6,7 @@ import type {
   TargetingCondition
 } from "../core-types.js";
 
+const MAX_SEMVER_LENGTH = 256;
 const semverOperands = new WeakMap<
   TargetingCondition,
   { readonly value: string; readonly parsed: SemVer | undefined }
@@ -36,7 +37,7 @@ export function captureConditionValues(
 export function strictSemver(value: unknown): SemVer | undefined {
   if (
     typeof value !== "string" ||
-    value.length > 256 ||
+    value.length > MAX_SEMVER_LENGTH ||
     !/^[0-9]/.test(value) ||
     value.trim() !== value
   )
@@ -48,12 +49,20 @@ export function strictSemver(value: unknown): SemVer | undefined {
   }
 }
 
+// Owned by one synchronous evaluation, never retained by context or condition identity.
+export interface ConditionEvaluation {
+  value: string | undefined;
+  parsed: SemVer | undefined;
+}
 export function matchesCondition(
   condition: TargetingCondition,
-  request: EvaluationRequest<FlagValue>
+  request: EvaluationRequest<FlagValue>,
+  evaluation: ConditionEvaluation = { value: undefined, parsed: undefined }
 ): boolean {
-  if ("all" in condition) return condition.all.every((child) => matchesCondition(child, request));
-  if ("any" in condition) return condition.any.some((child) => matchesCondition(child, request));
+  if ("all" in condition)
+    return condition.all.every((child) => matchesCondition(child, request, evaluation));
+  if ("any" in condition)
+    return condition.any.some((child) => matchesCondition(child, request, evaluation));
   const actual = readAttribute(condition.attribute, request);
   if (typeof actual === "string" && actual.length > 4096) return false;
   switch (condition.op) {
@@ -81,7 +90,14 @@ export function matchesCondition(
             ? actual < condition.value
             : actual <= condition.value;
     default: {
-      const left = strictSemver(actual);
+      let left: SemVer | undefined;
+      if (typeof actual === "string" && actual.length <= MAX_SEMVER_LENGTH) {
+        if (evaluation.value !== actual) {
+          evaluation.parsed = strictSemver(actual);
+          evaluation.value = actual;
+        }
+        left = evaluation.parsed;
+      }
       const right = operandSemver(condition, condition.value);
       if (!left || !right) return false;
       const comparison = left.compare(right);
