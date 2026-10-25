@@ -29,6 +29,10 @@ configuration in YAML, especially for hand-edited development and test fixtures.
 
 - Existing JSON input and evaluation output do not change.
 - YAML is an additive public API export.
+- Snapshot capture additionally enforces the shared 100 MiB expanded JSON-encoded
+  UTF-8 budget before clone/hash expansion. Large scalar aliases can exceed this
+  budget even below the parser's alias-count limit; they fail as `SCHEMA_ERROR`.
+  See `docs/library/flag-file-schema-v1.md`; raw parser/I/O budgets remain separate.
 - The evaluated value for a YAML snapshot must match the evaluated value for an equivalent
   JSON snapshot after validation.
 - Future YAML parser changes are compatibility-sensitive if they alter accepted input or

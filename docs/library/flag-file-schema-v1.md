@@ -76,3 +76,22 @@ because malformed or changed configuration can alter evaluated flag values.
 - Watcher behavior reads from disk during each evaluation.
 - A failed watcher reload replaces the last valid snapshot.
 - YAML input bypasses the same schema validation used by JSON input.
+
+## Expanded input budget
+
+All snapshot validation (JSON, YAML and direct objects, including the portable core)
+limits captured own data to a conservative 100 MiB JSON-encoded UTF-8 byte budget,
+in addition to the existing 100,000-node / 136-level capture guards. Object keys,
+values, delimiters, JSON escapes and each repeated alias occurrence consume budget;
+explicit optional `undefined` conservatively consumes the space of `null`.
+Over-budget input is rejected as `SCHEMA_ERROR` before cloning completes or hashing
+can materialize an expanded JSON string. This intentionally tightens oversized input
+acceptance without changing signatures. Raising file/source `maxBytes` does not
+raise this logical input budget.
+
+String weights are calculated without escaped-string or UTF-8-buffer allocation and
+memoized only during that capture. Aliases still count every occurrence; memoization
+avoids rescanning their scalar contents. Small aliases and accepted snapshots retain
+their original values and hashes. Existing YAML alias-count errors stay `PARSE_ERROR`.
+The budget is not a process heap cap and does not replace raw I/O limits: YAML/JSON
+parsing and other transient allocations still occur before capture.

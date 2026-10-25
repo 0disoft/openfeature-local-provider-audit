@@ -1,9 +1,11 @@
+import { createSnapshotInputBudget } from "./snapshot-input-budget.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 
 // Capture only own data before schema validators can read properties or call array methods.
 // Allow undefined for explicitly supplied optional schema fields. Variant validation is stricter.
 export function captureSnapshotInput(input: unknown): unknown {
   const active = new WeakSet<object>();
+  const budget = createSnapshotInputBudget();
   let nodes = 0;
   function capture(value: unknown, depth: number): unknown {
     if (++nodes > 100_000 || depth > 136) throw invalid();
@@ -13,8 +15,11 @@ export function captureSnapshotInput(input: unknown): unknown {
       typeof value === "string" ||
       typeof value === "boolean" ||
       (typeof value === "number" && Number.isFinite(value))
-    )
+    ) {
+      if (typeof value === "string") budget.string(value);
+      else budget.charge(value === undefined ? 4 : String(value).length);
       return value;
+    }
     if (typeof value !== "object" || active.has(value)) throw invalid();
     active.add(value);
     const array = Array.isArray(value);
@@ -23,6 +28,8 @@ export function captureSnapshotInput(input: unknown): unknown {
     if (keys.length + nodes > 100_001) throw invalid();
     const length = array ? Object.getOwnPropertyDescriptor(value, "length")?.value : undefined;
     if (array && (!Number.isSafeInteger(length) || keys.length !== length + 1)) throw invalid();
+    const members = keys.length - (array ? 1 : 0);
+    budget.charge(2 + Math.max(0, members - 1));
     for (const key of keys) {
       if (array && key === "length") continue;
       const descriptor = Object.getOwnPropertyDescriptor(value, key);
@@ -34,6 +41,10 @@ export function captureSnapshotInput(input: unknown): unknown {
         (array && (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= length))
       )
         throw invalid();
+      if (!array) {
+        budget.string(key);
+        budget.charge(1);
+      }
       Object.defineProperty(result, key, {
         value: capture(descriptor.value, depth + 1),
         enumerable: true,

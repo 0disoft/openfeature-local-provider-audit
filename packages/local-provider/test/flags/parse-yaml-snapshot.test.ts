@@ -134,3 +134,21 @@ flags: []
     throw new Error("Expected parseYamlFlagSnapshot to throw.");
   });
 });
+
+it("rejects scalar alias amplification beyond the snapshot byte budget", () => {
+  const scalar = "x".repeat(2 * 1024 * 1024);
+  const aliases = Array.from({ length: 64 }, (_, i) => `      copy${i}: *large`).join("\n");
+  const yaml = `schemaVersion: 1\nflags:\n  payload:\n    type: string\n    defaultVariant: base\n    variants:\n      base: &large ${scalar}\n${aliases}\n`;
+  expect(Buffer.byteLength(yaml)).toBeLessThan(3 * 1024 * 1024);
+  expect(scalar.length * 65).toBe(130 * 1024 * 1024);
+  expect(() => parseYamlFlagSnapshot(yaml)).toThrowError(
+    expect.objectContaining({ code: "SCHEMA_ERROR" })
+  );
+});
+
+it("retains small scalar aliases and identical JSON values", () => {
+  const snapshot = parseYamlFlagSnapshot(
+    `schemaVersion: 1\nflags:\n  text:\n    type: string\n    defaultVariant: base\n    variants:\n      base: &value "가😀"\n      copy: *value\n`
+  );
+  expect(snapshot.flags.text?.variants).toEqual({ base: "가😀", copy: "가😀" });
+});

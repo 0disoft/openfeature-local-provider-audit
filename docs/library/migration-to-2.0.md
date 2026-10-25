@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.58` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.59` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.59 adds a shared 100 MiB expanded input byte budget during snapshot capture,
+including repeated YAML scalar aliases, object keys and JSON escaping. Oversized
+inputs formerly accepted under node/alias-count limits now fail with `SCHEMA_ERROR`;
+raising raw `maxBytes` cannot override it. Signatures and accepted values/hashes are
+unchanged. See `flag-file-schema-v1.md` for conservative optional-undefined accounting
+and separate raw-parser/heap limitations.
 
 Alpha.58 reuses the last actual SemVer parse within one synchronous evaluation,
 including invalid versions, across visited rules/groups. The one-entry slot is
