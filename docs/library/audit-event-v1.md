@@ -113,8 +113,10 @@ raw user context by default.
   `lockTimeoutMs`. Lock wait deadlines use monotonic elapsed time.
   `staleLockMs` is deprecated and supplying it throws: time-based takeover cannot
   safely exclude live writers or conditionally remove only an inspected owner.
-- Each acquired lock captures its handle's device/inode identity before writing
-  an owner token. Normal release checks the current regular file identity and token.
+- Each acquired lock captures its handle's device/inode identity as exact `bigint`
+  values before writing an owner token; pathname identity checks also use `bigint`
+  so 64-bit IDs above `Number.MAX_SAFE_INTEGER` cannot collide through rounding.
+  Normal release checks the current regular file identity and token.
   If initialization fails (including a partial token written before ENOSPC), cleanup
   removes the same acquired file regardless of the incomplete record contents.
   Empty/different-file replacements and copied tokens on another file are preserved.

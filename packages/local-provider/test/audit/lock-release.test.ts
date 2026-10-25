@@ -6,7 +6,7 @@ vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof import("node:fs/promises")>();
   return { ...actual, lstat: vi.fn(), open: vi.fn(), readFile: vi.fn(), rm: vi.fn() };
 });
-const identity = { dev: 1, ino: 2, isFile: () => true };
+const identity = { dev: 1n, ino: 2n, isFile: () => true };
 beforeEach(() => vi.mocked(lstat).mockResolvedValue(identity as never));
 afterEach(() => vi.resetAllMocks());
 
@@ -140,5 +140,52 @@ it.each([false, true])(
     expect(write).not.toHaveBeenCalled();
     expect(lstat).not.toHaveBeenCalled();
     expect(rm).not.toHaveBeenCalled();
+  }
+);
+
+it.each([
+  ["ino", 19_421_773_397_387_012n],
+  ["ino", 9_007_199_254_740_992n],
+  ["ino", 1_152_921_504_606_846_976n],
+  ["dev", 9_007_199_254_740_992n]
+] as const)(
+  "preserves a replacement with distinct 64-bit %s after Number rounding at %s",
+  async (field, original) => {
+    const replacement = original + 1n;
+    expect(Number(original)).toBe(Number(replacement));
+    const stats = (value: bigint, exact = false) => {
+      const identity = { dev: 1n, ino: 2n, [field]: value };
+      return {
+        isFile: () => true,
+        dev: exact ? identity.dev : Number(identity.dev),
+        ino: exact ? identity.ino : Number(identity.ino)
+      };
+    };
+    let contents = "";
+    const stat = vi.fn(async (options?: { bigint?: boolean }) => stats(original, options?.bigint));
+    const close = vi.fn(async () => {});
+    vi.mocked(open).mockResolvedValue({
+      stat,
+      close,
+      writeFile: async (text: string) => {
+        contents = text;
+      }
+    } as never);
+    vi.mocked(lstat).mockImplementation(
+      async (_path, options) => stats(replacement, options?.bigint) as never
+    );
+    vi.mocked(readFile).mockImplementation(async () => contents as never);
+    const release = await acquireFileLock({
+      path: "owned.lock",
+      timeoutMs: 0,
+      retryMs: 1,
+      staleMs: undefined
+    });
+    await release();
+    expect(close).toHaveBeenCalledOnce();
+    expect(readFile).not.toHaveBeenCalled();
+    expect(rm).not.toHaveBeenCalled();
+    expect(stat).toHaveBeenCalledWith({ bigint: true });
+    expect(lstat).toHaveBeenCalledWith("owned.lock", { bigint: true });
   }
 );

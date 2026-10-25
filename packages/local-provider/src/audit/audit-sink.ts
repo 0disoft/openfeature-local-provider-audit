@@ -1,7 +1,7 @@
 import { withAuditCleanup } from "./cleanup.js";
 import { createQueuedAuditSink } from "./queued-sink.js";
 import { randomUUID } from "node:crypto";
-import { constants, type Stats } from "node:fs";
+import { constants, type BigIntStats } from "node:fs";
 import { lstat, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -244,7 +244,7 @@ export async function acquireFileLock(
       continue;
     }
     const ownerToken = randomUUID();
-    let identity: Stats | undefined;
+    let identity: BigIntStats | undefined;
     const release = (allowIncomplete = false) =>
       withAuditCleanup(
         () => handle.close(),
@@ -252,7 +252,7 @@ export async function acquireFileLock(
         "Audit lock close and owned-marker cleanup failed."
       );
     try {
-      identity = await handle.stat();
+      identity = await handle.stat({ bigint: true });
       await writeLockRecord(handle, `${ownerToken}\n${process.pid}\n${new Date().toISOString()}\n`);
     } catch (error) {
       // Initialization errors are not lock contention and must never be retried.
@@ -276,12 +276,12 @@ async function defaultWriteLockRecord(handle: FileHandle, contents: string): Pro
 async function removeLockIfOwned(
   path: string,
   ownerToken: string,
-  expected: Stats | undefined,
+  expected: BigIntStats | undefined,
   allowIncomplete = false
 ): Promise<void> {
   try {
     if (expected === undefined) return;
-    const current = await lstat(path);
+    const current = await lstat(path, { bigint: true });
     if (!current.isFile() || current.dev !== expected.dev || current.ino !== expected.ino) return;
     if (!allowIncomplete) {
       const contents = await readFile(path, "utf8");

@@ -8,8 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.66` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.67` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.67 compares plain audit lock file identities without precision loss.
+Plain audit lock ownership now compares device/inode IDs using `bigint` from
+both the acquired handle and the current pathname. Distinct Windows 64-bit IDs
+can round to the same JavaScript `number`; a foreign replacement carrying the
+same owner record must remain intact. No option, audit record, public API or
+filesystem call count changes. The check and removal remain separate operations
+in a trusted local directory, not an atomic conditional deletion or fencing lock.
 
 Alpha.66 captures the acquired plain audit lock file identity before writing its
 owner record. Failed initialization now removes its own partially written marker,
