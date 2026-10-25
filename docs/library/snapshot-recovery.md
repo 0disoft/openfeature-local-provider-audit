@@ -85,10 +85,17 @@ The directory and all ancestor paths are trusted local configuration, not reques
 input. New directories/files use POSIX 0700/0600. Existing permissions and Windows
 ACLs remain caller-owned. Journal reads reject symlinks, nonregular files, foreign
 POSIX ownership and multiple hard links. A bounded handle read avoids unbounded
-allocation and rejects replacement while opening. Atomic rename replaces the
+allocation and rejects replacement while opening. Both pathname and handle stats
+use `bigint` device/inode IDs: distinct 64-bit IDs must not compare equal through
+`number` rounding. Link count and POSIX UID checks use the same exact stats.
+Observed size is checked against `maxBytes` before conversion to a numeric buffer
+length, so allocation stays within the existing byte bound. Atomic rename replaces the
 journal itself rather than writing through an existing link.
 
 Commits use an exclusive sibling `.lock` file and fail immediately on contention.
+Lock cleanup also compares exact `bigint` identities and preserves foreign marker
+replacements, including after a close failure. Identity checks and removal remain
+separate operations, not atomic conditional deletion or filesystem fencing.
 There is no automatic stale takeover. After a crash, an operator must confirm the
 writer stopped before removing an abandoned lock. Temporary sibling files can be
 left by process termination; only that interrupted writer's files may be removed

@@ -54,6 +54,16 @@ let faults: Partial<
   >
 >;
 let replaceLock: boolean;
+let collision: { kind: "lock" | "journal"; field: "dev" | "ino"; original: bigint } | undefined;
+function reportIdentity<T extends { ino: number | bigint }>(stats: T, value: bigint): T {
+  if (collision === undefined) return stats;
+  const identity = { dev: 1n, ino: 2n, [collision.field]: value };
+  const exact = typeof stats.ino === "bigint";
+  return Object.assign(stats, {
+    dev: exact ? identity.dev : Number(identity.dev),
+    ino: exact ? identity.ino : Number(identity.ino)
+  });
+}
 const closes = new Map<string, ReturnType<typeof vi.fn>>();
 function token(sequence: number) {
   return Buffer.from(
@@ -84,6 +94,7 @@ function expectPrivate(error: unknown) {
 beforeEach(async () => {
   faults = {};
   replaceLock = false;
+  collision = undefined;
   closes.clear();
   directory = await mkdtemp(join(tmpdir(), "of-store-cleanup-"));
   path = join(directory, "state.json");
@@ -101,6 +112,14 @@ beforeEach(async () => {
       if (failure) throw failure;
     });
     closes.set(kind, closing);
+    const policy = collision;
+    if (policy?.kind === kind) {
+      const stat = handle.stat.bind(handle);
+      vi.spyOn(handle, "stat").mockImplementation(async (options) => {
+        const stats = options?.bigint ? await stat({ bigint: true }) : await stat();
+        return reportIdentity(stats, policy.original + (kind === "journal" ? 1n : 0n)) as never;
+      });
+    }
     if (kind === "lock" && faults.lockStat)
       vi.spyOn(handle, "stat").mockRejectedValue(faults.lockStat);
     if (kind === "temp") {
@@ -112,7 +131,11 @@ beforeEach(async () => {
   });
   vi.mocked(lstat).mockImplementation(async (...args: Parameters<typeof actual.lstat>) => {
     if (String(args[0]).endsWith(".lock") && faults.lockLstat) throw faults.lockLstat;
-    return actual.lstat(...args);
+    const stats = await actual.lstat(...args);
+    const kind = String(args[0]).endsWith(".lock") ? "lock" : "journal";
+    return collision?.kind === kind
+      ? (reportIdentity(stats, collision.original + (kind === "lock" ? 1n : 0n)) as never)
+      : stats;
   });
   vi.mocked(rename).mockImplementation(async (...args) => {
     if (faults.rename) throw faults.rename;
@@ -290,3 +313,30 @@ it("delivers the full compound cause through refresher onFailure without publish
     refresher.close();
   }
 });
+
+it.each([
+  ["ino", 19_421_773_397_387_012n],
+  ["dev", 9_007_199_254_740_992n]
+] as const)("preserves a foreign lock with a distinct 64-bit %s at %s", async (field, original) => {
+  expect(Number(original)).toBe(Number(original + 1n));
+  collision = { kind: "lock", field, original };
+  await writeFile(join(directory, "foreign.lock"), "foreign owner");
+  replaceLock = true;
+  await store().commit(token(1));
+  expect(await readFile(`${path}.lock`, "utf8")).toBe("foreign owner");
+  expect(unlink).not.toHaveBeenCalledWith(`${path}.lock`);
+  expect(closes.get("lock")).toHaveBeenCalledOnce();
+});
+
+it.each(["ino", "dev"] as const)(
+  "rejects a journal replaced while opening despite %s rounding",
+  async (field) => {
+    const target = store();
+    await target.commit(token(1));
+    collision = { kind: "journal", field, original: 9_007_199_254_740_992n };
+    vi.mocked(open).mockClear();
+    await expect(target.load()).rejects.toMatchObject({ code: "PROVIDER_NOT_READY" });
+    expect(closes.get("journal")).toHaveBeenCalledOnce();
+    expect(open).toHaveBeenCalledOnce();
+  }
+);

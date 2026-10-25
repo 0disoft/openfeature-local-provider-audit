@@ -1,6 +1,6 @@
 import { withStoreCleanup } from "./store-cleanup.js";
 import { retainFailureCause } from "./failure-cause.js";
-import { constants, type Stats } from "node:fs";
+import { constants, type BigIntStats } from "node:fs";
 import { lstat, mkdir, open, rename, unlink, type FileHandle } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { basename, dirname, join, resolve } from "node:path";
@@ -39,9 +39,9 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
   const historical = createHistoricalSnapshotVerifier(options.verification);
 
   async function readJournal(): Promise<Journal | undefined> {
-    let before: Stats;
+    let before: BigIntStats;
     try {
-      before = await lstat(path);
+      before = await lstat(path, { bigint: true });
     } catch (error) {
       if (isMissing(error)) return undefined;
       throw error;
@@ -53,11 +53,11 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
     );
     return withStoreCleanup(
       async () => {
-        const stats = await handle.stat();
+        const stats = await handle.stat({ bigint: true });
         assertRegular(stats);
-        if (!sameFile(before, stats) || stats.size > maxBytes) throw unavailable();
+        if (!sameFile(before, stats) || stats.size > BigInt(maxBytes)) throw unavailable();
         // Reserve an EOF probe byte; short reads fill capacity rather than retain blocks.
-        let buffer = Buffer.allocUnsafe(stats.size + 1);
+        let buffer = Buffer.allocUnsafe(Number(stats.size) + 1);
         let total = 0;
         while (true) {
           if (total === buffer.length) {
@@ -188,10 +188,10 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
       try {
         if (createDirectory) await mkdir(directory, { recursive: true, mode: 0o700 });
         const lock = await open(lockPath, "wx", 0o600);
-        let lockStats: Stats | undefined;
+        let lockStats: BigIntStats | undefined;
         return await withStoreCleanup(
           async () => {
-            lockStats = await lock.stat();
+            lockStats = await lock.stat({ bigint: true });
             const previous = await readJournal();
             const recovery = previous === undefined ? undefined : authenticate(previous);
             const verified = verifier.verify(bytes, recovery?.floor);
@@ -211,14 +211,16 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
   };
 }
 
-function sameFile(left: Stats, right: Stats): boolean {
+function sameFile(left: BigIntStats, right: BigIntStats): boolean {
   return left.dev === right.dev && left.ino === right.ino;
 }
-function assertRegular(stats: Stats): void {
+function assertRegular(stats: BigIntStats): void {
   if (
     !stats.isFile() ||
-    stats.nlink !== 1 ||
-    (process.platform !== "win32" && process.getuid !== undefined && stats.uid !== process.getuid())
+    stats.nlink !== 1n ||
+    (process.platform !== "win32" &&
+      process.getuid !== undefined &&
+      stats.uid !== BigInt(process.getuid()))
   )
     throw unavailable();
 }
@@ -234,7 +236,7 @@ function unavailable(cause?: unknown): LocalProviderError {
 
 async function releaseLock(
   lock: FileHandle,
-  expected: Stats | undefined,
+  expected: BigIntStats | undefined,
   path: string
 ): Promise<void> {
   await withStoreCleanup(
@@ -243,7 +245,7 @@ async function releaseLock(
       // No stale takeover: only an identity verified from this acquired marker
       // may be removed, including when close fails. Preserve foreign replacements.
       try {
-        const current = await lstat(path);
+        const current = await lstat(path, { bigint: true });
         if (expected !== undefined && sameFile(current, expected)) await unlink(path);
       } catch (error) {
         if (!isMissing(error)) throw error;

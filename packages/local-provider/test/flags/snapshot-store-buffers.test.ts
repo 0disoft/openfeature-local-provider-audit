@@ -47,9 +47,10 @@ beforeEach(async () => {
     const handle = await actual.open(...args);
     handles.push(handle);
     return {
-      async stat() {
-        const stats = await handle.stat();
-        if (reportedSize !== undefined) stats.size = reportedSize;
+      async stat(options?: { bigint?: boolean }) {
+        const stats = options?.bigint ? await handle.stat({ bigint: true }) : await handle.stat();
+        if (reportedSize !== undefined)
+          stats.size = options?.bigint ? BigInt(reportedSize) : reportedSize;
         return stats;
       },
       async read(
@@ -140,4 +141,11 @@ it("reads across full 64 KiB blocks and rejects malformed UTF-8 after a valid jo
   cap = 1;
   await expect(store().load()).rejects.toMatchObject({ code: "PROVIDER_NOT_READY" });
   expect(closes).toBe(2);
+});
+
+it("rejects an oversized 64-bit stat before allocating an input buffer", async () => {
+  reportedSize = Number.MAX_SAFE_INTEGER;
+  await expect(store().load()).rejects.toMatchObject({ code: "PROVIDER_NOT_READY" });
+  expect(allocatedBytes).toBe(0);
+  expect(closes).toBe(1);
 });

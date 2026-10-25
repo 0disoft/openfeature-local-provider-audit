@@ -8,8 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.67` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.68` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.68 preserves exact device/inode identities in the signed snapshot recovery
+store. Journal opening and lock release request `bigint` stats so distinct 64-bit
+file IDs cannot compare equal through JavaScript number rounding. Link counts and
+POSIX ownership remain validated; journal size converts to a numeric allocation
+only after checking the configured byte bound. Public signatures, signed bytes,
+replay policy, error privacy and filesystem call counts are unchanged. See
+`snapshot-recovery.md`; checks and removal are still separate filesystem operations.
 
 Alpha.67 compares plain audit lock file identities without precision loss.
 Plain audit lock ownership now compares device/inode IDs using `bigint` from
