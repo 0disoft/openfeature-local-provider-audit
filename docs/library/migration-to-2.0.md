@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.53` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.54` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.54 adds an opt-in managed signed-source provider: authenticated startup
+recovery, explicit sequential polling, and shutdown shared with OpenFeature.
+Existing low-level APIs stay compatible. The helper defaults to no ambient env
+and no context names. See `managed-provider.md` for lifecycle and first-start policy.
 
 Alpha.53 bounds HTTPS response bookkeeping by coalescing network fragments into
 owned blocks of at most 64 KiB before final concatenation. Byte limits, response

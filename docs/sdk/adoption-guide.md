@@ -64,6 +64,11 @@ bundling can use the self-contained ESM core; do not import Node-root APIs there
 
 ## Operational and privacy ownership
 
+Start signed Node integrations with the [managed provider](../library/managed-provider.md):
+create an HTTPS or S3 source, then one helper for authenticated recovery, provider,
+refresh, explicit polling and shared SDK shutdown. The GitOps example uses this
+same public helper rather than copying its low-level composition into each app.
+
 - Use the [signed GitOps recipe](../library/gitops-snapshots.md) and existing
   executable node-basic GitOps smoke for pinned verification, restart recovery,
   last-good behavior and caller-owned refresh/shutdown scheduling.

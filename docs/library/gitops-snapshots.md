@@ -8,9 +8,10 @@ JWS. Consumers verify it, persist acceptance and then activate locally. Flag loo
 uses memory; evaluations never read snapshot files or invoke Git/HTTPS delivery or
 recovery. A configured audit sink can separately write evaluation records to disk.
 
-The executable composition is `examples/node-basic/src/gitops.ts`. Its helpers are
-SDK example code, not new package-root exports. It uses the public file loader,
-signer, verifier, HTTPS source, recovery store, provider and refresher APIs.
+The executable recipe is `examples/node-basic/src/gitops.ts`. Its consumer uses
+`createManagedLocalProvider` from the package root to connect signed delivery,
+recovery and lifecycle; publisher/rollback helpers remain SDK example code.
+See `managed-provider.md` for the public composition and ownership contract.
 
 ## Ownership and release inputs
 
@@ -96,7 +97,7 @@ await OpenFeature.setProviderAndWait("checkout", runtime.provider);
 const client = OpenFeature.getClient("checkout");
 
 // Invoke from the application's existing refresh lifecycle; no automatic timer.
-const inFlight = runtime.refresher.refresh();
+const inFlight = runtime.refresh();
 await inFlight;
 const enabled = await client.getBooleanValue("checkout.enabled", false, context);
 ```

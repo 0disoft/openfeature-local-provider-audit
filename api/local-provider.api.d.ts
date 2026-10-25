@@ -371,6 +371,28 @@ interface SnapshotRefresherOptions {
     readonly timedOut: boolean;
   }) => void;
 }
+interface ManagedLocalProviderOptions {
+  readonly source: SnapshotSource;
+  readonly verification: SnapshotVerificationOptions;
+  readonly recovery: Omit<FileSnapshotStoreOptions, "verification">;
+  readonly bootstrap: FlagSnapshot;
+  readonly allowFirstStart?: boolean;
+  readonly provider?: Omit<LocalProviderOptions, "snapshot" | "provenance">;
+  readonly refresh?: Omit<
+    SnapshotRefresherOptions,
+    "provider" | "source" | "verifier" | "store" | "previous" | "format"
+  >;
+  readonly refreshIntervalMs?: number;
+  readonly signal?: AbortSignal;
+}
+interface ManagedLocalProvider {
+  readonly store: SignedSnapshotStore;
+  readonly provider: ReloadableLocalProvider;
+  refresh(request?: { readonly signal?: AbortSignal }): Promise<SnapshotRefreshResult>;
+  start(): void;
+  getStatus(): ProviderStatus;
+  close(): Promise<void>;
+}
 interface SignFlagSnapshotOptions {
   readonly snapshot: FlagSnapshot;
   readonly privateKey: KeyObject;
@@ -722,6 +744,11 @@ export declare function createHttpsSnapshotSource(
 //#region src/sources/s3-source.d.ts
 export declare function createS3SnapshotSource(options: S3SnapshotSourceOptions): SnapshotSource;
 //#endregion
+//#region src/provider/managed-provider.d.ts
+export declare function createManagedLocalProvider(
+  options: ManagedLocalProviderOptions
+): Promise<ManagedLocalProvider>;
+//#endregion
 //#region src/sources/snapshot-refresher.d.ts
 export declare function createSnapshotRefresher(
   options: SnapshotRefresherOptions
@@ -781,6 +808,8 @@ export type {
   LoadFlagSnapshotFileOptions,
   LocalProviderErrorCode,
   LocalProviderOptions,
+  ManagedLocalProvider,
+  ManagedLocalProviderOptions,
   ObservableLocalProvider,
   OpenTelemetryMeter,
   PercentageRolloutRule,

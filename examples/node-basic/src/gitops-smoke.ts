@@ -140,7 +140,7 @@ try {
 
   artifact = await createSignedRelease(enabledPath, signing(1));
   etag = '"release-1"';
-  await consumer.refresher.refresh();
+  await consumer.refresh();
   assert.equal(
     await client.getBooleanValue("checkout.enabled", false, {
       targetingKey: "sample-cohort-alpha"
@@ -149,13 +149,13 @@ try {
   );
   const first = consumer.provider.getStatus().provenance;
   assert.equal(first?.sequence, 1);
-  await consumer.refresher.refresh();
+  await consumer.refresh();
   assert.equal(conditionalHits, 1);
   assert.equal((await consumer.store.load())?.history.length, 1);
 
   artifact = await createSignedRelease(disabledPath, signing(2));
   etag = '"release-2"';
-  await consumer.refresher.refresh();
+  await consumer.refresh();
   assert.equal(await client.getBooleanValue("checkout.enabled", false), false);
   await assert.rejects(createRollbackRelease(consumer.store, 1, signing(2)), /higher sequence/);
   await assert.rejects(
@@ -164,14 +164,14 @@ try {
   );
   artifact = await createRollbackRelease(consumer.store, 1, signing(3));
   etag = '"release-3"';
-  await consumer.refresher.refresh();
+  await consumer.refresh();
   const restored = consumer.provider.getStatus().provenance;
   assert.equal(restored?.sequence, 3);
   assert.equal(restored?.snapshotHash, first?.snapshotHash);
   assert.notEqual(restored?.artifactHash, first?.artifactHash);
   assert.equal(await client.getBooleanValue("checkout.enabled", false), true);
 
-  consumer.refresher.close();
+  await consumer.close();
   const beforeRestart = requests;
   consumer = await createGitOpsConsumer(options);
   await OpenFeature.setProviderAndWait("gitops", consumer.provider);
@@ -182,17 +182,17 @@ try {
   // A valid old signature and a corrupt new signature both preserve the last good state.
   artifact = await createSignedRelease(disabledPath, signing(2));
   etag = '"stale-release"';
-  await assert.rejects(consumer.refresher.refresh(), /Signed snapshot verification failed/);
+  await assert.rejects(consumer.refresh(), /Signed snapshot verification failed/);
   artifact = artifact.slice(0, -2);
   etag = '"corrupt-release"';
-  await assert.rejects(consumer.refresher.refresh(), /Signed snapshot verification failed/);
+  await assert.rejects(consumer.refresh(), /Signed snapshot verification failed/);
   assert.equal(lastValidator, undefined); // A fresh controller did not adopt rejected ETags.
   assert.equal(consumer.provider.getStatus().provenance?.sequence, 3);
   const beforeEvaluations = requests;
   for (let index = 0; index < 10; index++)
     assert.equal(await client.getBooleanValue("checkout.enabled", false), true);
   assert.equal(requests, beforeEvaluations);
-  consumer.refresher.close();
+  await consumer.close();
   await OpenFeature.clearProviders();
   await auditSink.flush?.();
   const text = await readFile(auditPath, "utf8");
@@ -219,9 +219,12 @@ try {
     })
   );
 } finally {
-  consumer?.refresher.close();
   try {
-    await OpenFeature.clearProviders();
+    try {
+      await consumer?.close();
+    } finally {
+      await OpenFeature.clearProviders();
+    }
   } finally {
     try {
       server.closeAllConnections();

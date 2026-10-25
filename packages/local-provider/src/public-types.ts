@@ -210,6 +210,30 @@ export interface SnapshotRefresherOptions {
   }) => void;
 }
 
+export interface ManagedLocalProviderOptions {
+  readonly source: SnapshotSource;
+  readonly verification: SnapshotVerificationOptions;
+  readonly recovery: Omit<FileSnapshotStoreOptions, "verification">;
+  readonly bootstrap: FlagSnapshot;
+  readonly allowFirstStart?: boolean;
+  readonly provider?: Omit<LocalProviderOptions, "snapshot" | "provenance">;
+  readonly refresh?: Omit<
+    SnapshotRefresherOptions,
+    "provider" | "source" | "verifier" | "store" | "previous" | "format"
+  >;
+  readonly refreshIntervalMs?: number;
+  readonly signal?: AbortSignal;
+}
+
+export interface ManagedLocalProvider {
+  readonly store: SignedSnapshotStore;
+  readonly provider: ReloadableLocalProvider;
+  refresh(request?: { readonly signal?: AbortSignal }): Promise<SnapshotRefreshResult>;
+  start(): void;
+  getStatus(): ProviderStatus;
+  close(): Promise<void>;
+}
+
 export interface SignFlagSnapshotOptions {
   readonly snapshot: FlagSnapshot;
   readonly privateKey: KeyObject;

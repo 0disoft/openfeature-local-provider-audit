@@ -52,6 +52,11 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+`createManagedLocalProvider`, `ManagedLocalProviderOptions` and `ManagedLocalProvider`
+add opt-in signed-source composition, authenticated startup recovery, explicit
+single-flight polling and SDK-linked shutdown. Defaults omit ambient env overrides
+and context names. See `managed-provider.md`; lower-level APIs keep their contracts.
+
 Authoring support adds JSON-only package subpaths `/schemas/v1.json` and
 `/schemas/v2.json`, with no new root/core runtime exports. The read-only
 `generate-types <file> [--format auto|json|yaml]` CLI validates before emitting

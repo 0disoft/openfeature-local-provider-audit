@@ -579,6 +579,7 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "createHttpsSnapshotSource",
             "createS3SnapshotSource",
             "createSnapshotRefresher",
+            "createManagedLocalProvider",
             "signFlagSnapshot",
             "createSnapshotVerifier",
             "createFileSnapshotStore",
@@ -797,6 +798,20 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
         recoveredSnapshot?.current?.snapshot.schemaVersion !== jsonSnapshot.schemaVersion || recoveredSnapshot.history.length !== 1) {
       throw new Error(moduleKind + " signed recovery contract failed");
     }
+    let managedFetches = 0;
+    const managed = await api.createManagedLocalProvider({
+      source: { async fetch() { managedFetches++; return { status: "content", content: Buffer.from(signed) }; } },
+      verification: { audience: "packed", trustedKeys: { packed: signingKeys.publicKey } },
+      recovery: { path: auditPath + ".snapshots" }, bootstrap: jsonSnapshot
+    });
+    if (managedFetches !== 0 || managed.getStatus().provenance?.artifactHash !== signedResult.provenance.artifactHash) {
+      throw new Error(moduleKind + " managed offline recovery failed");
+    }
+    await managed.refresh();
+    const managedClose = managed.provider.onClose();
+    if (managed.close() !== managedClose) throw new Error(moduleKind + " managed close was not shared");
+    await managedClose;
+    if (!managed.getStatus().closed || managedFetches !== 1) throw new Error(moduleKind + " managed lifecycle failed");
     signedRefresher.close();
   }
   let flagsChanged = [];

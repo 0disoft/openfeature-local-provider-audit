@@ -1,9 +1,6 @@
 import {
-  createFileSnapshotStore,
+  createManagedLocalProvider,
   createHttpsSnapshotSource,
-  createReloadableLocalProvider,
-  createSnapshotRefresher,
-  createSnapshotVerifier,
   loadFlagSnapshotFile,
   signFlagSnapshot,
   type AuditSink,
@@ -35,36 +32,19 @@ export interface GitOpsConsumerOptions {
 }
 
 export async function createGitOpsConsumer(options: GitOpsConsumerOptions) {
-  const verifier = createSnapshotVerifier(options.verification);
-  const source = createHttpsSnapshotSource({
-    url: options.url,
-    ...(options.ca !== undefined ? { ca: options.ca } : {})
-  });
-  const store = createFileSnapshotStore({
-    path: options.recoveryPath,
+  return createManagedLocalProvider({
+    source: createHttpsSnapshotSource({
+      url: options.url,
+      ...(options.ca !== undefined ? { ca: options.ca } : {})
+    }),
     verification: options.verification,
-    createDirectory: true
+    recovery: { path: options.recoveryPath, createDirectory: true },
+    bootstrap: options.safeBootstrap,
+    ...(options.allowFirstStart !== undefined ? { allowFirstStart: options.allowFirstStart } : {}),
+    provider: {
+      ...(options.auditSink !== undefined ? { auditSink: options.auditSink } : {})
+    }
   });
-  const recovered = await store.load();
-  if (recovered === undefined && options.allowFirstStart !== true) {
-    throw new Error("Recovery state is missing; authorize first startup explicitly.");
-  }
-  const provider = createReloadableLocalProvider({
-    snapshot: recovered?.current?.snapshot ?? options.safeBootstrap,
-    ...(recovered?.current !== undefined ? { provenance: recovered.current.provenance } : {}),
-    // This recipe uses only signed configuration, with no ambient env override.
-    env: {},
-    ...(options.auditSink !== undefined ? { auditSink: options.auditSink } : {}),
-    auditRedaction: { contextKeys: "none" }
-  });
-  const refresher = createSnapshotRefresher({
-    provider,
-    source,
-    store,
-    verifier,
-    ...(recovered !== undefined ? { previous: recovered.floor } : {})
-  });
-  return { provider, store, refresher };
 }
 
 export async function createRollbackRelease(

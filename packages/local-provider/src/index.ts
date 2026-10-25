@@ -23,6 +23,7 @@ export { createFileAuditSink } from "./audit/audit-sink.js";
 export { createOpenTelemetryMetrics } from "./metrics/opentelemetry.js";
 export { createHttpsSnapshotSource } from "./sources/https-source.js";
 export { createS3SnapshotSource } from "./sources/s3-source.js";
+export { createManagedLocalProvider } from "./provider/managed-provider.js";
 export { createSnapshotRefresher } from "./sources/snapshot-refresher.js";
 export { createFileSnapshotStore } from "./sources/snapshot-store.js";
 export { signFlagSnapshot, createSnapshotVerifier } from "./sources/signed-snapshot.js";
@@ -78,6 +79,8 @@ export type {
   JsonObject,
   JsonValue,
   LocalProviderOptions,
+  ManagedLocalProviderOptions,
+  ManagedLocalProvider,
   SignFlagSnapshotOptions,
   SnapshotVerificationOptions,
   SignedSnapshotMetadata,

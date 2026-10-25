@@ -4,6 +4,20 @@ Local OpenFeature provider for JSON/YAML flag snapshots, typed evaluation, expli
 CLI validation, environment overrides, deterministic rollout bucketing, replay fixtures,
 and redacted audit logs.
 
+## Managed signed delivery (local v2 preview)
+
+The Node package root exports `createManagedLocalProvider`. Pass an HTTPS or S3
+source, pinned verification policy, recovery path and safe bootstrap to connect
+signature verification, restart recovery and the provider. `refresh()` is explicit;
+`start()` opts into sequential polling. `close()` and SDK shutdown stop refreshes
+and share bounded audit cleanup. No network request or poll timer starts during
+construction. First startup needs explicit authorization; ambient env overrides
+and context-key logging are off by default. Existing low-level APIs remain.
+
+See the repository's `docs/library/managed-provider.md` and executable GitOps
+example for inputs, authenticated recovery and ownership. This is an unpublished
+v2 feature; installing stable v1 does not provide it.
+
 ## Install
 
 ```sh

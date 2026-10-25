@@ -109,3 +109,10 @@ support requires real execution evidence and is not established by this split.
 Portable core runtime acceptance now covers only the exact local matrix in
 `docs/library/compatibility.md`; see `docs/testing/core-runtime-acceptance.md`.
 Node-root SDK contracts and supported provider runtimes stay unchanged.
+
+
+The Node-root `createManagedLocalProvider` composes signed source verification,
+file recovery and provider refresh with explicit polling and SDK-linked shutdown.
+Its options default to no ambient env or context names. Source clients, signing,
+registration and application intake remain caller-owned. See
+`docs/library/managed-provider.md`; the GitOps consumer uses this public API.
