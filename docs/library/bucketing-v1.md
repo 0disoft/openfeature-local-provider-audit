@@ -31,6 +31,21 @@ variants.
 - Unicode behavior: no normalization is applied. The exact JavaScript string value is UTF-8
   encoded for hashing.
 
+## Evaluation Cost
+
+Validator-owned rollout arrays with at least 16 entries receive an internal cumulative
+bucket index and captured seed. Construction is O(R) time and O(R) numeric storage per
+array; subsequent selection is O(log R), with unchanged SHA-256 input, integer rounding,
+strict upper-bound comparison, rule order and uncovered default behavior. The index is
+weakly keyed by the captured array and can be collected with it. It never changes the
+serialized snapshot or its hash. Small arrays and unregistered caller inputs keep the
+linear path; freezing a caller array alone cannot enable caching or stale mutation reads.
+
+`pnpm benchmark:evaluation --iterations 2000 --output <local-report.json>` includes
+2-, 100- and 20,000-entry v1 cases. Parsing/index creation is outside timing, and
+results are checked against the same static fallback. These are developer-machine
+sequential evaluation samples, not throughput, request latency or peak-memory claims.
+
 ## Evaluation Priority
 
 1. Explicit JSON override map.

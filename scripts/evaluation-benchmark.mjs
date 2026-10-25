@@ -52,6 +52,36 @@ try {
     );
   }
 
+  // Validated v1 permits large rollout arrays; keep setup outside timed evaluation.
+  for (const ruleCount of [2, 100, 20_000]) {
+    const snapshot = parseJsonFlagSnapshot(
+      JSON.stringify({
+        schemaVersion: 1,
+        flags: {
+          "flag.0": {
+            type: "boolean",
+            defaultVariant: "off",
+            variants: { on: true, off: false },
+            rollout: Array.from({ length: ruleCount }, () => ({ variant: "on", percentage: 0.001 }))
+          }
+        }
+      })
+    );
+    const request = {
+      flagKey: "flag.0",
+      expectedType: "boolean",
+      defaultValue: true,
+      targetingKey: "synthetic-subject"
+    };
+    const expected = evaluateFlag(snapshot, request);
+    if (expected.variant !== "off" || expected.reason !== "STATIC" || expected.value !== false)
+      throw new Error("Large rollout benchmark did not retain its fallback/bucket.");
+    for (let i = 0; i < 500; i++) evaluateFlag(snapshot, request);
+    cases.push(
+      await measure(`pure-rollout-${ruleCount}-entries`, () => evaluateFlag(snapshot, request))
+    );
+  }
+
   for (const ruleCount of [1, 100]) {
     const source = JSON.parse(JSON.stringify(makeSnapshot(1_000)));
     source.schemaVersion = 2;

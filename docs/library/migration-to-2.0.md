@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.56` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.57` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.57 indexes validator-owned rollout arrays of at least 16 entries for logarithmic
+selection and cached seed lookup. Buckets, percentages, strict boundaries, default
+fallback and public signatures are unchanged. Mutable/unregistered inputs retain the
+linear path; indexes do not enter snapshot serialization/hashes. See `bucketing-v1.md`
+for startup/storage tradeoffs and local benchmark reproduction.
 
 Alpha.56 batches the default plain JSONL audit path (no rotation/lock) within
 64 records / 64 KiB of admitted UTF-8 payload, with larger singleton records.

@@ -9,6 +9,7 @@ import type {
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
+import { indexValidatedRollout } from "../evaluator/bucketing-rules.js";
 import { hasRolloutPrecision } from "../evaluator/rollout-precision.js";
 import { registerValidatedSnapshot } from "./snapshot-ownership.js";
 import { captureSnapshotInput } from "./capture-snapshot-input.js";
@@ -186,6 +187,7 @@ function validateRollout(
     });
   }
 
+  indexValidatedRollout(rollout);
   return rollout;
 }
 
