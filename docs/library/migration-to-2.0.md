@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.61` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.62` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.62 folds Windows audit queue keys to lowercase so case-alias paths from one
+loaded package instance serialize rotation/append operations together. Original
+I/O paths, hashes and public signatures are unchanged; case-sensitive Windows
+directories may conservatively serialize separate files. POSIX keys retain case.
+Other filesystem aliases and cross-process/package-instance writers still require
+consistent paths and cooperating advisory locks. See `audit-event-v1.md`.
 
 Alpha.61 recognizes condition groups only from their own `all`/`any` fields.
 Inherited group arrays or getters can no longer reinterpret validated leaf/group

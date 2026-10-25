@@ -100,6 +100,13 @@ raw user context by default.
 - Sinks from one loaded package instance serialize writes by audit path, including
   rotation. Cross-process and duplicate-package-instance writers remain caller-owned
   coordination and require `lock: true` when sharing a rotating path.
+- On Windows, process-queue keys are lowercased so ordinary letter-case aliases
+  share rotation/append ownership. Actual I/O paths are preserved. This may also
+  serialize distinct names in case-sensitive Windows directories; POSIX keys keep
+  their case. Key normalization costs O(L) for L path characters and adds no I/O.
+  This is not filesystem identity resolution: junctions, short names or other
+  aliases still require consistent paths and cooperating locks. It does not add
+  cross-process or duplicate-package-instance coordination.
 - File audit sinks capture an absolute path at construction. Later caller URL or
   working-directory changes cannot redirect writes, rotation or locking independently.
 - File audit sinks support optional advisory `.lock` files with `lock` and

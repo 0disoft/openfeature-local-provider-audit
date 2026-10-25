@@ -138,19 +138,22 @@ export async function serializeProcessWrite(
   path: string,
   operation: () => Promise<void>
 ): Promise<void> {
-  const previous = processWriteQueues.get(path) ?? Promise.resolve();
+  // Windows case aliases must share rotation/append ownership. Keep the actual
+  // I/O path unchanged; case-sensitive Windows directories only serialize more.
+  const queueKey = process.platform === "win32" ? path.toLowerCase() : path;
+  const previous = processWriteQueues.get(queueKey) ?? Promise.resolve();
   const current = previous.then(operation, operation);
   const tail = current.then(
     () => undefined,
     () => undefined
   );
-  processWriteQueues.set(path, tail);
+  processWriteQueues.set(queueKey, tail);
 
   try {
     await current;
   } finally {
-    if (processWriteQueues.get(path) === tail) {
-      processWriteQueues.delete(path);
+    if (processWriteQueues.get(queueKey) === tail) {
+      processWriteQueues.delete(queueKey);
     }
   }
 }
