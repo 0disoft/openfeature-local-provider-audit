@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.74` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.75` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.75 observes rejected Promise-like return values from optional metrics
+recording/cleanup and logger warnings without waiting for them. Synchronous
+failures remain isolated, and audit flush failures still propagate under the
+existing policy. See `opentelemetry-metrics.md`.
 
 Alpha.74 rejects unsafe integers in active file-audit `maxBytes`, `maxFiles` and
 `lockTimeoutMs` policies at construction. In particular, enormous retained-file

@@ -76,7 +76,13 @@ audit flush fails, without closing the caller-owned meter or other providers.
 OpenFeature owns calling provider close; direct users must call it themselves.
 
 Provider binding/recording/cleanup failures do not affect flag results or replace
-flush failures. Adapter observation failures are isolated per source/measurement.
+flush failures. Returned Promise-like values from custom session recording and
+cleanup callbacks are observed without awaiting them, including rejection. This
+also applies to provider logger warnings: an asynchronous diagnostic failure must
+not become an unhandled rejection. Never-settling diagnostics do not delay flag
+resolution or audit draining. The signatures remain synchronous `void` contracts;
+this defensive observation neither flushes nor cancels caller-owned diagnostics.
+Adapter observation failures are isolated per source/measurement.
 Creating instruments can throw at explicit adapter construction, before provider
 registration. The caller's custom SDK code remains trusted and synchronous; the
 adapter cannot preempt blocking callbacks. Invalid numeric duration is ignored.

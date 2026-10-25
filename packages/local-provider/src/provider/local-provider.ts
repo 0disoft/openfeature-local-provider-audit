@@ -257,7 +257,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     );
     this.events.removeAllHandlers();
     try {
-      this.metricsSession?.close();
+      observeDiagnosticResult(this.metricsSession?.close());
     } catch {
       // Optional diagnostics must not prevent audit draining.
     }
@@ -339,13 +339,15 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
 
     if (startedAt !== undefined) {
       try {
-        this.metricsSession?.recordEvaluation({
-          requestedType: expectedType,
-          reason: result.reason,
-          source: result.source,
-          ...(result.errorCode !== undefined ? { errorCode: result.errorCode } : {}),
-          durationMs: Math.max(0, performance.now() - startedAt)
-        });
+        observeDiagnosticResult(
+          this.metricsSession?.recordEvaluation({
+            requestedType: expectedType,
+            reason: result.reason,
+            source: result.source,
+            ...(result.errorCode !== undefined ? { errorCode: result.errorCode } : {}),
+            durationMs: Math.max(0, performance.now() - startedAt)
+          })
+        );
       } catch {
         // Metrics are optional and must not change the resolution.
       }
@@ -455,7 +457,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
 
   private warn(logger: Logger, message: string, cause: unknown): void {
     try {
-      logger.warn(message, cause);
+      observeDiagnosticResult(logger.warn(message, cause));
     } catch {
       // Logging failures must not alter flag resolution.
     }
@@ -475,6 +477,12 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       ...(hasOverrideState(overrides) ? { overrideHash: createOverrideHash(overrides) } : {})
     };
   }
+}
+
+// Void callbacks may still return a Promise at runtime. Observe it without
+// awaiting optional diagnostics or allocating for normal synchronous callbacks.
+function observeDiagnosticResult(result: unknown): void {
+  if (result !== undefined) void Promise.resolve(result).catch(() => undefined);
 }
 
 function createFlagHashes(snapshot: FlagSnapshot): ReadonlyMap<string, string> {
