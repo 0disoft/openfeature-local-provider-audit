@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.63` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.64` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.64 fills a stat-sized snapshot recovery read buffer, grows it geometrically
+only when the opened file outgrows that capacity, and decodes the initialized
+prefix directly. Short reads no longer retain one 64 KiB block each, and stable
+files avoid the final whole-journal concatenation. Strict byte/UTF-8 checks,
+signatures, replay-floor verification and cleanup remain unchanged. See
+`snapshot-recovery.md` for allocation scope and injected-short-read evidence.
 
 Alpha.63 fills unused audit read-block capacity across short reads and merges
 contiguous unfinished-record views. Input-buffer retention no longer multiplies

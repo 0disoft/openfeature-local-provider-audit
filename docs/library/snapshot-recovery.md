@@ -51,6 +51,34 @@ An authorized rollback selects historical snapshot contents and publishes a new
 higher sequence with current issuance/expiry using `signFlagSnapshot`. Selecting
 an older journal or replaying its token is not an authorized rollback.
 
+## Bounded recovery input buffers
+
+Journal reads reserve the opened file's observed size plus one EOF-probe byte,
+fill that same buffer across short reads, and decode only initialized bytes.
+A stable file needs one input buffer and no whole-journal `Buffer.concat` copy.
+Each filesystem read remains capped at 64 KiB. If the opened file grows after
+stat, capacity doubles up to `maxBytes + 1`; the extra byte still detects overflow.
+Shrinkage decodes only the bytes actually read. UTF-8 remains strict and journal
+shape/signature/replay-floor checks and finally-bound handle cleanup are unchanged.
+
+For observed size S and bytes read N, requested input capacity is O(S + N),
+with each requested buffer length never above `maxBytes + 1`. Growth temporarily
+holds both old and new buffers. Geometric growth copies O(N) bytes in total;
+it does not copy the full prefix on every short read. Allocation depends
+on the observed size too: a truncated file can retain its larger initial reserve.
+This is an input-buffer bound, not a total heap/RSS limit: decoding, JSON parsing,
+signature verification and concurrent callers have separate memory costs.
+Small buffers can share a Node allocator pool, whose backing size exceeds the
+requested view length; include that pool overhead when measuring memory.
+
+A local real-file probe capped read results to 1/7/65536 bytes for the same
+423-byte signed recovery journal. Before this change, cumulative requested input
+buffer lengths (including EOF reads) were 27,787,264 / 4,063,232 / 131,072 bytes;
+afterwards all three requested 424 bytes. Distinct backing stores referenced by
+read buffers totaled those same old sizes versus one shared 8,192-byte pool after
+the change. These are controlled short-read allocation
+measurements, not production short-read frequency, peak RSS or latency claims.
+
 ## Storage ownership and crash boundary
 
 The directory and all ancestor paths are trusted local configuration, not request

@@ -56,18 +56,27 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
         const stats = await handle.stat();
         assertRegular(stats);
         if (!sameFile(before, stats) || stats.size > maxBytes) throw unavailable();
-        const chunks: Buffer[] = [];
+        // Reserve an EOF probe byte; short reads fill capacity rather than retain blocks.
+        let buffer = Buffer.allocUnsafe(stats.size + 1);
         let total = 0;
         while (true) {
-          const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, maxBytes - total + 1));
-          const { bytesRead } = await handle.read(buffer);
+          if (total === buffer.length) {
+            const expanded = Buffer.allocUnsafe(Math.min(maxBytes + 1, buffer.length * 2));
+            buffer.copy(expanded, 0, 0, total);
+            buffer = expanded;
+          }
+          const { bytesRead } = await handle.read(
+            buffer,
+            total,
+            Math.min(64 * 1024, buffer.length - total),
+            null
+          );
           if (bytesRead === 0) break;
           total += bytesRead;
           if (total > maxBytes) throw unavailable();
-          chunks.push(buffer.subarray(0, bytesRead));
         }
         const journal: unknown = JSON.parse(
-          new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, total))
+          new TextDecoder("utf-8", { fatal: true }).decode(buffer.subarray(0, total))
         );
         if (journal === null || typeof journal !== "object" || Array.isArray(journal))
           throw unavailable();
