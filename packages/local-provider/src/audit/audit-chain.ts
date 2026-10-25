@@ -10,6 +10,9 @@ import type {
 import { stableStringify } from "./audit-event.js";
 import { captureChainEvent, dataRecord, invalidChain, isHash, isSequence } from "./chain-event.js";
 
+// Inserting a SHA-256 hex hash member adds this many unescaped ASCII bytes.
+const HASH_FIELD_BYTES = ',"hash":""'.length + 64;
+
 export function createAuditChainCheckpoint(chainId: string): AuditChainCheckpoint {
   if (typeof chainId !== "string" || !/^[A-Za-z0-9._:/-]{1,128}$/.test(chainId))
     throw invalidChain();
@@ -37,11 +40,12 @@ export function createChainedAuditEvent(
       previousHash: start.hash,
       event: captureChainEvent(event, limit)
     };
+    const canonicalBody = stableStringify(body);
     const record = Object.freeze({
       ...body,
-      hash: digest(`openfeature-local-audit-record/v1\0${stableStringify(body)}`)
+      hash: digest(`openfeature-local-audit-record/v1\0${canonicalBody}`)
     });
-    assertSize(record, limit);
+    assertSize(canonicalBody, limit);
     return record;
   } catch {
     throw invalidChain();
@@ -74,7 +78,6 @@ export function verifyAuditChainRecord(
     )
       throw invalidChain();
     record.event = captureChainEvent(record.event, limit);
-    assertSize(record, limit);
     const body = {
       schemaVersion: 1,
       chainId: record.chainId,
@@ -82,7 +85,9 @@ export function verifyAuditChainRecord(
       previousHash: record.previousHash,
       event: record.event
     };
-    if (record.hash !== digest(`openfeature-local-audit-record/v1\0${stableStringify(body)}`))
+    const canonicalBody = stableStringify(body);
+    assertSize(canonicalBody, limit);
+    if (record.hash !== digest(`openfeature-local-audit-record/v1\0${canonicalBody}`))
       throw invalidChain();
     return Object.freeze({
       schemaVersion: 1,
@@ -151,6 +156,6 @@ function recordLimit(options: AuditChainOptions): number {
 function digest(text: string): string {
   return createHash("sha256").update(text, "utf8").digest("hex");
 }
-function assertSize(record: object, limit: number): void {
-  if (Buffer.byteLength(stableStringify(record), "utf8") > limit) throw invalidChain();
+function assertSize(canonicalBody: string, limit: number): void {
+  if (Buffer.byteLength(canonicalBody, "utf8") + HASH_FIELD_BYTES > limit) throw invalidChain();
 }

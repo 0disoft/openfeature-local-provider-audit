@@ -46,6 +46,15 @@ and frozen without invoking getters/toJSON. Canonical record limit defaults to
 1 MiB (1 byte..16 MiB configurable), with at most 10,000 context key names.
 Iterable verification defaults to 100,000 records (0..10,000,000 configurable).
 
+Record size reuses the canonical body JSON produced for hashing after strict
+capture. Adding the required `hash` member contributes exactly 74 UTF-8 bytes:
+the comma, encoded key/value delimiters and 64 unescaped SHA-256 hex characters.
+Member ordering cannot change this length. Creation and verification therefore
+canonicalize and serialize the captured graph once, rather than repeating it only
+to count bytes. Escapes, Unicode and the inclusive byte limit retain their semantics;
+the terminal JSONL newline is outside the record cap. This avoids a graph copy and
+serialization, not the O(N) work required to serialize and hash a record of size N.
+
 ## Verify JSON Lines
 
 `openfeature-local-provider audit-verify <oldest.jsonl> ... <current.jsonl>

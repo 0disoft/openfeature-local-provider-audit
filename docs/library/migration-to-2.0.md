@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.72` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.73` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.73 reuses the canonical audit-chain body JSON for hashing and byte limits,
+adding the fixed encoding size of its SHA-256 hash member. This avoids a second
+graph copy, sort and serialization solely to count bytes. Canonical hashing,
+exact UTF-8 limits, validation/error precedence, wire records and public signatures
+are unchanged. See `audit-chain.md`.
 
 Alpha.72 reuses a validator-owned, deeply frozen snapshot when provider creation
 or reload passes it through validation again. An internal WeakSet controls this
