@@ -11,7 +11,7 @@ import { LocalProviderError } from "../errors/local-provider-error.js";
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
 import { indexValidatedRollout } from "../evaluator/bucketing-rules.js";
 import { hasRolloutPrecision } from "../evaluator/rollout-precision.js";
-import { registerValidatedSnapshot } from "./snapshot-ownership.js";
+import { isValidatedSnapshot, registerValidatedSnapshot } from "./snapshot-ownership.js";
 import { captureSnapshotInput } from "./capture-snapshot-input.js";
 import { validateScheduledRollout } from "./validate-schedule.js";
 import { validateTargetingRules } from "./validate-targeting.js";
@@ -30,6 +30,8 @@ const V2_FLAG_KEYS = new Set([...FLAG_DEFINITION_KEYS, "rules", "disabledVariant
 const ROLLOUT_RULE_KEYS = new Set(["variant", "percentage", "seed"]);
 
 export function validateFlagSnapshot(value: unknown): FlagSnapshot {
+  // Reuse only our captured, deeply frozen result; caller freezing grants no trust.
+  if (isValidatedSnapshot(value)) return value;
   value = captureSnapshotInput(value);
   if (!isJsonObject(value)) {
     throw schemaError("Flag snapshot must be a JSON object.");

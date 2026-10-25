@@ -9,6 +9,6 @@ export function registerValidatedSnapshot(snapshot: FlagSnapshot): FlagSnapshot 
   return snapshot;
 }
 
-export function isValidatedSnapshot(snapshot: FlagSnapshot): boolean {
-  return validatedSnapshots.has(snapshot);
+export function isValidatedSnapshot(snapshot: unknown): snapshot is FlagSnapshot {
+  return validatedSnapshots.has(snapshot as FlagSnapshot);
 }

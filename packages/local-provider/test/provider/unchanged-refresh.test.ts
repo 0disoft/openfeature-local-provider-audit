@@ -111,16 +111,17 @@ it("still validates and hashes a caller-frozen equal-content copy", () => {
   expect(provider.getStatus().lastRefreshFailure).toBe("validation");
 });
 
-it("does not reuse a former snapshot after the current content has changed", () => {
+it("restores former content using its cached snapshot hash without skipping activation", () => {
   const provider = createReloadableLocalProvider({ snapshot: staticSnapshot, env: {} });
   const previous = provider.getSnapshot();
   const hash = provider.getStatus().snapshotHash;
   provider.updateSnapshot({ ...staticSnapshot, metadata: { revision: 2 } });
   vi.mocked(createHash).mockClear();
   provider.updateSnapshot(previous);
-  expect(createHash).toHaveBeenCalledTimes(Object.keys(staticSnapshot.flags).length + 1);
+  expect(createHash).toHaveBeenCalledTimes(Object.keys(staticSnapshot.flags).length);
   expect(provider.getStatus().snapshotHash).toBe(hash);
-  expect(provider.getSnapshot()).toEqual(previous);
+  expect(provider.getStatus().successfulRefreshes).toBe(3);
+  expect(provider.getSnapshot()).toBe(previous);
 });
 
 it("captures new provenance, rejects mismatches atomically and clears unsigned origin", () => {

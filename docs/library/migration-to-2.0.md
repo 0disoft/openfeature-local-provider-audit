@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.71` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.72` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.72 reuses a validator-owned, deeply frozen snapshot when provider creation
+or reload passes it through validation again. An internal WeakSet controls this
+fast path; caller-created frozen objects and results from another module instance
+still undergo full capture and validation. Accepted values, hashes, error codes
+and public signatures are unchanged. Snapshot identity may now be shared rather
+than copied. See `flag-file-schema-v1.md`.
 
 Alpha.71 reads per-flag `envVar` bindings only from own properties in both direct
 and indexed environment override processing. An inherited host prototype field or

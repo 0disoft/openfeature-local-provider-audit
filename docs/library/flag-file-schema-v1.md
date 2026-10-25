@@ -37,6 +37,12 @@ because malformed or changed configuration can alter evaluated flag values.
   arrays are rejected. Capture is bounded to 100,000 visited values and 136 edges
   including schema containers; the per-value 128-edge limit still applies. Caller
   array methods and shallow freezing cannot bypass copying or descendant freezing.
+- Already validated snapshots from this validator instance may be reused by identity
+  during provider creation/reload, avoiding a second full capture and validation.
+  Only an internal WeakSet marks its deeply frozen results; caller-created frozen
+  objects, clones, proxies and results from another package instance still pass
+  through full validation. The first external-input validation and its limits stay
+  unchanged. Consumers must not depend on receiving a fresh snapshot identity.
 - Optional `envVar` bindings are read only from a flag's own properties, including
   after validation and in indexed override processing. Inherited host prototype
   values/getters cannot introduce an undeclared binding. An explicit binding still
