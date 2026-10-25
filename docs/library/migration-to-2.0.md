@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.59` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.60` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.60 reuses derived provider state only when an update passes the exact
+current, provider-owned deeply frozen snapshot. Unsigned conditional not-modified
+refreshes avoid repeated full validation, override parsing and per-flag hashing.
+Freshness, provenance capture/clearing and transaction reservations still run;
+caller-frozen copies, equal-content objects and former snapshots take the normal
+validation path. No public signatures change. See `operational-status.md`.
 
 Alpha.59 adds a shared 100 MiB expanded input byte budget during snapshot capture,
 including repeated YAML scalar aliases, object keys and JSON escaping. Oversized

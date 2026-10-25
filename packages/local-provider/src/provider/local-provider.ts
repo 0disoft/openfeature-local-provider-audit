@@ -218,6 +218,15 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     provenance?: SignedSnapshotMetadata
   ): ProviderState {
     try {
+      // Only our current deeply frozen snapshot can reuse derived state. Equal
+      // hashes or caller-frozen copies do not establish ownership or validity.
+      const current = this.state;
+      if (snapshot === current.snapshot) {
+        return {
+          ...current,
+          provenance: captureSnapshotProvenance(provenance, current.snapshotHash)
+        };
+      }
       return this.createState(snapshot, provenance);
     } catch (error) {
       this.operational.refreshFailed("validation");

@@ -109,6 +109,11 @@ snapshotHash }`. A 200 with unchanged semantic content and a valid 304 both rene
 provider freshness without configuration-change events. No snapshot download,
 parse or apply failure replaces the previous snapshot or advances its ETag.
 
+For an unsigned not-modified response, the native provider reuses its current
+owned immutable state without repeating full capture/validation, override parsing
+or per-flag hashes. Provider freshness still advances; signatures and durable
+acceptance are never bypassed by this optimization. See `operational-status.md`.
+
 The refresher captures response status and ETag before verification, persistence
 or provider callbacks. Reusing or mutating a custom source response afterward cannot
 relabel the applied content with another ETag. Custom-source ETags follow the same

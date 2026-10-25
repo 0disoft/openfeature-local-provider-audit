@@ -50,6 +50,18 @@ counts as `validation`, is rethrown and leaves the snapshot active. External fai
 kinds are `load | fetch | validation | signature | persist`; reject other kinds.
 The last failure remains visible after recovery; the consecutive counter resets.
 
+When an update passes the exact snapshot currently returned by `getSnapshot()`,
+the provider reuses its owned, deeply frozen content and derived override/hash
+state. For N snapshot data nodes and F flags, this skips O(N) copying/validation
+and F + 1 SHA-256 computations (plus any override hash) per unchanged update.
+The identity check and fixed-size state copy use O(1) time/extra space with respect
+to N/F; no historical-snapshot cache is added. Provenance is still captured and
+checked against the current hash, unsigned updates clear it, refresh counters/age
+still advance, and prepare/commit/cancel reservations retain their normal lifecycle.
+Equal-content objects, caller-frozen copies and previously active snapshots are
+validated normally. This also covers unsigned refresher `notModified` responses;
+signed delivery still performs its verifier/freshness/continuity checks.
+
 `staleAfterMs` must be a positive safe integer. Staleness is computed at read time,
 including exactly the threshold, and is false when omitted. Staleness does not change
 evaluation behavior, start timers, or emit OpenFeature lifecycle events.
