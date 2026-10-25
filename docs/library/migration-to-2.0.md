@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.69` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.70` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.70 reuses one stat-sized input buffer for ordinary snapshot/checkpoint file
+reads, fills it across short reads and decodes the initialized prefix without a
+whole-file concatenation. Files growing after stat use bounded geometric growth;
+shrinking files decode only bytes actually read. Byte limits, UTF-8/legacy decoding,
+regular-file checks, symlink support and cleanup/error precedence are unchanged.
+See `flag-file-schema-v1.md` for the measured allocation scope.
 
 Alpha.69 uses exact `bigint` device/inode identities when opening managed audit
 chain files for writing and when streaming segments for verification/recovery.

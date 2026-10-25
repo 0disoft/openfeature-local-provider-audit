@@ -50,6 +50,27 @@ because malformed or changed configuration can alter evaluated flag values.
   repair the file and await `reload()`; callback throws/rejections are isolated.
   Notifications may still be pending when a later reload completes or close returns.
 
+## Bounded file-read allocation
+
+Snapshot file reads reserve the observed file size plus one EOF-probe byte and
+fill that same buffer across short reads. Each read remains capped at 64 KiB;
+no whole-file concatenation or per-read compacting copy is needed. If the file
+grows after stat, capacity doubles up to `maxBytes + 1`, preserving overflow
+checks. Shrinkage decodes only initialized bytes. This shared reader also serves
+CLI input/checkpoint reads; encodings and file/cleanup error precedence remain.
+
+For observed size S and bytes read N, requested input capacity is O(S + N), with
+geometric growth copying O(N) bytes in total. A truncated file can retain its
+larger initial reserve. This is not a total heap/RSS bound: allocator pooling,
+decoding/parsing and concurrent callers have separate costs.
+
+A local real-file test read the same 1,024-byte file under the default 10 MiB
+limit, with read results capped at 65,536 / 1 / 7 bytes. Cumulative requested
+input-buffer lengths were 131,072 / 67,174,400 / 9,699,328 bytes before the change
+and 1,025 bytes for each case afterwards. The final 1,024-byte concatenation was
+removed. Read calls remain 2 / 1,025 / 148 on that stable file. These are buffer
+request counts, not peak RSS, elapsed-time or production short-read claims.
+
 ## Failure Behavior
 
 - Invalid JSON or YAML produces a parse error. Default UTF-8 file reads (including

@@ -282,15 +282,24 @@ export async function readFileWithinLimit(
     assertRegularSnapshotFile(fileStats);
     assertSnapshotSizeWithinLimit(fileStats.size, maxBytes);
 
-    const chunks: Buffer[] = [];
+    // Reserve one probe byte; repeated short reads fill the same bounded buffer.
+    let buffer = Buffer.allocUnsafe(fileStats.size + 1);
     let totalBytes = 0;
 
     while (true) {
-      const remainingBytes = maxBytes - totalBytes + 1;
-      const buffer = Buffer.allocUnsafe(Math.min(SNAPSHOT_READ_CHUNK_BYTES, remainingBytes));
-      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null);
+      if (totalBytes === buffer.length) {
+        const expanded = Buffer.allocUnsafe(Math.min(maxBytes + 1, buffer.length * 2));
+        buffer.copy(expanded, 0, 0, totalBytes);
+        buffer = expanded;
+      }
+      const { bytesRead } = await handle.read(
+        buffer,
+        totalBytes,
+        Math.min(SNAPSHOT_READ_CHUNK_BYTES, buffer.length - totalBytes),
+        null
+      );
       if (bytesRead === 0) {
-        const contents = Buffer.concat(chunks, totalBytes);
+        const contents = buffer.subarray(0, totalBytes);
         if ((encoding === "utf8" || encoding === "utf-8") && !isUtf8(contents)) {
           throw new LocalProviderError(
             LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR,
@@ -302,10 +311,6 @@ export async function readFileWithinLimit(
 
       totalBytes += bytesRead;
       assertSnapshotSizeWithinLimit(totalBytes, maxBytes);
-      // Each read owns its buffer; compact short reads to avoid retaining unused capacity.
-      chunks.push(
-        bytesRead === buffer.length ? buffer : Buffer.from(buffer.subarray(0, bytesRead))
-      );
     }
   } catch (error) {
     failure = { cause: error };
