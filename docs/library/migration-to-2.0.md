@@ -8,8 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.64` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.65` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.65 reads optional selection policies, rollout/schedule seeds, result variants,
+flag metadata and global override errors only from own properties. Host prototype
+values/getters no longer introduce a disabled switch, rules, rollout or schedule,
+reinterpret a targeting rollout or change a default seed after validation. Valid
+own configurations, selection order, hashes and public signatures are unchanged.
+This is evaluation isolation, not process-wide prototype-pollution protection.
+See `flag-file-schema-v2.md`.
 
 Alpha.64 fills a stat-sized snapshot recovery read buffer, grows it geometrically
 only when the opened file outgrows that capacity, and decodes the initialized

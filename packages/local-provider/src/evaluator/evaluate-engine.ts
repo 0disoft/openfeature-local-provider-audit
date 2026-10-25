@@ -1,3 +1,4 @@
+import { getOwn } from "./own-property.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import type {
   EvaluationRequest,
@@ -40,12 +41,14 @@ export function evaluateWithTrace<T extends FlagValue>(
       source: EVALUATION_SOURCES.ERROR,
       errorCode: LOCAL_PROVIDER_ERROR_CODES.TYPE_MISMATCH,
       errorMessage: `Flag "${request.flagKey}" is type "${flag.type}", not "${request.expectedType}".`,
-      flagMetadata: flag.metadata ?? {}
+      flagMetadata: getOwn(flag, "metadata") ?? {}
     };
   }
 
-  if (snapshot.schemaVersion === 2 && flag.disabledVariant !== undefined) {
-    return selectedVariant(flag, request, flag.disabledVariant, EVALUATION_REASONS.DISABLED);
+  const disabledVariant =
+    snapshot.schemaVersion === 2 ? getOwn(flag, "disabledVariant") : undefined;
+  if (disabledVariant !== undefined) {
+    return selectedVariant(flag, request, disabledVariant, EVALUATION_REASONS.DISABLED);
   }
 
   const overrideError = getOverrideError(request);
@@ -57,7 +60,7 @@ export function evaluateWithTrace<T extends FlagValue>(
       source: EVALUATION_SOURCES.ERROR,
       errorCode: LOCAL_PROVIDER_ERROR_CODES.OVERRIDE_PARSE_ERROR,
       errorMessage: overrideError,
-      flagMetadata: flag.metadata ?? {}
+      flagMetadata: getOwn(flag, "metadata") ?? {}
     };
   }
 
@@ -71,7 +74,7 @@ export function evaluateWithTrace<T extends FlagValue>(
         source: EVALUATION_SOURCES.ERROR,
         errorCode: LOCAL_PROVIDER_ERROR_CODES.OVERRIDE_PARSE_ERROR,
         errorMessage: `Override for flag "${request.flagKey}" does not match type "${request.expectedType}".`,
-        flagMetadata: flag.metadata ?? {}
+        flagMetadata: getOwn(flag, "metadata") ?? {}
       };
     }
 
@@ -80,20 +83,21 @@ export function evaluateWithTrace<T extends FlagValue>(
       value: overrideValue as T,
       reason: EVALUATION_REASONS.ENV_OVERRIDE,
       source: EVALUATION_SOURCES.ENV,
-      flagMetadata: flag.metadata ?? {}
+      flagMetadata: getOwn(flag, "metadata") ?? {}
     };
   }
 
   if (snapshot.schemaVersion === 2) {
     let conditionEvaluation: ConditionEvaluation | undefined;
-    for (const rule of flag.rules ?? []) {
+    for (const rule of getOwn(flag, "rules") ?? []) {
       conditionEvaluation ??= { value: undefined, parsed: undefined };
       const matched = matchesCondition(rule.when, request, conditionEvaluation);
       trace?.(rule.id, matched);
       if (!matched) continue;
-      if (rule.variant !== undefined) {
+      const variant = getOwn(rule, "variant");
+      if (variant !== undefined) {
         return {
-          ...selectedVariant(flag, request, rule.variant, EVALUATION_REASONS.TARGETING_MATCH),
+          ...selectedVariant(flag, request, variant, EVALUATION_REASONS.TARGETING_MATCH),
           ruleId: rule.id
         };
       }
@@ -106,21 +110,24 @@ export function evaluateWithTrace<T extends FlagValue>(
           errorCode: LOCAL_PROVIDER_ERROR_CODES.INVALID_CONTEXT,
           errorMessage: "Matched targeting rollout requires a non-empty targetingKey.",
           ruleId: rule.id,
-          flagMetadata: flag.metadata ?? {}
+          flagMetadata: getOwn(flag, "metadata") ?? {}
         };
       }
+      const rollout = getOwn(rule, "rollout");
+      if (rollout === undefined) throw new TypeError("Targeting rollout must be an own property.");
       const selection = selectRolloutVariant(
         request.flagKey,
         request.targetingKey,
-        rule.rollout,
+        rollout,
         computeBucket
       );
+      const selectionVariant = getOwn(selection, "variant");
       return {
         ...selectedVariant(
           flag,
           request,
-          selection.variant ?? flag.defaultVariant,
-          selection.variant === undefined
+          selectionVariant ?? flag.defaultVariant,
+          selectionVariant === undefined
             ? EVALUATION_REASONS.TARGETING_MATCH
             : EVALUATION_REASONS.SPLIT
         ),
@@ -130,7 +137,8 @@ export function evaluateWithTrace<T extends FlagValue>(
     }
   }
 
-  if (snapshot.schemaVersion === 2 && flag.schedule !== undefined) {
+  const schedule = snapshot.schemaVersion === 2 ? getOwn(flag, "schedule") : undefined;
+  if (schedule !== undefined) {
     if (
       !validScheduleTime(request.evaluationTime) ||
       request.targetingKey === undefined ||
@@ -143,28 +151,30 @@ export function evaluateWithTrace<T extends FlagValue>(
         source: EVALUATION_SOURCES.ERROR,
         errorCode: LOCAL_PROVIDER_ERROR_CODES.INVALID_CONTEXT,
         errorMessage: "Scheduled rollout requires valid evaluationTime and targetingKey.",
-        flagMetadata: flag.metadata ?? {}
+        flagMetadata: getOwn(flag, "metadata") ?? {}
       };
     const selection = selectScheduledVariant(
-      flag.schedule,
+      schedule,
       request.flagKey,
       request.targetingKey,
       request.evaluationTime,
       computeBucket
     );
+    const selectionVariant = getOwn(selection, "variant");
     return {
       ...selectedVariant(
         flag,
         request,
-        selection.variant ?? flag.defaultVariant,
-        selection.variant === undefined ? EVALUATION_REASONS.STATIC : EVALUATION_REASONS.SPLIT
+        selectionVariant ?? flag.defaultVariant,
+        selectionVariant === undefined ? EVALUATION_REASONS.STATIC : EVALUATION_REASONS.SPLIT
       ),
       bucket: selection.bucket,
       schedule: selection.schedule
     };
   }
 
-  if (flag.rollout !== undefined) {
+  const rollout = getOwn(flag, "rollout");
+  if (rollout !== undefined) {
     if (request.targetingKey === undefined || !request.targetingKey.trim()) {
       return {
         flagKey: request.flagKey,
@@ -173,18 +183,19 @@ export function evaluateWithTrace<T extends FlagValue>(
         source: EVALUATION_SOURCES.ERROR,
         errorCode: LOCAL_PROVIDER_ERROR_CODES.INVALID_CONTEXT,
         errorMessage: `Flag "${request.flagKey}" requires a non-empty targetingKey for rollout evaluation.`,
-        flagMetadata: flag.metadata ?? {}
+        flagMetadata: getOwn(flag, "metadata") ?? {}
       };
     }
 
     const selection = selectRolloutVariant(
       request.flagKey,
       request.targetingKey,
-      flag.rollout,
+      rollout,
       computeBucket
     );
-    if (selection.variant !== undefined) {
-      const rolloutValue = getOwn(flag.variants, selection.variant);
+    const selectionVariant = getOwn(selection, "variant");
+    if (selectionVariant !== undefined) {
+      const rolloutValue = getOwn(flag.variants, selectionVariant);
       if (rolloutValue === undefined || !flagValueMatchesType(rolloutValue, request.expectedType)) {
         return {
           flagKey: request.flagKey,
@@ -194,18 +205,18 @@ export function evaluateWithTrace<T extends FlagValue>(
           errorCode: LOCAL_PROVIDER_ERROR_CODES.TYPE_MISMATCH,
           errorMessage: `Flag "${request.flagKey}" rollout variant does not match its declared type.`,
           bucket: selection.bucket,
-          flagMetadata: flag.metadata ?? {}
+          flagMetadata: getOwn(flag, "metadata") ?? {}
         };
       }
 
       return {
         flagKey: request.flagKey,
         value: rolloutValue as T,
-        variant: selection.variant,
+        variant: selectionVariant,
         reason: EVALUATION_REASONS.SPLIT,
         source: EVALUATION_SOURCES.FILE,
         bucket: selection.bucket,
-        flagMetadata: flag.metadata ?? {}
+        flagMetadata: getOwn(flag, "metadata") ?? {}
       };
     }
   }
@@ -220,7 +231,7 @@ export function evaluateWithTrace<T extends FlagValue>(
       source: EVALUATION_SOURCES.ERROR,
       errorCode: LOCAL_PROVIDER_ERROR_CODES.TYPE_MISMATCH,
       errorMessage: `Flag "${request.flagKey}" default variant does not match its declared type.`,
-      flagMetadata: flag.metadata ?? {}
+      flagMetadata: getOwn(flag, "metadata") ?? {}
     };
   }
 
@@ -230,7 +241,7 @@ export function evaluateWithTrace<T extends FlagValue>(
     variant: flag.defaultVariant,
     reason: EVALUATION_REASONS.STATIC,
     source: EVALUATION_SOURCES.FILE,
-    flagMetadata: flag.metadata ?? {}
+    flagMetadata: getOwn(flag, "metadata") ?? {}
   };
 }
 
@@ -249,7 +260,7 @@ function selectedVariant<T extends FlagValue>(
       source: EVALUATION_SOURCES.ERROR,
       errorCode: LOCAL_PROVIDER_ERROR_CODES.TYPE_MISMATCH,
       errorMessage: "Selected variant does not match its declared type.",
-      flagMetadata: flag.metadata ?? {}
+      flagMetadata: getOwn(flag, "metadata") ?? {}
     };
   }
   return {
@@ -258,18 +269,15 @@ function selectedVariant<T extends FlagValue>(
     variant,
     reason,
     source: EVALUATION_SOURCES.FILE,
-    flagMetadata: flag.metadata ?? {}
+    flagMetadata: getOwn(flag, "metadata") ?? {}
   };
 }
 
 function getOverrideError(request: EvaluationRequest<FlagValue>): string | undefined {
-  if (request.overrides?.globalError !== undefined) {
-    return request.overrides.globalError;
+  const globalError = getOwn(request.overrides, "globalError");
+  if (globalError !== undefined) {
+    return globalError;
   }
 
   return getOwn(request.overrides?.errors, request.flagKey);
-}
-
-function getOwn<T>(record: Readonly<Record<string, T>> | undefined, key: string): T | undefined {
-  return record !== undefined && Object.hasOwn(record, key) ? record[key] : undefined;
 }

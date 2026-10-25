@@ -1,3 +1,4 @@
+import { getOwn } from "./own-property.js";
 import type { ScheduledRollout, ScheduleEvaluation } from "../core-types.js";
 import { percentageToBucketCount, type ComputeBucket } from "./bucketing-rules.js";
 import { hasRolloutPrecision } from "./rollout-precision.js";
@@ -26,7 +27,7 @@ export function selectScheduledVariant(
     stage = index;
     percentage = entry.percentage;
   }
-  const bucket = computeBucket(flagKey, targetingKey, schedule.seed);
+  const bucket = computeBucket(flagKey, targetingKey, getOwn(schedule, "seed"));
   return {
     bucket,
     ...(bucket < percentageToBucketCount(percentage) ? { variant: schedule.variant } : {}),

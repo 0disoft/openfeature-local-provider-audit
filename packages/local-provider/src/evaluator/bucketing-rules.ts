@@ -1,3 +1,4 @@
+import { getOwn } from "./own-property.js";
 import type { PercentageRolloutRule } from "../core-types.js";
 
 export type ComputeBucket = (flagKey: string, targetingKey: string, seed?: string) => number;
@@ -17,7 +18,7 @@ export function indexValidatedRollout(rollout: readonly PercentageRolloutRule[])
   let upperBound = 0;
   let seed: string | undefined;
   const upperBounds = rollout.map((rule) => {
-    seed ??= rule.seed;
+    seed ??= getOwn(rule, "seed");
     upperBound += percentageToBucketCount(rule.percentage);
     return upperBound;
   });
@@ -74,8 +75,9 @@ export function percentageToBucketCount(percentage: number): number {
 
 function getRolloutSeed(rollout: readonly PercentageRolloutRule[]): string {
   for (const rule of rollout) {
-    if (rule.seed !== undefined) {
-      return rule.seed;
+    const seed = getOwn(rule, "seed");
+    if (seed !== undefined) {
+      return seed;
     }
   }
 

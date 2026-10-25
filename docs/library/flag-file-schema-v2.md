@@ -81,6 +81,20 @@ After flag existence and requested type checks, `disabledVariant` immediately se
 that existing variant with reason `DISABLED`, bypassing overrides and targeting.
 Removing it restores normal selection. V1 override behavior is unchanged.
 
+Optional flag selection policies (`disabledVariant`, `rules`, `schedule`, `rollout`),
+rule direct variants, rollout/schedule seeds, computed optional variants, flag metadata
+and global override errors use own-property reads. Inherited values/getters introduced
+on a host prototype after validation do not become configuration. Missing seeds keep
+`v1`; missing variant selections still fall back to the configured default. Explicit
+own fields retain precedence, and v1/v2 rule order, bucket hashes, configuration hashes
+and public object prototypes/signatures remain unchanged in Node and portable core.
+A local regression changes `Object.prototype.disabledVariant` to `on`: formerly the
+same frozen snapshot/hash changed from false/STATIC to true/DISABLED; it now retains
+false/STATIC. Other tests cover injected policy arrays, getters, seeds, unallocated
+buckets, targeting rollout discrimination and metadata. Each guarded field read adds
+one O(1) own-property check; no context cache, snapshot copy or I/O is introduced.
+This does not prevent unrelated prototype mutation elsewhere in the host process.
+
 Otherwise overrides precede rules. First matching rule wins. A direct selection uses
 `TARGETING_MATCH`. A rule rollout selection uses `SPLIT`; an unallocated bucket uses
 `TARGETING_MATCH` with the flag default variant. A matched rollout lacking a usable
