@@ -96,7 +96,7 @@ it("retains write, close and temporary-file deletion errors and never publishes 
 it("retains streaming read and close failures while releasing its handle", async () => {
   const read = new Error("read failed"),
     close = new Error("close failed");
-  const stats = { isFile: () => true, isSymbolicLink: () => false, ino: 1, dev: 1, size: 1 };
+  const stats = { isFile: () => true, isSymbolicLink: () => false, ino: 1n, dev: 1n, size: 1n };
   vi.mocked(lstat).mockResolvedValue(stats as never);
   const release = vi.fn(async () => {
     throw close;

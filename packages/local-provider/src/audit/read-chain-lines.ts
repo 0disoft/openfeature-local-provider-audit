@@ -6,7 +6,7 @@ export async function* readChainLines(
   budget: { remaining: number },
   maxRecordBytes: number
 ): AsyncGenerator<string> {
-  const before = await lstat(path);
+  const before = await lstat(path, { bigint: true });
   if (!before.isFile() || before.isSymbolicLink()) throw new Error();
   const handle = await open(
     path,
@@ -14,12 +14,12 @@ export async function* readChainLines(
   );
   let failure: { cause: unknown } | undefined;
   try {
-    const stat = await handle.stat();
+    const stat = await handle.stat({ bigint: true });
     if (
       !stat.isFile() ||
       stat.ino !== before.ino ||
       stat.dev !== before.dev ||
-      stat.size > budget.remaining
+      stat.size > BigInt(budget.remaining)
     )
       throw new Error();
     const decoder = new TextDecoder("utf-8", { fatal: true });

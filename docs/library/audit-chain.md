@@ -104,7 +104,13 @@ Sequence/hash assignment, append/recovery and manifest changes happen inside the
 shared package path queue and mandatory advisory owner lock. Independent cooperating
 processes reread the manifest under that lock. Parent directories are trusted;
 new directories/files use POSIX 0700/0600. Existing ownership, regular-file type,
-no-follow identity and single-link checks protect managed files. Windows directory
+no-follow identity and single-link checks protect managed files. Writer opens and
+streaming verification/recovery compare pathname and handle device/inode IDs from
+`bigint` stats, so distinct 64-bit IDs cannot compare equal through number rounding.
+A mismatch closes the handle before record reads or writes. Existing owner/link
+checks and byte budgets remain active; no extra stat or open call is introduced.
+These checks do not make pathname inspection and opening an atomic operation.
+Windows directory
 ACLs and power-loss behavior remain caller/filesystem responsibilities.
 
 A write flushes record data before atomically replacing/flushing metadata; POSIX

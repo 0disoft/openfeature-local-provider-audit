@@ -1,19 +1,19 @@
 import { withAuditCleanup } from "./cleanup.js";
-import { constants, type Stats } from "node:fs";
+import { constants, type BigIntStats, type Stats } from "node:fs";
 import { lstat, open, rename, unlink, type FileHandle } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
 
-export function assertOwnedFile(stats: Stats): void {
+export function assertOwnedFile(stats: Stats | BigIntStats): void {
   if (
     !stats.isFile() ||
-    stats.nlink !== 1 ||
-    (process.geteuid !== undefined && stats.uid !== process.geteuid())
+    BigInt(stats.nlink) !== 1n ||
+    (process.geteuid !== undefined && BigInt(stats.uid) !== BigInt(process.geteuid()))
   )
     throw new Error();
 }
 export async function openChainFile(path: string): Promise<FileHandle> {
-  const before = await lstat(path);
+  const before = await lstat(path, { bigint: true });
   assertOwnedFile(before);
   const handle = await open(
     path,
@@ -23,7 +23,7 @@ export async function openChainFile(path: string): Promise<FileHandle> {
       (constants.O_NONBLOCK ?? 0)
   );
   try {
-    const after = await handle.stat();
+    const after = await handle.stat({ bigint: true });
     assertOwnedFile(after);
     if (after.ino !== before.ino || after.dev !== before.dev) throw new Error();
     return handle;
