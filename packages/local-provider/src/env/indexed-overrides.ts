@@ -1,3 +1,4 @@
+import { getOwn } from "../evaluator/own-property.js";
 import type { CreateEnvOverridesOptions, FlagDefinition, FlagSnapshot } from "../public-types.js";
 import { createEnvOverrides } from "./env-overrides.js";
 
@@ -21,10 +22,11 @@ export function createIndexedEnvOverrides(snapshot: FlagSnapshot) {
       index = new Map();
       let order = 0;
       for (const [key, flag] of Object.entries(snapshot.flags)) {
-        if (flag.envVar !== undefined) {
-          const bindings = index.get(flag.envVar) ?? [];
+        const envVar = getOwn(flag, "envVar");
+        if (envVar !== undefined) {
+          const bindings = index.get(envVar) ?? [];
           bindings.push({ key, flag, order });
-          index.set(flag.envVar, bindings);
+          index.set(envVar, bindings);
         }
         order++;
       }

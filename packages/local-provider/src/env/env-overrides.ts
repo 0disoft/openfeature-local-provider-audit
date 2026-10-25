@@ -1,3 +1,4 @@
+import { getOwn } from "../evaluator/own-property.js";
 import type {
   CreateEnvOverridesOptions,
   EnvOverrideState,
@@ -73,11 +74,12 @@ function applyPerFlagEnvOverrides(
   errors: Record<string, string>
 ): void {
   for (const [flagKey, flag] of Object.entries(snapshot.flags)) {
-    if (flag.envVar === undefined) {
+    const envVar = getOwn(flag, "envVar");
+    if (envVar === undefined) {
       continue;
     }
 
-    const rawValue = env[flag.envVar];
+    const rawValue = env[envVar];
     if (rawValue === undefined) {
       continue;
     }

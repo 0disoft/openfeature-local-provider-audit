@@ -37,6 +37,11 @@ because malformed or changed configuration can alter evaluated flag values.
   arrays are rejected. Capture is bounded to 100,000 visited values and 136 edges
   including schema containers; the per-value 128-edge limit still applies. Caller
   array methods and shallow freezing cannot bypass copying or descendant freezing.
+- Optional `envVar` bindings are read only from a flag's own properties, including
+  after validation and in indexed override processing. Inherited host prototype
+  values/getters cannot introduce an undeclared binding. An explicit binding still
+  uses ordinary environment property lookup, including inherited/nonenumerable
+  environment names; explicit JSON overrides retain their existing precedence.
 - File watching must keep evaluation file-I/O free and preserve the last valid snapshot
   when reload fails.
 - Optional consistency polling performs metadata-only idle checks at a caller-selected
