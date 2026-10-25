@@ -80,6 +80,14 @@ raw user context by default.
   `maxQueueBytes` expose pending event JSON Lines bytes and their budget. Counters are cumulative for the sink lifetime.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
+  Active rotation `maxBytes`/`maxFiles` and advisory `lockTimeoutMs` policies require
+  safe integers, at most `Number.MAX_SAFE_INTEGER`. `maxBytes` remains positive;
+  zero retained files and a zero lock wait timeout remain supported. Invalid
+  negative/fractional values keep their existing errors; unsafe nonnegative
+  integers throw RangeError during construction, before enqueue or filesystem I/O.
+  This prevents Number rounding from leaving a rotation index unchanged on
+  decrement. Rotation still takes O(F) file operations for F retained files;
+  callers must choose practical retention counts. Inactive options stay ignored.
 - New POSIX audit directories and files use `0700` and `0600`. The final path rejects
   symbolic links, non-regular files, foreign ownership on POSIX, and multiple hard links.
   Existing non-regular paths are rejected before rotation/open. Where supported,

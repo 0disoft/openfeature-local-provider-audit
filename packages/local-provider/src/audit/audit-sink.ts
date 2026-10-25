@@ -360,6 +360,9 @@ function assertNonNegativeInteger(value: number, name: string): void {
   if (!Number.isInteger(value) || value < 0) {
     throw new RangeError(`${name} must be a non-negative integer`);
   }
+  if (!Number.isSafeInteger(value)) {
+    throw new RangeError(`${name} must be a safe integer`);
+  }
 }
 
 function isNotFoundError(error: unknown): boolean {

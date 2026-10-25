@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.73` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.74` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.74 rejects unsafe integers in active file-audit `maxBytes`, `maxFiles` and
+`lockTimeoutMs` policies at construction. In particular, enormous retained-file
+counts can prevent a decrementing rotation index from advancing through Number
+rounding. Existing negative/fractional/zero validation, supported safe values,
+inactive options, record formats and public signatures retain their behavior.
+See `audit-event-v1.md`; rotation work remains proportional to retained-file count.
 
 Alpha.73 reuses the canonical audit-chain body JSON for hashing and byte limits,
 adding the fixed encoding size of its SHA-256 hash member. This avoids a second
