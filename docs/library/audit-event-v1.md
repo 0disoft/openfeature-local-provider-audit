@@ -85,6 +85,18 @@ raw user context by default.
   Existing non-regular paths are rejected before rotation/open. Where supported,
   nonblocking open also prevents a concurrent FIFO replacement from hanging the queue;
   the opened handle is still checked before writing.
+- With no rotation (`maxBytes`) and no lock configured, the plain file sink groups
+  already waiting records into at most 64 records / 64 KiB of UTF-8 JSON Lines per
+  append. There is no batching timer or delay added to wait for future records.
+  A larger admitted record is an isolated singleton under the existing 16 MiB
+  per-record limit. FIFO and per-record queue count/byte reservations remain.
+  Rotation or locking keeps the original per-record write path; their boundaries,
+  lock acquisition and timeout meanings do not change. Batch grouping does not
+  establish ordering across independent sinks/processes or filesystem durability.
+  Confirmation resolves only after the shared append and handle close complete.
+  A shared storage failure rejects each affected record, without automatic retry;
+  partial/ambiguous writes remain possible. Flush reports failures per record,
+  not per append, through the existing bounded failure ledger. No fsync is added.
 - Sinks from one loaded package instance serialize writes by audit path, including
   rotation. Cross-process and duplicate-package-instance writers remain caller-owned
   coordination and require `lock: true` when sharing a rotating path.

@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.55` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.56` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.56 batches the default plain JSONL audit path (no rotation/lock) within
+64 records / 64 KiB of admitted UTF-8 payload, with larger singleton records.
+Confirmations wait for shared append/close and failures remain per-record, without
+retry or added fsync. Rotation/locked writes and public signatures are unchanged.
+See `audit-event-v1.md` and `audit-failure-policy.md` for ambiguous failure semantics.
 
 Alpha.55 adds opt-in local file composition through `createWatchedLocalProvider`:
 one initial read, last-good delivery, nonduplicated failure diagnostics, explicit

@@ -29,6 +29,13 @@ ordinary `write` retains its configured overflow policy. File confirmation means
 append and handle close completed, not fsync, crash durability, remote replication,
 or protection against later deletion. `flush` retains its original failure ledger.
 
+Plain file sinks without rotation/locking coalesce waiting records within 64-record /
+64-KiB batches. Each confirmation waits for that batch's append and close; a shared
+failure rejects each affected confirmation. Rejection does not prove no bytes were
+written; do not retry an ambiguous append automatically. Rotation/locked sinks keep
+per-record storage. Queue limits, drop/reject admission and candidate-result policy
+are unchanged. See `audit-event-v1.md` for limits and flush accounting.
+
 On confirmation/redaction failure or timeout, `returnDefault` returns the caller's
 default with reason `ERROR`, SDK error `GENERAL` (internal `AUDIT_SINK_ERROR`),
 a generic message and no selected variant, rule identity or original flag metadata.

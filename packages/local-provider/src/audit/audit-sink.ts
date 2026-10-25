@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 import type { AuditEvent, AuditSink, FileAuditSinkOptions } from "../public-types.js";
 import { captureFileAuditEvent, serializeAuditEvent } from "./audit-event.js";
 
+const FILE_AUDIT_BATCH_SIZE = 64;
+const FILE_AUDIT_BATCH_BYTES = 64 * 1024;
 const AUDIT_FILE_MODE = 0o600;
 const AUDIT_DIRECTORY_MODE = 0o700;
 const AUDIT_OPEN_FLAGS =
@@ -26,8 +28,20 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   const shouldCreateDirectory = options.createDirectory !== false;
   const rotation = createRotationOptions(options);
   const lock = createLockOptions(options, auditPath);
-  const queued = createQueuedAuditSink(options, (event) =>
-    writeAuditEvent(auditPath, shouldCreateDirectory, rotation, lock, event)
+  const write = (events: readonly AuditEvent[]) =>
+    writeAuditLines(
+      auditPath,
+      shouldCreateDirectory,
+      rotation,
+      lock,
+      events.map(serializeAuditEvent).join("")
+    );
+  const queued = createQueuedAuditSink(
+    options,
+    (event) => write([event]),
+    rotation === undefined && lock === undefined
+      ? { maxSize: FILE_AUDIT_BATCH_SIZE, maxBytes: FILE_AUDIT_BATCH_BYTES, write }
+      : undefined
   );
   return {
     ...queued,
@@ -40,14 +54,13 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   };
 }
 
-async function writeAuditEvent(
+async function writeAuditLines(
   auditPath: string | URL,
   shouldCreateDirectory: boolean,
   rotation: RotationOptions | undefined,
   lock: LockOptions | undefined,
-  event: AuditEvent
+  auditLine: string
 ): Promise<void> {
-  const auditLine = serializeAuditEvent(event);
   const auditPathString = resolve(toPathString(auditPath));
 
   await serializeProcessWrite(auditPathString, async () => {
