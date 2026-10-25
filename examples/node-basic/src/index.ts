@@ -4,12 +4,10 @@ import { join } from "node:path";
 import { OpenFeature, ProviderEvents } from "@openfeature/server-sdk";
 import {
   createFileAuditSink,
-  createReloadableLocalProvider,
-  loadFlagSnapshotFile,
+  createWatchedLocalProvider,
   replayEvaluationFixture,
-  watchFlagSnapshotFile,
   type AuditEvent,
-  type FlagSnapshotFileWatcher,
+  type WatchedLocalProvider,
   type ReloadableLocalProvider
 } from "@0disoft/openfeature-local-provider";
 
@@ -18,23 +16,32 @@ const tempDirectory = await mkdtemp(join(tmpdir(), "openfeature-local-provider-n
 const flagsPath = join(tempDirectory, "flags.json");
 const nextFlagsPath = join(tempDirectory, "flags.next.json");
 const auditPath = join(tempDirectory, "audit.jsonl");
-let watcher: FlagSnapshotFileWatcher | undefined;
+let runtime: WatchedLocalProvider | undefined;
 
 try {
   await writeFile(flagsPath, sourceSnapshotText, "utf8");
 
-  const snapshot = await loadFlagSnapshotFile(flagsPath);
   const auditSink = createFileAuditSink({
     path: auditPath,
     maxQueueSize: 100,
     queueOverflowPolicy: "reject"
   });
-  const provider = createReloadableLocalProvider({
-    snapshot,
-    overridesJson: JSON.stringify({ "checkout.enabled": false }),
-    auditSink,
-    auditRedaction: { contextKeys: "none" }
+  let reloadError: unknown;
+  runtime = await createWatchedLocalProvider({
+    path: flagsPath,
+    debounceMs: 25,
+    consistencyPollIntervalMs: 50,
+    persistent: false,
+    provider: {
+      overridesJson: JSON.stringify({ "checkout.enabled": false }),
+      auditSink
+    },
+    onFailure({ cause }) {
+      reloadError = cause;
+    }
   });
+  const provider = runtime.provider;
+  const snapshot = provider.getSnapshot();
 
   await OpenFeature.setProviderAndWait(provider);
 
@@ -68,20 +75,6 @@ try {
       bucket: 5019,
       reason: "SPLIT",
       source: "file"
-    }
-  });
-
-  let reloadError: unknown;
-  watcher = await watchFlagSnapshotFile({
-    path: flagsPath,
-    debounceMs: 25,
-    consistencyPollIntervalMs: 50,
-    persistent: false,
-    onSnapshot(nextSnapshot) {
-      provider.updateSnapshot(nextSnapshot);
-    },
-    onError(error) {
-      reloadError = error;
     }
   });
 
@@ -134,9 +127,12 @@ try {
     })
   );
 } finally {
-  watcher?.close();
   try {
-    await OpenFeature.close();
+    try {
+      await runtime?.close();
+    } finally {
+      await OpenFeature.close();
+    }
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });
   }

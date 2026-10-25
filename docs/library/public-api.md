@@ -52,6 +52,11 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+`createWatchedLocalProvider`, `WatchedLocalProviderOptions` and `WatchedLocalProvider`
+connect unsigned JSON/YAML monitoring, one initial load, provider status/diagnostics
+and SDK-linked shutdown. Automatic unchanged filtering and freshness keep existing
+meanings. See `watched-provider.md`; the low-level watcher remains caller-owned.
+
 `createManagedLocalProvider`, `ManagedLocalProviderOptions` and `ManagedLocalProvider`
 add opt-in signed-source composition, authenticated startup recovery, explicit
 single-flight polling and SDK-linked shutdown. Defaults omit ambient env overrides

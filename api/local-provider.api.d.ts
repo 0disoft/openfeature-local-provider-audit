@@ -468,6 +468,20 @@ interface WatchFlagSnapshotFileOptions extends LoadFlagSnapshotFileOptions {
   onSnapshot(snapshot: FlagSnapshot): void | Promise<void>;
   onError?(error: unknown): void | Promise<void>;
 }
+interface WatchedLocalProviderOptions
+  extends Omit<WatchFlagSnapshotFileOptions, "onSnapshot" | "onError"> {
+  readonly provider?: Omit<LocalProviderOptions, "snapshot" | "provenance">;
+  readonly onFailure?: (failure: {
+    readonly kind: "load" | "validation";
+    readonly cause: unknown;
+  }) => void;
+}
+interface WatchedLocalProvider {
+  readonly provider: ReloadableLocalProvider;
+  reload(): Promise<FlagSnapshot>;
+  getStatus(): ProviderStatus;
+  close(): Promise<void>;
+}
 interface FlagSnapshotFileWatcher {
   readonly path: string | URL;
   getSnapshot(): FlagSnapshot | undefined;
@@ -744,6 +758,11 @@ export declare function createHttpsSnapshotSource(
 //#region src/sources/s3-source.d.ts
 export declare function createS3SnapshotSource(options: S3SnapshotSourceOptions): SnapshotSource;
 //#endregion
+//#region src/provider/watched-provider.d.ts
+export declare function createWatchedLocalProvider(
+  options: WatchedLocalProviderOptions
+): Promise<WatchedLocalProvider>;
+//#endregion
 //#region src/provider/managed-provider.d.ts
 export declare function createManagedLocalProvider(
   options: ManagedLocalProviderOptions
@@ -849,6 +868,8 @@ export type {
   TargetingRule,
   VerifiedFlagSnapshot,
   VerifyAuditChainOptions,
-  WatchFlagSnapshotFileOptions
+  WatchFlagSnapshotFileOptions,
+  WatchedLocalProvider,
+  WatchedLocalProviderOptions
 };
 //# sourceMappingURL=index.d.ts.map

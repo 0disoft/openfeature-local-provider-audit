@@ -4,6 +4,17 @@ Local OpenFeature provider for JSON/YAML flag snapshots, typed evaluation, expli
 CLI validation, environment overrides, deterministic rollout bucketing, replay fixtures,
 and redacted audit logs.
 
+## Managed local file monitoring (local v2 preview)
+
+`createWatchedLocalProvider({ path })` starts the existing JSON/YAML watcher and
+creates a provider from its single initial load. Register runtime.provider through
+OpenFeature; use runtime.reload() for explicit revalidation and runtime.close() for
+owned watcher/provider shutdown. SDK shutdown shares that same cleanup. Failures
+retain last-good contents and are available through optional onFailure diagnostics.
+Ambient env overrides and context key names default off. See the repository's
+`docs/library/watched-provider.md` and executable node-basic example. This API is
+part of the unpublished v2 preview, not stable v1.
+
 ## Managed signed delivery (local v2 preview)
 
 The Node package root exports `createManagedLocalProvider`. Pass an HTTPS or S3

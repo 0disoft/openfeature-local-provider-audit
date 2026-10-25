@@ -580,6 +580,7 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "createS3SnapshotSource",
             "createSnapshotRefresher",
             "createManagedLocalProvider",
+            "createWatchedLocalProvider",
             "signFlagSnapshot",
             "createSnapshotVerifier",
             "createFileSnapshotStore",
@@ -812,6 +813,14 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     if (managed.close() !== managedClose) throw new Error(moduleKind + " managed close was not shared");
     await managedClose;
     if (!managed.getStatus().closed || managedFetches !== 1) throw new Error(moduleKind + " managed lifecycle failed");
+    const watched = await api.createWatchedLocalProvider({ path: "flags.yaml" });
+    if (watched.getStatus().successfulRefreshes !== 1) throw new Error(moduleKind + " watched startup duplicated validation");
+    await watched.reload();
+    if (watched.getStatus().successfulRefreshes !== 2) throw new Error(moduleKind + " watched reload missing");
+    const watchedClose = watched.provider.onClose();
+    if (watched.close() !== watchedClose) throw new Error(moduleKind + " watched close not shared");
+    await watchedClose;
+    if (!watched.getStatus().closed) throw new Error(moduleKind + " watched shutdown failed");
     signedRefresher.close();
   }
   let flagsChanged = [];

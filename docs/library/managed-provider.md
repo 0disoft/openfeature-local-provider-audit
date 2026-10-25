@@ -35,8 +35,8 @@ await runtime.close();
 
 Use `createS3SnapshotSource` instead of the HTTPS factory for S3/R2. Its client and
 credential lifecycle remain caller-owned. Source objects are not closed by the
-helper. Local unsigned file watching remains the existing file-watcher API; it is
-not silently converted to signed delivery. See `gitops-snapshots.md` for publishing,
+helper. For unsigned local JSON/YAML use `createWatchedLocalProvider`
+(`watched-provider.md`); file watching is not silently converted to signed delivery. See `gitops-snapshots.md` for publishing,
 rollback and the executable loopback HTTPS/restart recipe.
 
 ## Startup and trust

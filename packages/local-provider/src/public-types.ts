@@ -322,6 +322,22 @@ export interface WatchFlagSnapshotFileOptions extends LoadFlagSnapshotFileOption
   onError?(error: unknown): void | Promise<void>;
 }
 
+export interface WatchedLocalProviderOptions
+  extends Omit<WatchFlagSnapshotFileOptions, "onSnapshot" | "onError"> {
+  readonly provider?: Omit<LocalProviderOptions, "snapshot" | "provenance">;
+  readonly onFailure?: (failure: {
+    readonly kind: "load" | "validation";
+    readonly cause: unknown;
+  }) => void;
+}
+
+export interface WatchedLocalProvider {
+  readonly provider: ReloadableLocalProvider;
+  reload(): Promise<FlagSnapshot>;
+  getStatus(): ProviderStatus;
+  close(): Promise<void>;
+}
+
 export interface FlagSnapshotFileWatcher {
   readonly path: string | URL;
   getSnapshot(): FlagSnapshot | undefined;

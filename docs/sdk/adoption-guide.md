@@ -113,3 +113,10 @@ external report or consent collection is required to finish P3. This change does
 not establish real adoption, authorize outreach/publication, or change the v1
 normal-registry release gate. A local preview is not a public npm release.
 See [current status](../testing/p3-adoption-status.md).
+
+
+Local unsigned file integrations can use `createWatchedLocalProvider` instead of
+manually loading a file, constructing a provider and forwarding watcher callbacks.
+The factory starts monitoring explicitly, provides reload/status and shares SDK
+shutdown with its watcher cleanup. Existing low-level APIs keep their behavior.
+See `docs/library/watched-provider.md` and the executable node-basic example.

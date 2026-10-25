@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.54` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.55` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.55 adds opt-in local file composition through `createWatchedLocalProvider`:
+one initial read, last-good delivery, nonduplicated failure diagnostics, explicit
+reload and SDK-linked watcher/provider shutdown. Existing automatic unchanged
+filtering and freshness remain. See `watched-provider.md` for ownership and limits.
 
 Alpha.54 adds an opt-in managed signed-source provider: authenticated startup
 recovery, explicit sequential polling, and shutdown shared with OpenFeature.

@@ -116,3 +116,10 @@ file recovery and provider refresh with explicit polling and SDK-linked shutdown
 Its options default to no ambient env or context names. Source clients, signing,
 registration and application intake remain caller-owned. See
 `docs/library/managed-provider.md`; the GitOps consumer uses this public API.
+
+
+Local unsigned file integrations can use `createWatchedLocalProvider` instead of
+manually loading a file, constructing a provider and forwarding watcher callbacks.
+The factory starts monitoring explicitly, provides reload/status and shares SDK
+shutdown with its watcher cleanup. Existing low-level APIs keep their behavior.
+See `docs/library/watched-provider.md` and the executable node-basic example.

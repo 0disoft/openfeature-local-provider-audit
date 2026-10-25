@@ -1,6 +1,6 @@
 # Provider operational status
 
-Both provider factories return an OpenFeature-compatible provider with
+The low-level provider factories return an OpenFeature-compatible provider with
 `getStatus(): ProviderStatus` and `reportRefreshFailure(kind)`. Reloadable providers
 also retain `getSnapshot()` and `updateSnapshot(snapshot)`.
 
@@ -73,3 +73,10 @@ Signed snapshots expose optional frozen `provenance` with the exact artifact has
 sequence, public key ID, audience and lifetime. It is captured with the active
 snapshot and cleared by unsigned updates even when contents do not change. It
 describes accepted origin, not current signature freshness; see `signed-snapshots.md`.
+
+
+For an owned file integration use `createWatchedLocalProvider` (`watched-provider.md`).
+It connects load/parse failure reporting and avoids double-counting application
+rejections, including coalesced automatic/manual reload errors. Its SDK-linked close
+releases the watcher before native provider shutdown. This opt-in composition does
+not change automatic unchanged suppression or the freshness definition above.
