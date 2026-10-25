@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.62` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.63` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.63 fills unused audit read-block capacity across short reads and merges
+contiguous unfinished-record views. Input-buffer retention no longer multiplies
+64 KiB by short-read count. Complete-line decoding, strict byte/UTF-8/BOM/newline
+checks, handle cleanup and public signatures are unchanged. See `audit-chain.md`
+for memory scope and local injected-short-read evidence.
 
 Alpha.62 folds Windows audit queue keys to lowercase so case-alias paths from one
 loaded package instance serialize rotation/append operations together. Original

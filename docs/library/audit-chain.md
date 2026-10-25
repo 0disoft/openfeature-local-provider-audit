@@ -204,6 +204,22 @@ Caller code must bound callback I/O and keep synchronous work short.
 Audit verification scans each input byte once for line boundaries, retains bounded
 byte fragments for an unfinished record, then decodes a complete line once. Large
 records no longer repeatedly scan or re-encode an ever-growing string per read.
+
+Short reads fill the unused tail of the current block instead of allocating a
+new 64 KiB buffer for each result. Contiguous fragments in that backing store
+merge into one zero-copy view. Full blocks are reused after complete lines, or
+retained while an unfinished record needs them. With record wire bytes R and block
+size B <= 64 KiB, input backing capacity is O(R + B) and fragment count is
+O(ceil(R / B) + 1), independent of the number of short reads. Final line assembly
+and decoded strings add memory; this is not a process-heap cap, and callers that
+retain yielded strings own that additional memory.
+
+Local Windows/Node 24 validation wrapped real file handles to limit each read to
+one byte: a 1,024-byte line plus LF retained 67,174,400 input backing bytes before
+and 65,536 after (1,025 blocks to one). Total input-buffer allocation including
+the EOF read fell from 67,239,936 to 65,536 bytes. These are backing-buffer
+measurements under injected short reads, not natural filesystem frequency, peak
+RSS or production-latency claims. No additional payload-copy pass is introduced.
 Exact byte budgets, strict UTF-8, CRLF, initial-file BOM handling, partial-tail
 rejection and ordered verification retain their previous semantics.
 

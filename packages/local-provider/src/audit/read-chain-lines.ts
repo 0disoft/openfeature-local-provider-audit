@@ -26,9 +26,21 @@ export async function* readChainLines(
     let parts: Buffer[] = [];
     let lineBytes = 0;
     let firstLine = true;
+    let buffer = Buffer.allocUnsafe(Math.min(64 * 1024, budget.remaining + 1));
+    let filled = 0;
     while (true) {
-      const buffer = Buffer.allocUnsafe(Math.min(64 * 1024, budget.remaining + 1));
-      const { bytesRead } = await handle.read(buffer);
+      if (filled === buffer.length) {
+        // Completed lines own strings, so only unfinished fragments retain a block.
+        if (parts.length > 0)
+          buffer = Buffer.allocUnsafe(Math.min(64 * 1024, budget.remaining + 1));
+        filled = 0;
+      }
+      const { bytesRead } = await handle.read(
+        buffer,
+        filled,
+        Math.min(buffer.length - filled, budget.remaining + 1),
+        null
+      );
       budget.remaining -= bytesRead;
       if (budget.remaining < 0) throw new Error();
       if (bytesRead === 0) {
@@ -37,7 +49,8 @@ export async function* readChainLines(
         if (firstLine && lineBytes === 3 && decoder.decode(Buffer.concat(parts, 3)) === "") return;
         throw new Error();
       }
-      const chunk = buffer.subarray(0, bytesRead);
+      const chunk = buffer.subarray(filled, filled + bytesRead);
+      filled += bytesRead;
       let offset = 0;
       while (offset < bytesRead) {
         const newline = chunk.indexOf(10, offset);
@@ -49,7 +62,18 @@ export async function* readChainLines(
         if (lineBytes > maxRecordBytes + (firstLine ? 3 : 0)) throw new Error();
         const fragment = chunk.subarray(offset, complete ? end + 1 : end);
         if (!complete) {
-          parts.push(fragment);
+          const previous = parts[parts.length - 1];
+          if (
+            previous !== undefined &&
+            previous.buffer === fragment.buffer &&
+            previous.byteOffset + previous.byteLength === fragment.byteOffset
+          ) {
+            parts[parts.length - 1] = Buffer.from(
+              fragment.buffer,
+              previous.byteOffset,
+              previous.byteLength + fragment.byteLength
+            );
+          } else parts.push(fragment);
           break;
         }
         const encoded =
