@@ -16,6 +16,12 @@ exact `expectedHead`, returning `{ records, head, checkpointMatched }`.
 A supplied checkpoint is a caller trust assertion, not independent authenticity.
 Checkpoint matching is false when no expected head was required.
 
+Checkpoint capture validates own data fields, schema, chain ID, safe sequence and
+hash syntax on every call. Only sequence zero recomputes and compares the genesis
+digest. Positive checkpoints proceed to record hashing without computing an unused
+genesis digest or constructing its checkpoint object. Record linkage, canonical
+bytes and the explicit caller trust assertion retain their existing contracts.
+
 ## Bytes and schema
 
 Alpha.16 also captures optional `event.schedule` under `scheduled-rollout.md`;

@@ -14,13 +14,12 @@ import { captureChainEvent, dataRecord, invalidChain, isHash, isSequence } from 
 const HASH_FIELD_BYTES = ',"hash":""'.length + 64;
 
 export function createAuditChainCheckpoint(chainId: string): AuditChainCheckpoint {
-  if (typeof chainId !== "string" || !/^[A-Za-z0-9._:/-]{1,128}$/.test(chainId))
-    throw invalidChain();
+  assertChainId(chainId);
   return Object.freeze({
     schemaVersion: 1,
     chainId,
     sequence: 0,
-    hash: digest(`openfeature-local-audit-genesis/v1\0${chainId}`)
+    hash: genesisHash(chainId)
   });
 }
 
@@ -137,14 +136,21 @@ function captureCheckpoint(value: unknown): AuditChainCheckpoint {
     !isHash(checkpoint.hash)
   )
     throw invalidChain();
-  const genesis = createAuditChainCheckpoint(checkpoint.chainId as string);
-  if (checkpoint.sequence === 0 && checkpoint.hash !== genesis.hash) throw invalidChain();
+  assertChainId(checkpoint.chainId);
+  if (checkpoint.sequence === 0 && checkpoint.hash !== genesisHash(checkpoint.chainId))
+    throw invalidChain();
   return Object.freeze({
     schemaVersion: 1,
-    chainId: genesis.chainId,
+    chainId: checkpoint.chainId,
     sequence: checkpoint.sequence,
     hash: checkpoint.hash
   });
+}
+function assertChainId(value: unknown): asserts value is string {
+  if (typeof value !== "string" || !/^[A-Za-z0-9._:/-]{1,128}$/.test(value)) throw invalidChain();
+}
+function genesisHash(chainId: string): string {
+  return digest(`openfeature-local-audit-genesis/v1\0${chainId}`);
 }
 export function chainInteger(value: number, min: number, max: number): number {
   if (!Number.isSafeInteger(value) || value < min || value > max) throw invalidChain();

@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.78` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.79` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.79 avoids unused genesis hashing when capturing positive audit-chain
+checkpoints. Zero checkpoints still authenticate genesis; chain IDs, hash syntax,
+sequences and record linkage retain their checks. Canonical bytes remain compatible.
+See `audit-chain.md`.
 
 Alpha.78 observes Promise-like rejection from custom Meter counter, histogram and
 gauge measurements without awaiting optional diagnostics. This prevents those
