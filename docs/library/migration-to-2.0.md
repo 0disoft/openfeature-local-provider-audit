@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.75` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.76` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.76 retains at most two actual SemVer strings per synchronous evaluation,
+avoiding repeated parsing when version attributes alternate. The older entry is
+evicted on a third distinct string, and all entries disappear after evaluation.
+Rule order, invalid-version behavior, results and public signatures are unchanged.
+See `flag-file-schema-v2.md`.
 
 Alpha.75 observes rejected Promise-like return values from optional metrics
 recording/cleanup and logger warnings without waiting for them. Synchronous

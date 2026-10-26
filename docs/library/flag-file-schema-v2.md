@@ -60,20 +60,29 @@ string is unchanged. A changed caller-owned operand replaces its weakly keyed en
 including transitions to/from invalid versions. Discarded snapshots are not retained.
 
 Each evaluation reads the current own-data attribute for every visited leaf. Within
-that synchronous evaluation, a private one-entry slot reuses the last actual string
-(up to the existing 256-character parsing limit) and its parsed result, including
-invalid results. It is shared across visited groups/rules, then discarded: context
+that synchronous evaluation, a private two-entry slot reuses the two most recent
+actual strings (up to the existing 256-character parsing limit) and their parsed
+results, including invalid results. It is shared across visited groups/rules, then discarded: context
 objects/requests are not cache keys, no actual versions enter a global cache, and
-changes in a reused request are read again on the next evaluation. Alternating
-strings replace the slot rather than accumulating entries, so added storage is O(1).
+changes in a reused request are read again on the next evaluation. A third distinct
+string evicts the older entry rather than accumulating entries, so added storage
+is O(1).
 
 For N visited comparisons with the same actual version and already cached operands,
 actual-version parsing/construction falls from N to 1. Rule traversal remains O(N);
-alternating actual strings may still parse N times. Strict parsing, prerelease/build
-precedence, own-property reads, rule/group order and short circuit behavior are
+two alternating actual strings construct at most two parsed actual versions, while
+cycling through three distinct strings may still parse N times. Strict parsing,
+prerelease/build precedence, own-property reads, rule/group order and short circuit behavior are
 unchanged in Node and portable core. The existing `benchmark:evaluation` script adds
 1-/100-rule valid and invalid version workloads; setup and operand warmup are outside
 timing. Its developer-machine samples are not production throughput guarantees.
+
+A local Node 24.14.0 / Windows comparison of 5,000 evaluations over 100 false rules,
+alternating `2.1.0` and `3.0.0`, measured five warmed rounds. Median Node full-entry
+time was 288.21 -> 94.33 ms; the portable core running on Node was 285.67 -> 89.38 ms.
+Single-version controls were 84.58 -> 85.12 ms and 83.34 -> 84.06 ms respectively.
+Setup and operand warmup were outside timing, and all decisions stayed unchanged.
+These are local CPU samples, not production latency or non-Node runtime evidence.
 
 ## Selection and failure
 

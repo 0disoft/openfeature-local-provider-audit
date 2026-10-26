@@ -90,7 +90,12 @@ export function evaluateWithTrace<T extends FlagValue>(
   if (snapshot.schemaVersion === 2) {
     let conditionEvaluation: ConditionEvaluation | undefined;
     for (const rule of getOwn(flag, "rules") ?? []) {
-      conditionEvaluation ??= { value: undefined, parsed: undefined };
+      conditionEvaluation ??= {
+        value: undefined,
+        parsed: undefined,
+        previousValue: undefined,
+        previousParsed: undefined
+      };
       const matched = matchesCondition(rule.when, request, conditionEvaluation);
       trace?.(rule.id, matched);
       if (!matched) continue;

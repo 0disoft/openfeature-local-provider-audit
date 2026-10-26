@@ -53,6 +53,20 @@ export function strictSemver(value: unknown): SemVer | undefined {
 export interface ConditionEvaluation {
   value: string | undefined;
   parsed: SemVer | undefined;
+  previousValue: string | undefined;
+  previousParsed: SemVer | undefined;
+}
+
+// A two-entry MRU slot avoids alternating-attribute churn without an accumulating cache.
+function actualSemver(value: string, evaluation: ConditionEvaluation): SemVer | undefined {
+  if (evaluation.value === value) return evaluation.parsed;
+  const parsed =
+    evaluation.previousValue === value ? evaluation.previousParsed : strictSemver(value);
+  evaluation.previousValue = evaluation.value;
+  evaluation.previousParsed = evaluation.parsed;
+  evaluation.value = value;
+  evaluation.parsed = parsed;
+  return parsed;
 }
 
 function hasOwnGroup<K extends "all" | "any">(
@@ -65,7 +79,12 @@ function hasOwnGroup<K extends "all" | "any">(
 export function matchesCondition(
   condition: TargetingCondition,
   request: EvaluationRequest<FlagValue>,
-  evaluation: ConditionEvaluation = { value: undefined, parsed: undefined }
+  evaluation: ConditionEvaluation = {
+    value: undefined,
+    parsed: undefined,
+    previousValue: undefined,
+    previousParsed: undefined
+  }
 ): boolean {
   if (hasOwnGroup(condition, "all"))
     return condition.all.every((child) => matchesCondition(child, request, evaluation));
@@ -100,11 +119,7 @@ export function matchesCondition(
     default: {
       let left: SemVer | undefined;
       if (typeof actual === "string" && actual.length <= MAX_SEMVER_LENGTH) {
-        if (evaluation.value !== actual) {
-          evaluation.parsed = strictSemver(actual);
-          evaluation.value = actual;
-        }
-        left = evaluation.parsed;
+        left = actualSemver(actual, evaluation);
       }
       const right = operandSemver(condition, condition.value);
       if (!left || !right) return false;

@@ -62,7 +62,7 @@ it.each(["2.1.0", "1.0.0-"])(
     expect(constructions.values).toEqual([version]);
   }
 );
-it("shares the one-entry cache across groups without changing trace/short circuit decisions", () => {
+it("shares the evaluation cache across groups without changing trace/short circuit decisions", () => {
   const data = snapshot(true);
   const input = request("2.1.0");
   evaluateFlag(data, input);
@@ -83,14 +83,33 @@ it("re-reads context and does not retain cached versions across evaluations of t
   input.context.version = "1.0.0-";
   expect(evaluateFlag(data, input).value).toBe(false);
 });
-it("keeps O(1) cached state when actual strings alternate", () => {
+it.each(["3.0.0", "1.0.0-"])("reuses two alternating actual strings, including %s", (other) => {
   const data = snapshot(false, true);
   const input = request("2.1.0");
+  input.context.other = other;
   evaluateFlag(data, input);
   constructions.values.length = 0;
   expect(evaluateFlag(data, input).reason).toBe("STATIC");
+  expect(constructions.values).toEqual(["2.1.0", other]);
+  expect(evaluateCore(data, input)).toEqual(evaluateFlag(data, input));
+});
+it("evicts the older actual string and keeps only two entries as live context changes", () => {
+  const data = snapshot(false, true);
+  const input = request("2.1.0");
+  const versions = ["2.1.0", "3.0.0", "4.0.0"];
+  evaluateFlag(data, input);
+  constructions.values.length = 0;
+  let visited = 0;
+  expect(
+    evaluateWithTrace(data, input, () => {
+      const next = versions[++visited % versions.length] as string;
+      input.context.version = next;
+      input.context.other = next;
+    }).reason
+  ).toBe("STATIC");
+  expect(visited).toBe(100);
   expect(constructions.values).toEqual(
-    Array.from({ length: 100 }, (_, i) => (i % 2 ? "3.0.0" : "2.1.0"))
+    Array.from({ length: 100 }, (_, index) => versions[index % 3])
   );
 });
 it("retains first-match short circuit behavior", () => {
@@ -102,15 +121,18 @@ it("retains first-match short circuit behavior", () => {
   expect(constructions.values).toEqual(["10.0.0"]);
 });
 
-it("never accepts inherited fields as cached version data", () => {
+it.each([
+  ["value", "parsed"],
+  ["previousValue", "previousParsed"]
+] as const)("never accepts inherited %s/%s as cached version data", (valueKey, parsedKey) => {
   const data = snapshot();
   const input = request("2.1.0");
   evaluateFlag(data, input);
-  const originalValue = Object.getOwnPropertyDescriptor(Object.prototype, "value");
-  const originalParsed = Object.getOwnPropertyDescriptor(Object.prototype, "parsed");
+  const originalValue = Object.getOwnPropertyDescriptor(Object.prototype, valueKey);
+  const originalParsed = Object.getOwnPropertyDescriptor(Object.prototype, parsedKey);
   try {
-    Object.defineProperty(Object.prototype, "value", { value: "2.1.0", configurable: true });
-    Object.defineProperty(Object.prototype, "parsed", {
+    Object.defineProperty(Object.prototype, valueKey, { value: "2.1.0", configurable: true });
+    Object.defineProperty(Object.prototype, parsedKey, {
       value: { compare: () => 0 },
       configurable: true
     });
@@ -118,9 +140,9 @@ it("never accepts inherited fields as cached version data", () => {
     expect(result.value).toBe(false);
     expect(result.reason).toBe("STATIC");
   } finally {
-    if (originalValue === undefined) Reflect.deleteProperty(Object.prototype, "value");
-    else Object.defineProperty(Object.prototype, "value", originalValue);
-    if (originalParsed === undefined) Reflect.deleteProperty(Object.prototype, "parsed");
-    else Object.defineProperty(Object.prototype, "parsed", originalParsed);
+    if (originalValue === undefined) Reflect.deleteProperty(Object.prototype, valueKey);
+    else Object.defineProperty(Object.prototype, valueKey, originalValue);
+    if (originalParsed === undefined) Reflect.deleteProperty(Object.prototype, parsedKey);
+    else Object.defineProperty(Object.prototype, parsedKey, originalParsed);
   }
 });
