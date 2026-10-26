@@ -13,6 +13,7 @@ vi.mock("node:crypto", async (importOriginal) => {
 import {
   createAuditChainCheckpoint,
   createChainedAuditEvent,
+  verifyAuditChain,
   verifyAuditChainRecord,
   type AuditEvent
 } from "../../src/index.js";
@@ -40,6 +41,43 @@ const previous = {
 const second = createChainedAuditEvent(event, previous);
 beforeEach(() => {
   hashes.calls = 0;
+});
+
+it("captures the starting checkpoint once across an iterable verification", () => {
+  const records = [];
+  let head = start;
+  for (let index = 0; index < 64; index++) {
+    const record = createChainedAuditEvent(event, head);
+    records.push(record);
+    head = { ...head, sequence: record.sequence, hash: record.hash };
+  }
+  const descriptors = vi.spyOn(Object, "getOwnPropertyDescriptor");
+  try {
+    expect(verifyAuditChain(records, { start }).head).toEqual(head);
+    const checkpointReads = descriptors.mock.calls.filter(
+      ([value, key]) => key === "sequence" && !Object.hasOwn(value, "event")
+    );
+    expect(checkpointReads).toHaveLength(1);
+  } finally {
+    descriptors.mockRestore();
+  }
+});
+
+it("authenticates iterable checkpoints before consuming any records", () => {
+  let iterations = 0;
+  const records = {
+    *[Symbol.iterator]() {
+      iterations++;
+      yield first;
+    }
+  };
+  const forged = { ...start, hash: "0".repeat(64) };
+  for (const options of [{ start: forged }, { start, expectedHead: forged }]) {
+    expect(() => verifyAuditChain(records, options)).toThrow(
+      expect.objectContaining({ code: "SCHEMA_ERROR" })
+    );
+  }
+  expect(iterations).toBe(0);
 });
 
 it.each(["create", "verify"])(

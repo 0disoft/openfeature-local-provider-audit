@@ -52,6 +52,12 @@ and frozen without invoking getters/toJSON. Canonical record limit defaults to
 1 MiB (1 byte..16 MiB configurable), with at most 10,000 context key names.
 Iterable verification defaults to 100,000 records (0..10,000,000 configurable).
 
+Iterable verification captures the caller's start and optional expected checkpoint
+before consuming records. The internal loop reuses only its own verified frozen
+checkpoints and the already validated byte limit, avoiding one checkpoint capture
+per record. Every record still receives structural, event, sequence, size and hash
+validation. Standalone record verification always captures the caller's checkpoint.
+
 Record size reuses the canonical body JSON produced for hashing after strict
 capture. Adding the required `hash` member contributes exactly 74 UTF-8 bytes:
 the comma, encoded key/value delimiters and 64 unescaped SHA-256 hex characters.

@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.88` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.89` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.89 reuses verified frozen checkpoints within iterable audit-chain verification.
+The start and optional expected head are still captured before iteration, and every
+record retains all validation. Standalone record verification continues to capture
+arbitrary caller checkpoints; public signatures and canonical bytes are unchanged.
 
 Alpha.88 rejects non-index array keys that mask missing enumerable data slots.
 Replay now reports these malformed shared values as mismatches instead of passing

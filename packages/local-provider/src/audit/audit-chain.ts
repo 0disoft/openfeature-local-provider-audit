@@ -79,44 +79,54 @@ export function verifyAuditChainRecord(
   try {
     const limit = recordLimit(options);
     const start = captureCheckpoint(previous);
-    const record = dataRecord(input, [
-      "schemaVersion",
-      "chainId",
-      "sequence",
-      "previousHash",
-      "event",
-      "hash"
-    ]);
-    if (
-      record.schemaVersion !== 1 ||
-      record.chainId !== start.chainId ||
-      !isSequence(record.sequence) ||
-      record.sequence !== start.sequence + 1 ||
-      record.previousHash !== start.hash ||
-      !isHash(record.hash)
-    )
-      throw invalidChain();
-    record.event = captureChainEvent(record.event, limit);
-    const body = {
-      schemaVersion: 1,
-      chainId: record.chainId,
-      sequence: record.sequence,
-      previousHash: record.previousHash,
-      event: record.event
-    };
-    const canonicalBody = stableStringify(body);
-    assertSize(canonicalBody, limit);
-    if (record.hash !== digest(`openfeature-local-audit-record/v1\0${canonicalBody}`))
-      throw invalidChain();
-    return Object.freeze({
-      schemaVersion: 1,
-      chainId: start.chainId,
-      sequence: record.sequence,
-      hash: record.hash
-    });
+    return verifyCapturedChainRecord(input, start, limit);
   } catch {
     throw invalidChain();
   }
+}
+
+// Only a captured start or the immutable result of this function may enter here.
+// Records remain untrusted and receive every structural, size and hash check.
+function verifyCapturedChainRecord(
+  input: unknown,
+  start: AuditChainCheckpoint,
+  limit: number
+): AuditChainCheckpoint {
+  const record = dataRecord(input, [
+    "schemaVersion",
+    "chainId",
+    "sequence",
+    "previousHash",
+    "event",
+    "hash"
+  ]);
+  if (
+    record.schemaVersion !== 1 ||
+    record.chainId !== start.chainId ||
+    !isSequence(record.sequence) ||
+    record.sequence !== start.sequence + 1 ||
+    record.previousHash !== start.hash ||
+    !isHash(record.hash)
+  )
+    throw invalidChain();
+  record.event = captureChainEvent(record.event, limit);
+  const body = {
+    schemaVersion: 1,
+    chainId: record.chainId,
+    sequence: record.sequence,
+    previousHash: record.previousHash,
+    event: record.event
+  };
+  const canonicalBody = stableStringify(body);
+  assertSize(canonicalBody, limit);
+  if (record.hash !== digest(`openfeature-local-audit-record/v1\0${canonicalBody}`))
+    throw invalidChain();
+  return Object.freeze({
+    schemaVersion: 1,
+    chainId: start.chainId,
+    sequence: record.sequence,
+    hash: record.hash
+  });
 }
 
 export function verifyAuditChain(
@@ -132,7 +142,7 @@ export function verifyAuditChain(
     let count = 0;
     for (const record of records) {
       if (count >= maxRecords) throw invalidChain();
-      head = verifyAuditChainRecord(record, head, { maxRecordBytes: limit });
+      head = verifyCapturedChainRecord(record, head, limit);
       count++;
     }
     if (
