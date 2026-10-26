@@ -55,3 +55,9 @@ JSON values in snapshots and overrides are limited to 128 nested edges and 100,0
 visited values per value tree. Cycles and accessor properties in direct object
 inputs are rejected without invoking getters. Snapshot violations are SCHEMA_ERROR;
 override violations follow the existing visible override-parse error contract.
+
+Array length is checked against the remaining visited-value budget before
+enumerating its keys. An oversized array is rejected without allocating a key
+string for every slot; JSON text still incurs parsing cost within the byte limit.
+The value-tree container itself consumes one node, so a root array can contain at
+most 99,999 primitive values, or 99,998 when nested directly in an object.

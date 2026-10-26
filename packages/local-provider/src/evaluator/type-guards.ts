@@ -1,5 +1,7 @@
 import type { FlagType, FlagValue, JsonObject, JsonValue } from "../core-types.js";
 
+const MAX_JSON_VALUE_NODES = 100_000;
+
 export function isJsonObject(value: unknown): value is JsonObject {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     return false;
@@ -22,18 +24,23 @@ export function isJsonValue(value: unknown): value is JsonValue {
         active.delete(current as object);
         continue;
       }
-      if (++nodes > 100_000 || entry.depth > 128) return false;
+      if (++nodes > MAX_JSON_VALUE_NODES || entry.depth > 128) return false;
       if (current === null || typeof current === "string" || typeof current === "boolean") continue;
       if (typeof current === "number") {
         if (!Number.isFinite(current)) return false;
         continue;
       }
       if (typeof current !== "object" || active.has(current)) return false;
+      const array = Array.isArray(current);
+      const length = array ? current.length : 0;
+      // Every array slot needs a node. Bound it before Object.keys allocates index strings.
+      if (array && length > MAX_JSON_VALUE_NODES - nodes) return false;
       active.add(current);
       stack.push({ value: current, depth: entry.depth, exit: true });
       const keys = Object.keys(current);
-      if (keys.length + nodes > 100_000 || stack.length + keys.length > 200_000) return false;
-      if (Array.isArray(current) && keys.length !== current.length) return false;
+      if (keys.length + nodes > MAX_JSON_VALUE_NODES || stack.length + keys.length > 200_000)
+        return false;
+      if (array && keys.length !== length) return false;
       for (const key of keys) {
         const descriptor = Object.getOwnPropertyDescriptor(current, key);
         if (descriptor === undefined || !("value" in descriptor)) return false;
