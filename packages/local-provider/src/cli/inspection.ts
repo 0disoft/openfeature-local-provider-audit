@@ -71,21 +71,22 @@ export async function runInspection(
     }
     if (!Array.isArray(raw) || !raw.length || raw.length > 10_000)
       throw new Error("Invalid request count");
-    const requests = raw.map((entry, index) => parseIndexedRequest(entry, index, beforeOverrides));
     failureCode = "INSPECTION_FAILED";
-    const baseline = requests.map((request) => evaluateFlag(before, request));
+    // Retain decisions, not every request's full snapshot-wide override state.
+    const baseline = raw.map((entry, index) =>
+      evaluateFlag(before, parseIndexedRequest(entry, index, beforeOverrides))
+    );
     const after = snapshots[1];
     if (!after) {
       io.stdout(
-        `${JSON.stringify({ total: requests.length, snapshotHash: createSnapshotHash(before), ...summarize(baseline) })}\n`
+        `${JSON.stringify({ total: raw.length, snapshotHash: createSnapshotHash(before), ...summarize(baseline) })}\n`
       );
       return baseline.some((result) => result.errorCode !== undefined) ? 1 : 0;
     }
     const afterOverrides = createIndexedEnvOverrides(after);
-    const nextRequests = raw.map((entry, index) =>
-      parseIndexedRequest(entry, index, afterOverrides)
+    const candidate = raw.map((entry, index) =>
+      evaluateFlag(after, parseIndexedRequest(entry, index, afterOverrides))
     );
-    const candidate = nextRequests.map((request) => evaluateFlag(after, request));
     let changedValues = 0;
     let changedDecisions = 0;
     const valuesEqual = createValueComparer();
@@ -116,10 +117,10 @@ export async function runInspection(
       )
         changedDecisions++;
     }
-    const policy = comparisonPolicy(options, requests.length, changedValues, changedDecisions);
+    const policy = comparisonPolicy(options, raw.length, changedValues, changedDecisions);
     io.stdout(
       `${JSON.stringify({
-        total: requests.length,
+        total: raw.length,
         ...(policy !== undefined ? { policy } : {}),
         changedValues,
         changedDecisions,

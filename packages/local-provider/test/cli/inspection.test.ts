@@ -59,6 +59,23 @@ async function exercise(
 }
 
 describe("offline inspection CLI", () => {
+  it.each(["simulate", "compare"])(
+    "emits no partial %s report when a later request is malformed after an evaluation error",
+    async (command) => {
+      const args = [command, "before.json"];
+      if (command === "compare") args.push("after.json");
+      args.push("--requests", "request.json", "--diagnostics");
+      const result = await exercise(args, [
+        { ...request, overrides: { env: { SYNTHETIC_FLAG: "invalid" } } },
+        { ...request, context: { tenant: "other" } },
+        { ...request, expectedType: "invalid" }
+      ]);
+      expect(result).toMatchObject({ code: 1, output: "" });
+      expect(result.error).toContain('"code":"REQUEST_SCHEMA"');
+      expect(result.error).toContain('"requestIndex":2');
+    }
+  );
+
   it.each(["root", "nested"])(
     "rejects a %s array exceeding the request node budget before copying values",
     async (location) => {

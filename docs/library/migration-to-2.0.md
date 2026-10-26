@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.98` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.99` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.99 evaluates each CLI batch request immediately and retains only decisions.
+Completed requests no longer retain full snapshot-wide override maps. Input limits,
+independent before/after bindings, report ordering, errors and exit codes remain
+unchanged; see `local-inspection.md` for the memory bound and remaining work.
 
 Alpha.98 checks the refresh budget with a monotonic clock at phase boundaries,
 including after synchronous validation/verification and before durable activation.

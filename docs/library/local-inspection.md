@@ -78,6 +78,11 @@ snapshot order, and JSON overrides still take precedence over per-flag errors.
 Before/after indexes are independent; request values/results are never cached and
 the index is discarded with the inspection. No index is built for requests without
 overrides. Existing validation, generic errors and first-encounter group order remain.
+Batch requests are parsed and evaluated one at a time. Only their decisions are
+retained, so completed requests do not keep unrelated override entries alive.
+For R requests with F matching environment bindings, live override-state storage
+is O(F), rather than O(R*F); input storage and retained decision values are additional.
+The same R*F binding work still occurs. Malformed later requests emit no partial report.
 An explicit targeting key wins over `context.targetingKey`; the latter is used if the
 explicit field is omitted, as in the SDK path. Unknown request fields and mismatched
 default types are rejected. Object defaults may be null.
