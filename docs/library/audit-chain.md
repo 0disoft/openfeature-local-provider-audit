@@ -61,6 +61,13 @@ to count bytes. Escapes, Unicode and the inclusive byte limit retain their seman
 the terminal JSONL newline is outside the record cap. This avoids a graph copy and
 serialization, not the O(N) work required to serialize and hash a record of size N.
 
+Creation checks this canonical UTF-8 size before constructing the domain-separated
+record hash input or computing its digest, as verification already does. JSON escapes
+and multibyte strings can exceed the byte cap despite passing the earlier character
+budget. Such records skip the record digest and retain the generic `SCHEMA_ERROR`;
+genesis checkpoint authentication still occurs first. Canonicalization is still
+required to measure the bytes, and valid record hashes and inclusive limits are unchanged.
+
 ## Verify JSON Lines
 
 `openfeature-local-provider audit-verify <oldest.jsonl> ... <current.jsonl>

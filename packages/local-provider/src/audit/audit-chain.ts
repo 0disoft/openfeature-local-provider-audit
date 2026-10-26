@@ -59,11 +59,12 @@ function createChainRecord(
       event: captured ? event : captureChainEvent(event, limit)
     };
     const canonicalBody = stableStringify(body);
+    // JSON escapes and UTF-8 can exceed the cap despite the captured character budget.
+    assertSize(canonicalBody, limit);
     const record = Object.freeze({
       ...body,
       hash: digest(`openfeature-local-audit-record/v1\0${canonicalBody}`)
     });
-    assertSize(canonicalBody, limit);
     return record;
   } catch {
     throw invalidChain();

@@ -69,3 +69,35 @@ it("rejects invalid chain IDs even at positive checkpoints", () => {
   }
   expect(hashes.calls).toBe(0);
 });
+
+it.each([
+  ["JSON escapes", "\0".repeat(1024)],
+  ["UTF-8 expansion", "가".repeat(1024)]
+])("rejects oversized %s before record hashing", (_name, key) => {
+  const input: AuditEvent = {
+    ...event,
+    context: { ...event.context, keyMode: "names", keys: [key] }
+  };
+  for (const [checkpoint, expectedHashes] of [
+    [previous, 0],
+    [start, 1]
+  ] as const) {
+    hashes.calls = 0;
+    expect(() => createChainedAuditEvent(input, checkpoint, { maxRecordBytes: 2048 })).toThrow(
+      expect.objectContaining({ code: "SCHEMA_ERROR", message: "Audit chain verification failed." })
+    );
+    // Genesis authentication remains mandatory; only the record digest is skipped.
+    expect(hashes.calls).toBe(expectedHashes);
+  }
+});
+
+it("hashes exact-cap records and skips hashing one byte over the cap", () => {
+  const maxRecordBytes = Buffer.byteLength(JSON.stringify(second));
+  expect(createChainedAuditEvent(event, previous, { maxRecordBytes }).hash).toBe(second.hash);
+  expect(hashes.calls).toBe(1);
+  hashes.calls = 0;
+  expect(() =>
+    createChainedAuditEvent(event, previous, { maxRecordBytes: maxRecordBytes - 1 })
+  ).toThrow(expect.objectContaining({ code: "SCHEMA_ERROR" }));
+  expect(hashes.calls).toBe(0);
+});
