@@ -33,6 +33,20 @@ do not renew provider freshness. Call `watcher.reload()` explicitly to forward a
 successful unchanged read when a caller needs periodic confirmation. The age refers
 to the last provider validation, not the watcher's liveness or the file's mtime.
 
+Automatic notifications still reopen and read the file with the existing regular-file,
+byte-limit and encoding checks. A private SHA-256 fingerprint of decoded UTF-16 code
+units lets identical accepted input reuse the current snapshot before parsing,
+validation, freezing and serialization. This avoids O(N) snapshot-node processing
+and allocations per repeated event, retaining O(B) read/hash work for B input code
+units and N snapshot nodes. Total work remains linear for ordinary JSON; file I/O remains.
+Only one 64-character fingerprint is retained per watcher, without retaining a
+second raw input string. Explicit `reload()` always parses and forwards the result.
+Different formatting still goes through parsing and the existing serialized-snapshot
+comparison; its fingerprint is accepted after successful validation. Parse failures
+and rejected callbacks never replace the accepted fingerprint or last-good snapshot,
+so a later notification retries the same failed input. UTF-16 hashing distinguishes
+lone surrogate code units that UTF-8 hashing would replace with the same character.
+
 Status is a fresh frozen snapshot, including nested audit counters, with no context,
 flag values, paths, raw exceptions, environment overrides or user identifiers.
 `snapshotHash` identifies the active content, not authentication or confidentiality.

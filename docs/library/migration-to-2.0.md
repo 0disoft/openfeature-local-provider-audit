@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.94` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.95` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.95 avoids parsing, snapshot validation and serialization on automatic file
+notifications whose decoded input matches the last accepted SHA-256 fingerprint.
+The fingerprint hashes UTF-16 code units to preserve lone surrogates under explicit
+legacy decoding. File reads, size/encoding checks, explicit reload revalidation,
+last-good state and callback failure retries retain their contracts. Only one
+fingerprint is retained per watcher; see `operational-status.md`.
 
 Alpha.94 isolates Promise-like results mistakenly returned by synchronous metrics
 binding. Rejections are observed without blocking registration or shutdown; late

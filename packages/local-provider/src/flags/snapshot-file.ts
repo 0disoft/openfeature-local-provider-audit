@@ -1,5 +1,6 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isUtf8 } from "node:buffer";
+import { createHash } from "node:crypto";
 import {
   watch,
   watchFile,
@@ -98,7 +99,15 @@ export async function loadFlagSnapshotFile(
     options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES,
     options.encoding ?? "utf8"
   );
-  const format = resolveSnapshotFileFormat(path, options.format ?? "auto");
+  return parseSnapshotFileText(text, path, options.format ?? "auto");
+}
+
+function parseSnapshotFileText(
+  text: string,
+  path: string | URL,
+  inputFormat: SnapshotFileFormat
+): FlagSnapshot {
+  const format = resolveSnapshotFileFormat(path, inputFormat);
 
   if (format === "json") {
     return parseJsonFlagSnapshot(text);
@@ -112,6 +121,7 @@ export async function watchFlagSnapshotFile(
 ): Promise<FlagSnapshotFileWatcher> {
   let currentSnapshot: FlagSnapshot | undefined;
   let currentSerializedSnapshot: string | undefined;
+  let currentInputHash: string | undefined;
   let closed = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
   let reloadQueue = Promise.resolve();
@@ -168,9 +178,21 @@ export async function watchFlagSnapshotFile(
       if (currentSnapshot !== undefined) return currentSnapshot;
       throw new LocalProviderError("PROVIDER_NOT_READY", "Snapshot watcher is closed.");
     }
-    const snapshot = await loadFlagSnapshotFile(target.path, loadOptions);
+    const text = await readFileWithinLimit(
+      target.path,
+      loadOptions.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES,
+      loadOptions.encoding ?? "utf8"
+    );
+    // Hash UTF-16 code units without UTF-8 replacement of lone legacy surrogates.
+    // File safety/encoding checks still run; only accepted automatic repeats skip parsing.
+    const inputHash = createHash("sha256").update(text, "utf16le").digest("hex");
+    if (skipUnchanged && inputHash === currentInputHash && currentSnapshot !== undefined) {
+      return currentSnapshot;
+    }
+    const snapshot = parseSnapshotFileText(text, target.path, loadOptions.format ?? "auto");
     const serializedSnapshot = JSON.stringify(snapshot);
     if (skipUnchanged && serializedSnapshot === currentSerializedSnapshot) {
+      currentInputHash = inputHash;
       return snapshot;
     }
     if (closed) {
@@ -187,6 +209,7 @@ export async function watchFlagSnapshotFile(
     }
     currentSnapshot = snapshot;
     currentSerializedSnapshot = serializedSnapshot;
+    currentInputHash = inputHash;
     return snapshot;
   }
 
