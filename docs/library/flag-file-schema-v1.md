@@ -37,6 +37,11 @@ because malformed or changed configuration can alter evaluated flag values.
   arrays are rejected. Capture is bounded to 100,000 visited values and 136 edges
   including schema containers; the per-value 128-edge limit still applies. Caller
   array methods and shallow freezing cannot bypass copying or descendant freezing.
+- Array capture checks its own length descriptor against the remaining shared node
+  budget before enumerating keys. An oversized dense array is rejected without
+  materializing one key string per slot. Arrays exactly fitting the remaining
+  budget retain their existing acceptance; descriptor, density, byte and depth
+  checks still apply to arrays that pass this preflight.
 - Already validated snapshots from this validator instance may be reused by identity
   during provider creation/reload, avoiding a second full capture and validation.
   Only an internal WeakSet marks its deeply frozen results; caller-created frozen

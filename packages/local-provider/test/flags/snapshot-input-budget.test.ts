@@ -3,6 +3,33 @@ import { createSnapshotInputBudget } from "../../src/flags/snapshot-input-budget
 import { captureSnapshotInput } from "../../src/flags/capture-snapshot-input.js";
 
 afterEach(() => vi.restoreAllMocks());
+it.each(["root", "nested"])(
+  "rejects a %s array beyond the remaining node budget before key allocation",
+  (location) => {
+    const array = Array(location === "root" ? 100_000 : 99_999).fill(0);
+    const input = location === "root" ? array : { array };
+    const ownKeys = Reflect.ownKeys;
+    let materialized = 0;
+    vi.spyOn(Reflect, "ownKeys").mockImplementation((value) => {
+      const keys = ownKeys(value);
+      if (value === array) materialized += keys.length;
+      return keys;
+    });
+    expect(() => captureSnapshotInput(input)).toThrowError(
+      expect.objectContaining({ code: "SCHEMA_ERROR" })
+    );
+    expect(materialized).toBe(0);
+  }
+);
+it("preserves arrays exactly filling the remaining node budget", () => {
+  const array = Array(99_999).fill(0);
+  const captured = captureSnapshotInput(array);
+  expect(captured).toHaveLength(99_999);
+  expect(captured).not.toBe(array);
+  const nested = captureSnapshotInput({ array: Array(99_998).fill(0) }) as { array: unknown[] };
+  expect(nested.array).toHaveLength(99_998);
+});
+
 it.each([
   "",
   "ascii",

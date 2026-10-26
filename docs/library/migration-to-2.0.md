@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.80` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.81` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.81 checks array length against the remaining snapshot-capture node budget
+before key enumeration. Oversized arrays reject without per-index key allocation;
+the existing node boundaries, schema errors and accepted inputs remain compatible.
+This applies to both schemas and the full/Core entrypoints. See `flag-file-schema-v1.md`.
 
 Alpha.80 bounds compact signed-token splitting to four parts before requiring
 exactly three. Fresh and recovery verification reject extra/trailing separators

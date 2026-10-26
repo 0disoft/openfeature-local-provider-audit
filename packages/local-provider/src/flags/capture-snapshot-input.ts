@@ -1,6 +1,8 @@
 import { createSnapshotInputBudget } from "./snapshot-input-budget.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
 
+const MAX_INPUT_NODES = 100_000;
+
 // Capture only own data before schema validators can read properties or call array methods.
 // Allow undefined for explicitly supplied optional schema fields. Variant validation is stricter.
 export function captureSnapshotInput(input: unknown): unknown {
@@ -8,7 +10,7 @@ export function captureSnapshotInput(input: unknown): unknown {
   const budget = createSnapshotInputBudget();
   let nodes = 0;
   function capture(value: unknown, depth: number): unknown {
-    if (++nodes > 100_000 || depth > 136) throw invalid();
+    if (++nodes > MAX_INPUT_NODES || depth > 136) throw invalid();
     if (
       value === undefined ||
       value === null ||
@@ -23,11 +25,15 @@ export function captureSnapshotInput(input: unknown): unknown {
     if (typeof value !== "object" || active.has(value)) throw invalid();
     active.add(value);
     const array = Array.isArray(value);
+    const length = array ? Object.getOwnPropertyDescriptor(value, "length")?.value : undefined;
+    // Dense arrays require at least one remaining node per slot. Reject before
+    // Reflect.ownKeys can materialize an index string for every oversized slot.
+    if (array && (!Number.isSafeInteger(length) || length > MAX_INPUT_NODES - nodes))
+      throw invalid();
     const result: Record<string, unknown> | unknown[] = array ? [] : Object.create(null);
     const keys = Reflect.ownKeys(value);
-    if (keys.length + nodes > 100_001) throw invalid();
-    const length = array ? Object.getOwnPropertyDescriptor(value, "length")?.value : undefined;
-    if (array && (!Number.isSafeInteger(length) || keys.length !== length + 1)) throw invalid();
+    if (keys.length + nodes > MAX_INPUT_NODES + 1) throw invalid();
+    if (array && keys.length !== length + 1) throw invalid();
     const members = keys.length - (array ? 1 : 0);
     budget.charge(2 + Math.max(0, members - 1));
     for (const key of keys) {
