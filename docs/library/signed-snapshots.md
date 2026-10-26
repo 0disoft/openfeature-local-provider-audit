@@ -29,6 +29,12 @@ The protected header must contain exactly `alg: "Ed25519"`, `kid` and
 discovery, `crit`, unprotected header, embedded key or detached payload is supported.
 Only configured Ed25519 public keys can verify it. This is a restricted JWS profile,
 not a general-purpose JOSE/JWT API.
+Fresh and historical verification materialize at most four compact-token parts;
+exactly three are required. The fourth detects extra separators, including an empty
+trailing part, without allocating an array entry for every dot in malformed input.
+The existing whole-artifact byte limit applies before UTF-8 decoding; decoding and
+trimming remain proportional to input size. Signature and claims checks retain
+their existing order and generic failure response.
 The fully-specified algorithm identifier follows RFC 9864; the deprecated
 polymorphic `EdDSA` identifier is rejected.
 

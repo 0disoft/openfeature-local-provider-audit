@@ -79,7 +79,8 @@ function createVerifier(
       try {
         if (content.byteLength > maxBytes) throw invalid();
         const token = new TextDecoder("utf-8", { fatal: true }).decode(content).trim();
-        const parts = token.split(".");
+        // Four parts suffice to reject extra separators without allocating one per dot.
+        const parts = token.split(".", 4);
         if (parts.length !== 3) throw invalid();
         const [headerPart, payloadPart, signaturePart] = parts as [string, string, string];
         if (headerPart.length > 1_024 || signaturePart.length !== 86) throw invalid();

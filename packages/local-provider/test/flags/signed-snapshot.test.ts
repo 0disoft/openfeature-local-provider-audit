@@ -1,5 +1,6 @@
 import { generateKeyPairSync, sign, verify, type KeyObject } from "node:crypto";
 import { ProviderEvents } from "@openfeature/server-sdk";
+import { createHistoricalSnapshotVerifier } from "../../src/sources/signed-snapshot.js";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createReloadableLocalProvider,
@@ -81,6 +82,42 @@ function externalToken(
 }
 
 describe("signed snapshots", () => {
+  it.each([
+    { name: "fresh", create: createSnapshotVerifier },
+    { name: "historical", create: createHistoricalSnapshotVerifier }
+  ])(
+    "bounds separator allocation in the $name verifier without accepting suffixes",
+    ({ create }) => {
+      const check = create({
+        audience: "service/production",
+        trustedKeys: { "release-1": keys.publicKey }
+      });
+      const valid = externalToken();
+      expect(check.verify(bytes(valid)).provenance.sequence).toBe(1);
+      for (const suffix of [".", ".extra", "..ignored"])
+        expect(() => check.verify(bytes(valid + suffix))).toThrow("verification failed");
+      const malformed = ".".repeat(100_000);
+      const split = String.prototype.split;
+      let materialized = 0;
+      const observe = vi.spyOn(String.prototype, "split").mockImplementation(function (
+        this: string,
+        separator: unknown,
+        limit?: number
+      ) {
+        const parts: string[] = Reflect.apply(split, this, [separator, limit]);
+        if (this === malformed && separator === ".")
+          materialized = Math.max(materialized, parts.length);
+        return parts;
+      });
+      try {
+        expect(() => check.verify(bytes(malformed))).toThrow("verification failed");
+      } finally {
+        observe.mockRestore();
+      }
+      expect(materialized).toBeLessThanOrEqual(4);
+    }
+  );
+
   it("produces Ed25519 compact JWS accepted by native crypto and verifies independent JWS", () => {
     const token = signFlagSnapshot(signOptions());
     const [header, payload, signature] = token.split(".");
