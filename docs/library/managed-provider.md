@@ -52,6 +52,10 @@ or an explicit operator decision after data loss.
 Startup recovery waiting uses `refresh.timeoutMs` (default 30 seconds) and optional
 `signal`. It removes its timer/listener on every outcome. Cancellation stops waiting;
 late storage outcomes stay observed and cannot construct a provider afterwards.
+The monotonic deadline is also checked when recovery finishes, before provider or
+metrics binding. Synchronous authentication cannot bypass expiry by delaying timer
+dispatch. Such work remains non-preemptible, so rejection can occur after the
+configured duration; the helper does not promise an exact return-time bound.
 Underlying filesystem cleanup still belongs to the store. Startup cancellation does
 not continue as a lifetime cancellation subscription after construction succeeds.
 

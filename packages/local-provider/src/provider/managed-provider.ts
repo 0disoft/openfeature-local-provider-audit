@@ -8,6 +8,7 @@ import type {
   SnapshotRefresher
 } from "../public-types.js";
 import { waitForSnapshotOperation } from "../sources/abortable.js";
+import { retainFailureCause } from "../sources/failure-cause.js";
 import { createSnapshotVerifier } from "../sources/signed-snapshot.js";
 import { createSnapshotRefresher } from "../sources/snapshot-refresher.js";
 import { createFileSnapshotStore } from "../sources/snapshot-store.js";
@@ -124,15 +125,27 @@ async function loadRecovery(store: SignedSnapshotStore, timeoutMs: number, signa
   const abort = new AbortController();
   const onAbort = () => abort.abort(signal?.reason);
   signal?.addEventListener("abort", onAbort, { once: true });
-  const timer = setTimeout(() => abort.abort(new Error("Recovery load timed out.")), timeoutMs);
+  const deadlineTick = performance.now() + timeoutMs;
+  const expire = () => abort.abort(new Error("Recovery load timed out."));
+  const timer = setTimeout(expire, timeoutMs);
   timer.unref();
   if (signal?.aborted) onAbort();
+  const message = "Managed provider recovery load cancelled or timed out.";
   try {
-    return await waitForSnapshotOperation(
+    const recovered = await waitForSnapshotOperation(
       () => store.load({ signal: abort.signal }),
       abort.signal,
-      "Managed provider recovery load cancelled or timed out."
+      message
     );
+    // Synchronous authentication can finish after expiry before its timer runs.
+    if (performance.now() >= deadlineTick) {
+      expire();
+      throw retainFailureCause(
+        new LocalProviderError("PROVIDER_NOT_READY", message),
+        abort.signal.reason
+      );
+    }
+    return recovered;
   } finally {
     clearTimeout(timer);
     signal?.removeEventListener("abort", onAbort);

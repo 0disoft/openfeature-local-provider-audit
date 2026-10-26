@@ -294,6 +294,48 @@ it("captures bootstrap and env before asynchronous recovery", async () => {
   ).toBe(true);
 });
 
+it.each([
+  [24, true],
+  [25, false],
+  [26, false]
+] as const)(
+  "checks the startup recovery deadline before provider binding at %d ms",
+  async (elapsed, allowed) => {
+    vi.useFakeTimers();
+    const now = vi.spyOn(performance, "now").mockReturnValue(0);
+    let signal: AbortSignal | undefined;
+    vi.spyOn(snapshotStores, "createFileSnapshotStore").mockReturnValue({
+      async load(request) {
+        signal = request?.signal;
+        now.mockReturnValue(elapsed);
+        return undefined;
+      },
+      async commit() {
+        throw new Error("unexpected commit");
+      }
+    });
+    const input = source();
+    const bindStatus = vi.fn();
+    const waiting = runtime({
+      ...options(input),
+      refresh: { timeoutMs: 25 },
+      provider: { metrics: { bindStatus } }
+    });
+    if (allowed) {
+      const managed = await waiting;
+      expect(bindStatus).toHaveBeenCalledTimes(1);
+      expect(signal?.aborted).toBe(false);
+      await managed.close();
+    } else {
+      await expect(waiting).rejects.toThrow("recovery load cancelled or timed out");
+      expect(bindStatus).not.toHaveBeenCalled();
+      expect(signal?.aborted).toBe(true);
+    }
+    expect(input.fetch).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  }
+);
+
 it("shares shutdown even when a source abort callback reenters close", async () => {
   let managed: ManagedLocalProvider;
   let nested: Promise<void> | undefined;

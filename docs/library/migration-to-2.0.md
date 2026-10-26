@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.100` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.101` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.101 checks the managed startup recovery deadline after synchronous recovery
+finishes. Expired results cannot construct a provider or bind metrics while the
+event loop postpones the timer. Cancellation, generic errors and resource cleanup
+remain unchanged; synchronous work is not preempted. See `managed-provider.md`.
 
 Alpha.100 rechecks signed snapshot time policy after validation, copying and hashing.
 Expiry, max-age and invalid-clock failures during synchronous processing cannot
