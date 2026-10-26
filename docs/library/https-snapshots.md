@@ -85,7 +85,12 @@ The source's claimed media type does not change the parser.
 
 The shared refresh deadline defaults to 30,000 ms, including recovery, fetch and
 persistence. `timeoutMs` accepts integers from 1 to 2,147,483,647. It bounds async
-waiting, not synchronous parsing or a blocked event loop. Deadline expiry rejects
+waiting; synchronous parsing and a blocked event loop cannot be interrupted.
+A monotonic deadline is also checked before starting work, after reads, after
+validation/verification and hashing, before persistence, and before durable
+activation. A delayed timer cannot authorize the next phase after its budget
+expires (`elapsed >= timeoutMs`). Already running synchronous provider callbacks
+cannot be preempted or rolled back by this check. Deadline expiry rejects
 with generic `PROVIDER_NOT_READY` and signals read cancellation. A custom source or
 store must release its own resources; cancellation cannot force arbitrary I/O to stop.
 The refresher retains ownership until outstanding actual reads/writes settle, even

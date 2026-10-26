@@ -153,6 +153,7 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
           cause
         );
       }
+      operation.assertNotTimedOut();
       try {
         transaction.commit();
       } catch (cause) {
@@ -263,7 +264,9 @@ export function createSnapshotRefresher(options: SnapshotRefresherOptions): Snap
       }
       // Provider validation failures are already counted there. Commit the validator
       // only after application succeeds; failures leave both snapshot and ETag intact.
+      operation.assertNotTimedOut();
       const expectedHash = createSnapshotHash(snapshot);
+      operation.assertNotTimedOut();
       operation.stage = "load";
       if (durable !== undefined && verified !== undefined) {
         const signedBytes = artifact ?? committed?.artifact;

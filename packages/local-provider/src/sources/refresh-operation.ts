@@ -9,6 +9,8 @@ export class RefreshOperation {
   private finished = false;
   private release: () => void = () => {};
   private persisting = false;
+  private deadlineTick = Number.POSITIVE_INFINITY;
+  private expire: (() => void) | undefined;
   timeoutError: LocalProviderError | undefined;
   failureReported = false;
 
@@ -26,6 +28,8 @@ export class RefreshOperation {
   }
 
   assertNotTimedOut(): void {
+    // A busy event loop can postpone the timer beyond the actual deadline.
+    if (!this.signal.aborted && performance.now() >= this.deadlineTick) this.expire?.();
     if (this.timeoutError !== undefined) throw this.timeoutError;
   }
 
@@ -43,7 +47,10 @@ export class RefreshOperation {
       },
       this.signal,
       "Snapshot operation was cancelled."
-    );
+    ).then((value) => {
+      this.assertNotTimedOut();
+      return value;
+    });
   }
 
   async persist<T>(operation: () => Promise<T>): Promise<T> {
@@ -67,7 +74,9 @@ export class RefreshOperation {
     const deadline = new Promise<never>((_, reject) => {
       rejectDeadline = reject;
     });
-    const timer = setTimeout(() => {
+    this.deadlineTick = performance.now() + this.timeoutMs;
+    const expire = () => {
+      if (this.timeoutError !== undefined) return;
       this.timeoutError = new LocalProviderError(
         "PROVIDER_NOT_READY",
         this.persisting
@@ -79,11 +88,16 @@ export class RefreshOperation {
       try {
         onTimeout(this.timeoutError);
       } catch {
-        /* Diagnostic failure cannot escape a timer. */
+        /* Diagnostic failure must not replace the deadline error. */
       }
-    }, this.timeoutMs);
+    };
+    this.expire = expire;
+    const timer = setTimeout(expire, this.timeoutMs);
     const worker = Promise.resolve()
-      .then(work)
+      .then(() => {
+        this.assertNotTimedOut();
+        return work();
+      })
       .finally(() => {
         clearTimeout(timer);
         this.finished = true;

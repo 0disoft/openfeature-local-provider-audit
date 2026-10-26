@@ -148,6 +148,10 @@ Late matching acceptance advances the replay floor but cannot activate or cache 
 delivery. Reconcile by loading durable state after the actual operation settles;
 do not overlap or automatically retry writes. Neither a rejected deadline nor a
 cancelled caller wait proves persistence settled.
+A monotonic budget check after final signature verification also blocks activation
+when synchronous verification outlasts the deadline before its timer can run.
+Already acknowledged durable acceptance still advances the replay floor; cancellation
+releases the prepared provider reservation without rolling back that acceptance.
 A cancelled `refresh({ signal })` wait is not a persistence acknowledgment or rollback.
 Old active evaluations retain
 exact old audit origin until activation; callback evaluations see the new origin.

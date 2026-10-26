@@ -238,6 +238,130 @@ it("defaults to a 30 second refresh deadline and clears its timer after close", 
   expect(vi.getTimerCount()).toBe(0);
 });
 
+it.each([24, 25, 26])(
+  "checks elapsed verification time at %s ms without timer dispatch",
+  async (elapsed) => {
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    const clock = vi.spyOn(performance, "now").mockReturnValue(0);
+    const target = provider(),
+      fixture = signed();
+    const onFailure = vi.fn();
+    const refresher = createSnapshotRefresher({
+      provider: target,
+      timeoutMs: 25,
+      onFailure,
+      source: {
+        fetch: async () => ({ status: "content", content: Buffer.from(fixture.artifact) })
+      },
+      verifier: {
+        verify(bytes, previous) {
+          const result = fixture.verifier.verify(bytes, previous);
+          clock.mockReturnValue(elapsed);
+          return result;
+        }
+      }
+    });
+    if (elapsed < 25) {
+      await expect(refresher.refresh()).resolves.toMatchObject({ status: "updated" });
+      expect(onFailure).not.toHaveBeenCalled();
+    } else {
+      await expect(refresher.refresh()).rejects.toThrow("timed out");
+      expect(target.getSnapshot()).toEqual(bootstrap);
+      expect(onFailure).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          kind: "signature",
+          timedOut: true
+        })
+      );
+    }
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.getTimerCount()).toBe(0);
+    refresher.close();
+  }
+);
+
+it("does not enter verification after a synchronous source consumes the deadline", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const clock = vi.spyOn(performance, "now").mockReturnValue(0);
+  const target = provider(),
+    fixture = signed(),
+    verify = vi.fn();
+  const refresher = createSnapshotRefresher({
+    provider: target,
+    timeoutMs: 25,
+    verifier: { verify },
+    source: {
+      fetch: async () => {
+        clock.mockReturnValue(25);
+        return { status: "content", content: Buffer.from(fixture.artifact) };
+      }
+    }
+  });
+  await expect(refresher.refresh()).rejects.toThrow("timed out");
+  expect(verify).not.toHaveBeenCalled();
+  expect(target.getSnapshot()).toEqual(bootstrap);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(vi.getTimerCount()).toBe(0);
+  refresher.close();
+});
+
+it("preserves intentional close between read completion and its budget check", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const clock = vi.spyOn(performance, "now").mockReturnValue(0);
+  const target = provider(),
+    pending = deferred<SnapshotSourceResponse>(),
+    onFailure = vi.fn();
+  const refresher = createSnapshotRefresher({
+    provider: target,
+    timeoutMs: 25,
+    onFailure,
+    source: { fetch: () => pending.promise }
+  });
+  const running = refresher.refresh();
+  await Promise.resolve();
+  pending.resolve({ status: "content", content: Buffer.from(JSON.stringify(staticSnapshot)) });
+  queueMicrotask(() => {
+    clock.mockReturnValue(25);
+    refresher.close();
+  });
+  await expect(running).rejects.toThrow("closed");
+  expect(onFailure).not.toHaveBeenCalled();
+  expect(target.getStatus().failedRefreshes).toBe(0);
+  expect(target.getSnapshot()).toEqual(bootstrap);
+  await vi.advanceTimersByTimeAsync(0);
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it("keeps durable acceptance without activation when final verification consumes the deadline", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const clock = vi.spyOn(performance, "now").mockReturnValue(0);
+  const target = provider(),
+    fixture = signed();
+  const commit = vi.fn().mockResolvedValue(fixture.verified);
+  let verifications = 0;
+  const refresher = createSnapshotRefresher({
+    provider: target,
+    timeoutMs: 25,
+    source: { fetch: async () => ({ status: "content", content: Buffer.from(fixture.artifact) }) },
+    verifier: {
+      verify(bytes, previous) {
+        const result = fixture.verifier.verify(bytes, previous);
+        if (++verifications === 2) clock.mockReturnValue(25);
+        return result;
+      }
+    },
+    store: { load: async () => undefined, commit }
+  });
+  await expect(refresher.refresh()).rejects.toThrow("timed out");
+  expect(commit).toHaveBeenCalledOnce();
+  expect(target.getSnapshot()).toEqual(bootstrap);
+  expect(refresher.getProvenance()).toBeUndefined();
+  await vi.advanceTimersByTimeAsync(0);
+  expect(() => target.updateSnapshot(bootstrap)).not.toThrow();
+  expect(vi.getTimerCount()).toBe(0);
+  refresher.close();
+});
+
 it("retains cancellation reasons privately without exposing a public cause", async () => {
   const controller = new AbortController(),
     reason = new Error("private cancel reason");

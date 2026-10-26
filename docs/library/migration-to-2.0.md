@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.97` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.98` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.98 checks the refresh budget with a monotonic clock at phase boundaries,
+including after synchronous validation/verification and before durable activation.
+A blocked event loop cannot silently skip expiry because its timer has not run.
+Expiry still reports once, preserves last-good active state before application,
+and never retries or rolls back persistence. Running synchronous callbacks remain
+non-preemptible; see `https-snapshots.md` and `snapshot-recovery.md`.
 
 Alpha.97 reuses the last successful object env parse within one override creation.
 Flags using identical JSON may share deeply frozen object/array references; clone
