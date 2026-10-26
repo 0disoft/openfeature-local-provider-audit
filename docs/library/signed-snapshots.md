@@ -55,6 +55,13 @@ Use stable non-personal environment IDs. Signing validates the flag snapshot,
 nonnegative safe-integer sequence and valid lifetime bounds
 (`0 <= issuedAt < expiresAt`). Verification applies the deployment's freshness policy.
 
+The signer checks the payload's projected unpadded base64url size before creating
+its UTF-8 buffer or encoded segment. For B UTF-8 bytes, that segment has
+`ceil(4 * B / 3)` ASCII bytes; the budget also includes the protected header, both
+separators and the fixed 86-character Ed25519 signature. The inclusive whole-artifact
+limit and accepted signed bytes remain unchanged. Snapshot validation and JSON
+serialization still occur, so rejection is not constant-time or allocation-free.
+
 JWS authenticates content; it does not encrypt flag values. Protect artifact
 distribution and storage. Never publish a private signing key with the artifact.
 The runtime only needs pinned public keys, supplied as public KeyObjects or SPKI

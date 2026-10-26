@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.90` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.91` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.91 checks projected payload base64url size before allocating the signer's
+UTF-8 payload buffer and encoded segment. Inclusive limits, canonical signed bytes,
+validation order and the existing RangeError remain compatible; JSON serialization
+is still required to measure payload size.
 
 Alpha.90 discovers existing backups for plain file rotation retaining at least 64
 files, avoiding numbered rename attempts on missing paths. Descending movement,

@@ -11,6 +11,8 @@ import type {
 import { DEFAULT_SOURCE_BYTES, sourceInteger } from "./source-policy.js";
 
 const TYPE = "openfeature-local-snapshot+jws";
+// Separator plus the 86 unpadded base64url characters of an Ed25519 signature.
+const SIGNATURE_SUFFIX_BYTES = 87;
 const DAY = 86_400_000;
 const HEADER_KEYS = ["alg", "kid", "typ"];
 const CLAIM_KEYS = ["schemaVersion", "audience", "sequence", "issuedAt", "expiresAt", "snapshot"];
@@ -35,9 +37,11 @@ export function signFlagSnapshot(options: SignFlagSnapshotOptions): string {
   }
   const snapshot = validateFlagSnapshot(options.snapshot);
   const header = encode({ alg: "Ed25519", kid: keyId, typ: TYPE });
-  const payload = encode({ schemaVersion: 1, audience, sequence, issuedAt, expiresAt, snapshot });
+  const payload = encode(
+    { schemaVersion: 1, audience, sequence, issuedAt, expiresAt, snapshot },
+    maxBytes - header.length - 1 - SIGNATURE_SUFFIX_BYTES
+  );
   const input = `${header}.${payload}`;
-  if (input.length + 87 > maxBytes) throw new RangeError("Signed snapshot exceeds maxBytes.");
   return `${input}.${sign(null, Buffer.from(input, "ascii"), privateKey).toString("base64url")}`;
 }
 
@@ -191,8 +195,15 @@ function captureKeys(
   }
 }
 
-function encode(value: object): string {
-  return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+function encode(value: object, maxEncodedBytes?: number): string {
+  const json = JSON.stringify(value);
+  // Unpadded base64url uses ceil(4 * UTF-8 bytes / 3) ASCII bytes.
+  if (
+    maxEncodedBytes !== undefined &&
+    Math.ceil((Buffer.byteLength(json, "utf8") * 4) / 3) > maxEncodedBytes
+  )
+    throw new RangeError("Signed snapshot exceeds maxBytes.");
+  return Buffer.from(json, "utf8").toString("base64url");
 }
 function decode(value: string): Buffer {
   if (!/^[A-Za-z0-9_-]+$/.test(value)) throw invalid();

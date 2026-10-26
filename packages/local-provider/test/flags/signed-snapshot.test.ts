@@ -83,6 +83,45 @@ function externalToken(
 
 describe("signed snapshots", () => {
   it.each([
+    ["JSON escapes", "\0".repeat(1024)],
+    ["UTF-8 expansion", "가".repeat(1024)]
+  ])("rejects oversized %s before allocating payload encoding buffers", (_name, value) => {
+    const input: FlagSnapshot = {
+      schemaVersion: 1,
+      flags: { feature: { type: "string", variants: { on: value }, defaultVariant: "on" } }
+    };
+    const allocations = vi.spyOn(Buffer, "from");
+    try {
+      expect(() => signFlagSnapshot(signOptions({ snapshot: input, maxBytes: 2048 }))).toThrow(
+        new RangeError("Signed snapshot exceeds maxBytes.")
+      );
+      expect(
+        allocations.mock.calls.filter(
+          ([text]) => typeof text === "string" && text.startsWith('{"schemaVersion":1,"audience":')
+        )
+      ).toHaveLength(0);
+    } finally {
+      allocations.mockRestore();
+    }
+  });
+
+  it.each(["", "a", "aa", "가", "😀", "\ud800", "\0"])(
+    "preserves independent signed bytes and inclusive byte limits for %j",
+    (value) => {
+      const input: FlagSnapshot = {
+        schemaVersion: 1,
+        flags: { feature: { type: "string", variants: { on: value }, defaultVariant: "on" } }
+      };
+      const expected = externalToken({ snapshot: input });
+      const maxBytes = Buffer.byteLength(expected, "utf8");
+      expect(signFlagSnapshot(signOptions({ snapshot: input, maxBytes }))).toBe(expected);
+      expect(() =>
+        signFlagSnapshot(signOptions({ snapshot: input, maxBytes: maxBytes - 1 }))
+      ).toThrow(new RangeError("Signed snapshot exceeds maxBytes."));
+    }
+  );
+
+  it.each([
     { name: "fresh", create: createSnapshotVerifier },
     { name: "historical", create: createHistoricalSnapshotVerifier }
   ])(
