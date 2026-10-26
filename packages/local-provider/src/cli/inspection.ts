@@ -370,6 +370,8 @@ function summarize(results: readonly EvaluationResult[]) {
   return { errors, groups: [...groups.values()] };
 }
 
+const MAX_INSPECTION_JSON_NODES = 100_000;
+
 function assertBoundedJson(value: unknown): void {
   const stack = [{ value, depth: 0 }];
   let nodes = 1;
@@ -378,9 +380,12 @@ function assertBoundedJson(value: unknown): void {
     if (!next) break;
     if (next.depth > 32) throw new Error("Input complexity limit");
     if (next.value !== null && typeof next.value === "object") {
+      // Parsed JSON arrays are dense: each slot consumes a node, before copying values.
+      if (Array.isArray(next.value) && next.value.length > MAX_INSPECTION_JSON_NODES - nodes)
+        throw new Error("Input complexity limit");
       const children = Object.values(next.value);
       nodes += children.length;
-      if (nodes > 100_000) throw new Error("Input complexity limit");
+      if (nodes > MAX_INSPECTION_JSON_NODES) throw new Error("Input complexity limit");
       for (const child of children) stack.push({ value: child, depth: next.depth + 1 });
     }
   }

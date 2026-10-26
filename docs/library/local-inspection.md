@@ -48,6 +48,11 @@ file writes, watcher or background service is involved. Files are limited to 10 
 each using the bounded loader. Request input is limited to 32 nesting levels and
 100,000 JSON nodes; simulation/comparison accepts 1..10,000 requests within those limits.
 
+Array lengths are checked against the remaining node budget before copying child
+values for traversal. The budget includes the root, containers, primitive values
+and pending siblings. This avoids a child-value array allocation for an array
+already certain to exceed the limit; JSON parsing still incurs its input-size cost.
+
 Flag keys follow the snapshot parser's nonempty-string contract; there is no
 separate 256-character inspection limit. Long keys remain covered by the request
 file byte/node/depth limits above. Evaluation and inspection accept the same keys.

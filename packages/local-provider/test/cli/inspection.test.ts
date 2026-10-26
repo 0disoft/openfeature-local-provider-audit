@@ -1,8 +1,10 @@
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { runCli } from "../../src/cli/run.js";
+
+afterEach(() => vi.restoreAllMocks());
 
 const flag = {
   type: "boolean",
@@ -57,6 +59,62 @@ async function exercise(
 }
 
 describe("offline inspection CLI", () => {
+  it.each(["root", "nested"])(
+    "rejects a %s array exceeding the request node budget before copying values",
+    async (location) => {
+      const length = location === "root" ? 100_000 : 99_995;
+      const input =
+        location === "root"
+          ? Array(length).fill(0)
+          : {
+              flagKey: "enabled",
+              expectedType: "boolean",
+              defaultValue: false,
+              context: { payload: Array(length).fill(0) }
+            };
+      const values = Object.values;
+      let copied = 0;
+      vi.spyOn(Object, "values").mockImplementation((value) => {
+        const result = values(value);
+        if (Array.isArray(value) && value.length === length) copied += result.length;
+        return result;
+      });
+      const result = await exercise(
+        [
+          location === "root" ? "simulate" : "explain",
+          "before.json",
+          location === "root" ? "--requests" : "--request",
+          "request.json",
+          "--diagnostics"
+        ],
+        input
+      );
+      expect(result).toMatchObject({ code: 1, output: "" });
+      expect(result.error).toContain('"code":"REQUEST_LIMIT"');
+      expect(copied).toBe(0);
+    }
+  );
+
+  it("preserves the exact request node budget including containers and siblings", async () => {
+    for (const [length, code] of [
+      [99_994, 0],
+      [99_995, 1]
+    ] as const) {
+      const result = await exercise(
+        ["evaluate", "before.json", "--request", "request.json", "--diagnostics"],
+        {
+          flagKey: "enabled",
+          expectedType: "boolean",
+          defaultValue: false,
+          context: { payload: Array(length).fill(0) }
+        }
+      );
+      expect(result.code).toBe(code);
+      if (code === 0) expect(result.data.reason).toBe("STATIC");
+      else expect(result.error).toContain('"code":"REQUEST_LIMIT"');
+    }
+  });
+
   it.each([
     ["33.3333", 3],
     ["33.3334", 0]
