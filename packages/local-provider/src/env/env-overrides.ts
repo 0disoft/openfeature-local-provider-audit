@@ -21,6 +21,11 @@ type ParseEnvValueResult =
       readonly error: string;
     };
 
+interface ObjectOverrideCache {
+  input?: string;
+  result?: ParseEnvValueResult;
+}
+
 export function createEnvOverrides(
   snapshot: FlagSnapshot,
   options: CreateEnvOverridesOptions = {}
@@ -73,6 +78,7 @@ function applyPerFlagEnvOverrides(
   values: Record<string, FlagValue>,
   errors: Record<string, string>
 ): void {
+  const objectCache: ObjectOverrideCache = {};
   for (const [flagKey, flag] of Object.entries(snapshot.flags)) {
     const envVar = getOwn(flag, "envVar");
     if (envVar === undefined) {
@@ -84,7 +90,7 @@ function applyPerFlagEnvOverrides(
       continue;
     }
 
-    const parsed = parseEnvValue(rawValue, flag.type);
+    const parsed = parseEnvValue(rawValue, flag.type, objectCache);
     if (!parsed.ok) {
       defineRecordEntry(errors, flagKey, parsed.error);
       continue;
@@ -128,7 +134,11 @@ function assertPositiveInteger(value: number, name: string): void {
   }
 }
 
-function parseEnvValue(value: string, flagType: FlagType): ParseEnvValueResult {
+function parseEnvValue(
+  value: string,
+  flagType: FlagType,
+  objectCache: ObjectOverrideCache
+): ParseEnvValueResult {
   switch (flagType) {
     case "boolean":
       if (value === "true") {
@@ -151,6 +161,13 @@ function parseEnvValue(value: string, flagType: FlagType): ParseEnvValueResult {
         : envValueError("Number env override must be finite.");
     }
     case "object": {
+      if (
+        typeof value === "string" &&
+        objectCache.input === value &&
+        objectCache.result !== undefined
+      ) {
+        return objectCache.result;
+      }
       let parsed: unknown;
       try {
         parsed = JSON.parse(value);
@@ -160,7 +177,13 @@ function parseEnvValue(value: string, flagType: FlagType): ParseEnvValueResult {
       if (!isFlagValue(parsed) || !flagValueMatchesType(parsed, "object")) {
         return envValueError("Object env override must parse to a JSON object or array.");
       }
-      return parsedEnvValue(parsed);
+      const result = parsedEnvValue(parsed);
+      // Only one successful string input is retained, and only for this creation.
+      if (typeof value === "string") {
+        objectCache.input = value;
+        objectCache.result = result;
+      }
+      return result;
     }
   }
 }

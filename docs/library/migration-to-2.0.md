@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.96` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.97` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.97 reuses the last successful object env parse within one override creation.
+Flags using identical JSON may share deeply frozen object/array references; clone
+returned values before modifying them. Each binding is still read in flag order,
+type-specific errors and JSON-map priority are preserved, and separate creations
+do not share parsed objects. The cache retains at most one input/result; see
+`env-overrides.md`. Public signatures and override hashes retain their contracts.
 
 Alpha.96 escapes terminal controls, Unicode line/paragraph separators and bidi
 controls in human-readable validation errors, usage fields and validated file paths.
