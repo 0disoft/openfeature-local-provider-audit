@@ -36,6 +36,12 @@ with percentage * 1,000. Selected users receive schedule.variant/SPLIT; other us
 receive flag.defaultVariant/STATIC. Increasing the percentage preserves earlier
 membership with the same flag/key/seed. A final stage remains active indefinitely.
 
+For validator-owned immutable snapshots, schedules with at least 16 stages use
+binary search over their strictly increasing times: at most seven time comparisons
+for the supported 100-stage maximum. Smaller schedules and caller-owned snapshots
+retain sequential lookup; freezing a caller's object alone does not establish
+validated ordering. Selection remains stateless and adds no cache or timer.
+
 Time is stateless wall time: a backwards clock or an explicitly earlier replay
 time can select an earlier stage. The library does not persist a time floor or
 silently clamp time. Applications requiring monotonic progression own their trusted

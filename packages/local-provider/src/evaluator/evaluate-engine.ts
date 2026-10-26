@@ -12,6 +12,7 @@ import { selectRolloutVariant, type ComputeBucket } from "./bucketing-rules.js";
 import { matchesCondition, type ConditionEvaluation } from "./conditions.js";
 import { flagValueMatchesType } from "./type-guards.js";
 import { selectScheduledVariant, validScheduleTime } from "./schedule.js";
+import { isValidatedSnapshot } from "../flags/snapshot-ownership.js";
 
 export function evaluateWithTrace<T extends FlagValue>(
   snapshot: FlagSnapshot,
@@ -163,7 +164,8 @@ export function evaluateWithTrace<T extends FlagValue>(
       request.flagKey,
       request.targetingKey,
       request.evaluationTime,
-      computeBucket
+      computeBucket,
+      isValidatedSnapshot(snapshot)
     );
     const selectionVariant = getOwn(selection, "variant");
     return {

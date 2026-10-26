@@ -3,6 +3,8 @@ import type { ScheduledRollout, ScheduleEvaluation } from "../core-types.js";
 import { percentageToBucketCount, type ComputeBucket } from "./bucketing-rules.js";
 import { hasRolloutPrecision } from "./rollout-precision.js";
 
+const MIN_BINARY_SEARCH_STAGES = 16;
+
 export const validScheduleTime = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 export const validSchedulePercentage = (value: unknown): value is number =>
@@ -17,15 +19,21 @@ export function selectScheduledVariant(
   flagKey: string,
   targetingKey: string,
   evaluatedAt: number,
-  computeBucket: ComputeBucket
+  computeBucket: ComputeBucket,
+  validated = false
 ) {
   let stage: number | null = null;
   let percentage = 0;
-  for (let index = 0; index < schedule.stages.length; index++) {
-    const entry = schedule.stages[index];
-    if (entry === undefined || entry.at > evaluatedAt) break;
-    stage = index;
-    percentage = entry.percentage;
+  if (validated && schedule.stages.length >= MIN_BINARY_SEARCH_STAGES) {
+    stage = findOrderedStage(schedule.stages, evaluatedAt);
+    percentage = stage === null ? 0 : (schedule.stages[stage]?.percentage ?? 0);
+  } else {
+    for (let index = 0; index < schedule.stages.length; index++) {
+      const entry = schedule.stages[index];
+      if (entry === undefined || entry.at > evaluatedAt) break;
+      stage = index;
+      percentage = entry.percentage;
+    }
   }
   const bucket = computeBucket(flagKey, targetingKey, getOwn(schedule, "seed"));
   return {
@@ -33,6 +41,18 @@ export function selectScheduledVariant(
     ...(bucket < percentageToBucketCount(percentage) ? { variant: schedule.variant } : {}),
     schedule: Object.freeze({ evaluatedAt, stage, percentage })
   };
+}
+
+// Ordering is guaranteed only by the validator-owned, deeply frozen snapshot.
+function findOrderedStage(stages: ScheduledRollout["stages"], evaluatedAt: number): number | null {
+  let low = 0;
+  let high = stages.length;
+  while (low < high) {
+    const middle = Math.floor((low + high) / 2);
+    if ((stages[middle]?.at ?? Infinity) <= evaluatedAt) low = middle + 1;
+    else high = middle;
+  }
+  return low === 0 ? null : low - 1;
 }
 
 export function captureScheduleEvaluation(value: unknown): ScheduleEvaluation {

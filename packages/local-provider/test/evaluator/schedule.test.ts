@@ -23,6 +23,7 @@ import {
 } from "../../src/index.js";
 import { validateFlagSnapshot } from "../../src/flags/validate-snapshot.js";
 import { runCli } from "../../src/cli/run.js";
+import { selectScheduledVariant } from "../../src/evaluator/schedule.js";
 
 const schedule: ScheduledRollout = {
   variant: "on",
@@ -62,6 +63,92 @@ const logger = { warn() {}, debug() {}, info() {}, error() {} };
 afterEach(() => vi.restoreAllMocks());
 
 describe("scheduled local rollout", () => {
+  it("bounds ordered stage reads while preserving every boundary in full and core evaluation", async () => {
+    const core = await import("../../src/core.js");
+    for (const size of [1, 15, 16, 17, 100]) {
+      const stages = Array.from({ length: size }, (_, index) => ({
+        at: (index + 1) * 1000,
+        percentage: index + 1
+      }));
+      const input = snapshot({ schedule: { ...schedule, stages } });
+      for (const time of [
+        0,
+        ...stages.flatMap(({ at }) => [at - 1, at, at + 1]),
+        Number.MAX_SAFE_INTEGER
+      ]) {
+        const stage = stages.filter(({ at }) => at <= time).length - 1;
+        const expected = {
+          evaluatedAt: time,
+          stage: stage < 0 ? null : stage,
+          percentage: stages[stage]?.percentage ?? 0
+        };
+        const result = evaluateFlag(input, request(time));
+        expect(result.schedule).toEqual(expected);
+        expect(core.evaluateFlag(input, request(time))).toEqual(result);
+      }
+    }
+    let reads = 0;
+    const stages = new Proxy(
+      Array.from({ length: 100 }, (_, index) => ({ at: index, percentage: index + 1 })),
+      {
+        get(target, key, receiver) {
+          if (typeof key === "string" && /^\d+$/.test(key)) reads++;
+          return Reflect.get(target, key, receiver);
+        }
+      }
+    );
+    expect(
+      selectScheduledVariant({ ...schedule, stages }, "feature", "subject", 100, () => 0, true)
+        .schedule
+    ).toEqual({
+      evaluatedAt: 100,
+      stage: 99,
+      percentage: 100
+    });
+    expect(reads).toBeLessThanOrEqual(8);
+  });
+
+  it("retains sequential semantics for caller-owned and merely frozen schedules", () => {
+    const stages = Array.from({ length: 100 }, (_, index) => ({
+      at: index === 1 ? 1000 : index,
+      percentage: index + 1
+    }));
+    const firstStage = stages[0];
+    if (firstStage === undefined) throw new Error("Missing first stage");
+    const input: FlagSnapshot = {
+      schemaVersion: 2,
+      flags: {
+        feature: {
+          type: "boolean",
+          variants: { on: true, off: false },
+          defaultVariant: "off",
+          schedule: { ...schedule, stages }
+        }
+      }
+    };
+    for (const candidate of [input, Object.freeze({ ...input })]) {
+      expect(evaluateFlag(candidate, request(50)).schedule).toEqual({
+        evaluatedAt: 50,
+        stage: 0,
+        percentage: 1
+      });
+      firstStage.percentage = 2;
+      expect(evaluateFlag(candidate, request(50)).schedule?.percentage).toBe(2);
+      firstStage.percentage = 1;
+    }
+    for (const stage of stages) Object.freeze(stage);
+    Object.freeze(stages);
+    Object.freeze(input.flags.feature?.schedule);
+    Object.freeze(input.flags.feature);
+    Object.freeze(input.flags);
+    Object.freeze(input);
+    expect(evaluateFlag(input, request(50)).schedule).toEqual({
+      evaluatedAt: 50,
+      stage: 0,
+      percentage: 1
+    });
+  });
+
   it("selects exact time boundaries, final stage and backward time without ambient clock reads", () => {
     const input = snapshot();
     const clock = vi.spyOn(Date, "now").mockImplementation(() => {
