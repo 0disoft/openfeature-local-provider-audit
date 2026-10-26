@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.91` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.92` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.92 retains fragments during chained-audit tip discovery, reading only the
+new prefix when the search window doubles. Short reads, terminal LF, the bounded
+record window, committed offsets and subsequent hash validation retain their
+behavior. Fragments are local to one discovery; no cross-operation file cache is used.
 
 Alpha.91 checks projected payload base64url size before allocating the signer's
 UTF-8 payload buffer and encoded segment. Inclusive limits, canonical signed bytes,

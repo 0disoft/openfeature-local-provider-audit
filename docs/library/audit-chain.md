@@ -151,6 +151,12 @@ owner where supported, single link and exact committed size. These checks requir
 no open file descriptor. The active tip still uses no-follow open/descriptor identity
 validation, tail hashing and bounded suffix recovery with finally-bound close. All
 checks run under the same mandatory owner lock, without an in-memory file cache.
+Tip discovery starts with at most 4 KiB and doubles its search window, bounded by
+the committed size and the record limit plus terminal LF. Each expansion reads
+only the previously unread prefix and retains fragments for this call, rather
+than rereading the entire window. Fragments are assembled in file order once the
+separator or limit is reached. Short reads still fill each requested range; tip
+parsing/hash checks and full checkpoint verification are unchanged.
 Append checks retained file sizes and the current committed tip; `getCheckpoint()`
 drains writes, fully re-verifies retained records under the lock and returns frozen
 `{ start, head, files }`, with safe relative filenames in oldest-first order.

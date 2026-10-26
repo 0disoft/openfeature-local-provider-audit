@@ -117,12 +117,18 @@ export async function readChainTail(
   maxRecordBytes: number
 ): Promise<Buffer> {
   let length = Math.min(size, 4096, maxRecordBytes + 1);
+  let retained = 0;
+  const parts: Buffer[] = [];
   while (true) {
-    const tail = await readChainRange(handle, size - length, length);
-    if (tail[tail.length - 1] !== 10) throw new Error();
-    const newline = tail.lastIndexOf(10, tail.length - 2);
-    if (newline !== -1 || length === size) return tail.subarray(newline + 1);
-    if (length === maxRecordBytes + 1) return tail;
+    // Grow only into the unread prefix; retained fragments are newest first.
+    const prefix = await readChainRange(handle, size - length, length - retained);
+    if (retained === 0 && prefix[prefix.length - 1] !== 10) throw new Error();
+    const newline = prefix.lastIndexOf(10, prefix.length - (retained === 0 ? 2 : 1));
+    const fragment = prefix.subarray(newline + 1);
+    parts.push(fragment);
+    if (newline !== -1 || length === size || length === maxRecordBytes + 1)
+      return parts.length === 1 ? fragment : Buffer.concat(parts.reverse());
+    retained = length;
     length = Math.min(size, length * 2, maxRecordBytes + 1);
   }
 }
