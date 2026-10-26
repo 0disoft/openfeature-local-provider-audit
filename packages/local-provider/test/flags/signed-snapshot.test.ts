@@ -83,6 +83,84 @@ function externalToken(
 
 describe("signed snapshots", () => {
   it.each([
+    [59_999, true],
+    [60_000, false],
+    [60_001, false]
+  ] as const)("rechecks expiry after snapshot processing at +%d ms", (elapsed, accepted) => {
+    const token = bytes(externalToken());
+    vi.mocked(Date.now)
+      .mockReturnValueOnce(NOW)
+      .mockReturnValue(NOW + elapsed);
+    const verify = () => verifier().verify(token);
+    if (accepted) expect(verify().provenance.sequence).toBe(1);
+    else expect(verify).toThrow("Signed snapshot verification failed.");
+  });
+
+  it.each([
+    [0, true],
+    [1, false]
+  ] as const)("rechecks the inclusive max age after processing at +%d ms", (elapsed, accepted) => {
+    const token = bytes(externalToken());
+    vi.mocked(Date.now)
+      .mockReturnValueOnce(NOW)
+      .mockReturnValue(NOW + elapsed);
+    const verify = () => verifier({ maxAgeMs: 1000 }).verify(token);
+    if (accepted) expect(verify().provenance.sequence).toBe(1);
+    else expect(verify).toThrow("Signed snapshot verification failed.");
+  });
+
+  it("rejects an invalid clock sampled after snapshot processing", () => {
+    const token = bytes(externalToken());
+    vi.mocked(Date.now).mockReturnValueOnce(NOW).mockReturnValue(Number.NaN);
+    expect(() => verifier().verify(token)).toThrow("Signed snapshot verification failed.");
+  });
+
+  it("still permits historical recovery when processing crosses expiry and max age", () => {
+    const token = bytes(externalToken());
+    const check = createHistoricalSnapshotVerifier({
+      audience: "service/production",
+      trustedKeys: { "release-1": keys.publicKey },
+      maxAgeMs: 1000
+    });
+    vi.mocked(Date.now)
+      .mockReturnValueOnce(NOW)
+      .mockReturnValue(NOW + 60_001);
+    expect(check.verify(token).provenance.sequence).toBe(1);
+  });
+
+  it("preserves last-good active state when signed processing crosses expiry", async () => {
+    const token = bytes(externalToken());
+    const check = verifier();
+    const provider = createReloadableLocalProvider({ snapshot: snapshot(false), env: {} });
+    const refresher = createSnapshotRefresher({
+      provider,
+      source: { fetch: async () => ({ status: "content", content: token }) },
+      verifier: {
+        verify(content, previous) {
+          vi.mocked(Date.now)
+            .mockReturnValueOnce(NOW)
+            .mockReturnValue(NOW + 60_000);
+          return check.verify(content, previous);
+        }
+      }
+    });
+    try {
+      await expect(refresher.refresh()).rejects.toThrow("Signed snapshot verification failed.");
+      expect(provider.getStatus()).toMatchObject({
+        failedRefreshes: 1,
+        lastRefreshFailure: "signature"
+      });
+      expect(refresher.getProvenance()).toBeUndefined();
+      await expect(
+        provider.resolveBooleanEvaluation("feature", false, {}, logger)
+      ).resolves.toMatchObject({ value: false });
+    } finally {
+      refresher.close();
+      await provider.onClose?.();
+    }
+  });
+
+  it.each([
     ["JSON escapes", "\0".repeat(1024)],
     ["UTF-8 expansion", "가".repeat(1024)]
   ])("rejects oversized %s before allocating payload encoding buffers", (_name, value) => {

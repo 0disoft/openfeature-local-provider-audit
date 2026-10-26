@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.99` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.100` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.100 rechecks signed snapshot time policy after validation, copying and hashing.
+Expiry, max-age and invalid-clock failures during synchronous processing cannot
+return a fresh verified snapshot. Early rejection, generic errors, signatures and
+historical replay-floor recovery retain their contracts; see `signed-snapshots.md`.
 
 Alpha.99 evaluates each CLI batch request immediately and retains only decisions.
 Completed requests no longer retain full snapshot-wide override maps. Input limits,

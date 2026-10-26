@@ -83,6 +83,12 @@ other key algorithms and empty/oversized keyrings are rejected.
 The clock must return a nonnegative safe-integer timestamp. Issuance cannot be
 more than the allowed skew in the future; age and lifetime must fit the policy.
 Expiry is strict (`now >= expiresAt` rejects), with no expiry grace.
+The same time policy is checked before snapshot validation and again after copying,
+validation and hashing finish. A document that expires or exceeds `maxAgeMs` during
+that work is rejected before verification returns. Historical recovery still ignores
+expiry/age to retain an authenticated replay floor; it does not authorize activation.
+This adds one constant-time clock/policy check, not another parse or signature check.
+It does not revoke a previously accepted active snapshot when its expiry later passes.
 The wall clock and configured public keyring/floor are trusted; a rolled-back
 clock or compromised publisher key is outside these guarantees.
 

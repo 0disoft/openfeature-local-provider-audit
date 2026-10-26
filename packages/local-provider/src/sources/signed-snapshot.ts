@@ -78,6 +78,21 @@ function createVerifier(
   const clockSkewMs = sourceInteger("clockSkewMs", options.clockSkewMs ?? 30_000, 0, 300_000);
   const maxBytes = byteLimit(options.maxBytes);
   const keys = captureKeys(options.trustedKeys);
+
+  function assertFreshness(sequence: number, issuedAt: number, expiresAt: number): void {
+    const now = Date.now();
+    if (
+      !Number.isSafeInteger(now) ||
+      now < 0 ||
+      (!historical && sequence < minSequence) ||
+      issuedAt > now + clockSkewMs ||
+      (!historical && now >= expiresAt) ||
+      (!historical && now - issuedAt > maxAgeMs) ||
+      expiresAt - issuedAt > maxLifetimeMs
+    )
+      throw invalid();
+  }
+
   return {
     verify(content, previous) {
       try {
@@ -117,17 +132,7 @@ function createVerifier(
         const sequence = claims.sequence;
         const issuedAt = claims.issuedAt as number;
         const expiresAt = claims.expiresAt as number;
-        const now = Date.now();
-        if (
-          !Number.isSafeInteger(now) ||
-          now < 0 ||
-          (!historical && sequence < minSequence) ||
-          issuedAt > now + clockSkewMs ||
-          (!historical && now >= expiresAt) ||
-          (!historical && now - issuedAt > maxAgeMs) ||
-          expiresAt - issuedAt > maxLifetimeMs
-        )
-          throw invalid();
+        assertFreshness(sequence, issuedAt, expiresAt);
         const artifactHash = createHash("sha256").update(token, "ascii").digest("hex");
         if (previous !== undefined) {
           if (
@@ -153,7 +158,10 @@ function createVerifier(
           snapshotHash: createSnapshotHash(snapshot),
           artifactHash
         });
-        return Object.freeze({ snapshot, provenance });
+        const result = Object.freeze({ snapshot, provenance });
+        // Validation, copying and hashing can cross expiry while the event loop is busy.
+        assertFreshness(sequence, issuedAt, expiresAt);
+        return result;
       } catch {
         throw invalid();
       }
