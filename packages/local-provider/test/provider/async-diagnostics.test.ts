@@ -1,6 +1,7 @@
 import { setImmediate } from "node:timers/promises";
 import { expect, it, vi } from "vitest";
 import { createLocalProvider } from "../../src/provider/local-provider.js";
+import type { FileAuditSinkStats } from "../../src/public-types.js";
 
 const snapshot = {
   schemaVersion: 1 as const,
@@ -94,4 +95,55 @@ it("preserves the real audit flush failure when diagnostic cleanup rejects", asy
   await expect(provider.onClose?.()).rejects.toBe(failure);
   await setImmediate();
   expect(delivered).toHaveBeenCalledOnce();
+});
+
+it.each([false, true])(
+  "ignores asynchronous sink counters without waiting (pending: %s)",
+  async (pending) => {
+    const { value, delivered } = diagnostic(pending);
+    const provider = createLocalProvider({
+      snapshot,
+      env: {},
+      auditSink: {
+        async write() {},
+        getStats: () => value as unknown as FileAuditSinkStats
+      }
+    });
+    expect(provider.getStatus().audit.sinkStats).toBeUndefined();
+    await expect(
+      provider.resolveBooleanEvaluation("feature", false, {}, quiet)
+    ).resolves.toMatchObject({ value: true, reason: "STATIC" });
+    await provider.onClose?.();
+    await setImmediate();
+    expect(delivered).toHaveBeenCalledOnce();
+  }
+);
+
+it("keeps asynchronous counters omitted and accepts later synchronous counters", async () => {
+  const counters = {
+    pendingWrites: 0,
+    droppedWrites: 0,
+    rejectedWrites: 0,
+    maxQueueSize: 5,
+    // biome-ignore lint/suspicious/noThenProperty: Non-callable extra metadata must not be mistaken for asynchronous counters.
+    then: "metadata"
+  };
+  let stats: unknown = Promise.resolve(counters);
+  const provider = createLocalProvider({
+    snapshot,
+    env: {},
+    auditSink: { async write() {}, getStats: () => stats as FileAuditSinkStats }
+  });
+  expect(provider.getStatus().audit.sinkStats).toBeUndefined();
+  await setImmediate();
+  stats = counters;
+  const captured = provider.getStatus().audit.sinkStats;
+  expect(captured).toEqual({
+    pendingWrites: 0,
+    droppedWrites: 0,
+    rejectedWrites: 0,
+    maxQueueSize: 5
+  });
+  expect(Object.isFrozen(captured)).toBe(true);
+  await provider.onClose?.();
 });

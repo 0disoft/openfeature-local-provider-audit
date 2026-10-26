@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.92` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.93` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.93 omits Promise-like results mistakenly returned by synchronous custom sink
+`getStats()` diagnostics and observes their rejections without awaiting them.
+Rejected or never-settling diagnostics cannot delay status reads, evaluation or
+shutdown; valid synchronous counters and public signatures remain unchanged.
 
 Alpha.92 retains fragments during chained-audit tip discovery, reading only the
 new prefix when the search window doubles. Short reads, terminal LF, the bounded

@@ -74,6 +74,11 @@ exposes pending/dropped/rejected writes and queue limit for the whole sink, whic
 can be shared with other providers. Optional `pendingBytes` / `maxQueueBytes`
 report queued event UTF-8 JSON Lines payload bytes and their budget (not total heap).
 Old custom sinks may omit both fields. Missing, invalid or throwing diagnostics are omitted.
+`getStats()` remains synchronous. If a custom sink mistakenly returns a Promise-like
+value, its counters are omitted and its rejection is observed without waiting.
+Neither rejection nor a never-settling result delays status, evaluation or shutdown;
+asynchronous counters are not adopted later. Normal synchronous counters require
+no extra Promise allocation. This does not cancel I/O started by a custom diagnostic.
 Audit event creation errors count as failures too. No counter resets or per-user
 history are retained. Sink flush errors retain their existing propagation behavior
 and are not write failures. Counters are JavaScript numbers, not durable accounting.

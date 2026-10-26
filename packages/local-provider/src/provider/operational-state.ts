@@ -5,6 +5,7 @@ import type {
   RefreshFailureKind,
   SignedSnapshotMetadata
 } from "../public-types.js";
+import { observeDiagnosticResult } from "../errors/observe-diagnostic.js";
 
 const FAILURE_KINDS = new Set<RefreshFailureKind>([
   "load",
@@ -118,6 +119,11 @@ function readSinkStats(sink: AuditSink | undefined): FileAuditSinkStats | undefi
   try {
     const stats = sink?.getStats?.();
     if (stats === undefined) return undefined;
+    // Status remains synchronous; discard async counters but observe their failures.
+    if ("then" in stats && typeof stats.then === "function") {
+      observeDiagnosticResult(stats);
+      return undefined;
+    }
     const {
       pendingWrites,
       droppedWrites,
