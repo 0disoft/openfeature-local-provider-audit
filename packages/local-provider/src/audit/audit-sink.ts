@@ -2,9 +2,9 @@ import { withAuditCleanup } from "./cleanup.js";
 import { createQueuedAuditSink } from "./queued-sink.js";
 import { randomUUID } from "node:crypto";
 import { constants, type BigIntStats } from "node:fs";
-import { lstat, mkdir, open, readFile, rename, rm, stat } from "node:fs/promises";
+import { lstat, mkdir, open, opendir, readFile, rename, rm, stat } from "node:fs/promises";
 import type { FileHandle } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import type { AuditEvent, AuditSink, FileAuditSinkOptions } from "../public-types.js";
@@ -12,6 +12,7 @@ import { captureFileAuditEvent, serializeCapturedFileAuditEvent } from "./audit-
 
 const FILE_AUDIT_BATCH_SIZE = 64;
 const FILE_AUDIT_BATCH_BYTES = 64 * 1024;
+const MIN_INDEXED_ROTATION_FILES = 64;
 const AUDIT_FILE_MODE = 0o600;
 const AUDIT_DIRECTORY_MODE = 0o700;
 const AUDIT_OPEN_FLAGS =
@@ -317,7 +318,7 @@ async function rotateIfNeeded(
 
   await removeIfExists(rotatedPath(auditPathString, rotation.maxFiles));
 
-  for (let index = rotation.maxFiles - 1; index >= 1; index -= 1) {
+  for (const index of await rotationIndices(auditPathString, rotation.maxFiles)) {
     await renameIfExists(
       rotatedPath(auditPathString, index),
       rotatedPath(auditPathString, index + 1)
@@ -325,6 +326,35 @@ async function rotateIfNeeded(
   }
 
   await renameIfExists(auditPathString, rotatedPath(auditPathString, 1));
+}
+
+function* numberedRotationIndices(maxFiles: number): Generator<number> {
+  for (let index = maxFiles - 1; index >= 1; index--) yield index;
+}
+
+async function rotationIndices(path: string, maxFiles: number): Promise<Iterable<number>> {
+  if (maxFiles < MIN_INDEXED_ROTATION_FILES) return numberedRotationIndices(maxFiles);
+  const indices = new Set<number>();
+  const normalize = (name: string) => (process.platform === "win32" ? name.toUpperCase() : name);
+  const prefix = normalize(`${basename(path)}.`);
+  try {
+    // The async iterator closes the directory, including on discovery failures.
+    const directory = await opendir(dirname(path));
+    for await (const entry of directory) {
+      const separator = entry.name.lastIndexOf(".");
+      if (normalize(entry.name.slice(0, separator + 1)) !== prefix) continue;
+      const suffix = entry.name.slice(separator + 1);
+      if (!/^[1-9]\d*$/.test(suffix)) continue;
+      const index = Number(suffix);
+      if (Number.isSafeInteger(index) && index < maxFiles) indices.add(index);
+    }
+  } catch (error) {
+    const code = (error as { code?: unknown } | null)?.code;
+    // Known-name renames can work without directory-listing permission.
+    if (code === "EACCES" || code === "EPERM") return numberedRotationIndices(maxFiles);
+    throw error;
+  }
+  return [...indices].sort((left, right) => right - left);
 }
 
 async function getExistingFileSize(path: string): Promise<number> {

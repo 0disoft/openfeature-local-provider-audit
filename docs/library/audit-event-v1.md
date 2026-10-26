@@ -80,6 +80,15 @@ raw user context by default.
   `maxQueueBytes` expose pending event JSON Lines bytes and their budget. Counters are cumulative for the sink lifetime.
 - File audit sinks support size-based rotation with `maxBytes` and retained rotated
   file count with `maxFiles`.
+  At 64 or more retained files, rotation streams the directory and shifts only
+  existing canonical numeric backups in descending order. Sparse numbering is
+  preserved; unrelated names and numeric aliases are ignored. Smaller policies
+  retain numbered lookup. If directory discovery is denied, numbered lookup is
+  used so write/search-only directory permissions remain supported. Discovery
+  errors other than permission denial fail the write. Directory iterators close
+  before renaming; process/advisory ownership remains unchanged. This avoids
+  `maxFiles`-proportional missing-path renames, not directory-size-proportional work
+  or arbitrary cross-process filesystem races.
   Active rotation `maxBytes`/`maxFiles` and advisory `lockTimeoutMs` policies require
   safe integers, at most `Number.MAX_SAFE_INTEGER`. `maxBytes` remains positive;
   zero retained files and a zero lock wait timeout remain supported. Invalid

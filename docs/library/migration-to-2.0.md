@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.89` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.90` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.90 discovers existing backups for plain file rotation retaining at least 64
+files, avoiding numbered rename attempts on missing paths. Descending movement,
+gaps, exact numeric names and Windows case aliases retain their behavior. Directory
+permission denial falls back to numbered lookup; default small retention is unchanged.
 
 Alpha.89 reuses verified frozen checkpoints within iterable audit-chain verification.
 The start and optional expected head are still captured before iteration, and every
