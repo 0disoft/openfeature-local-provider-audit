@@ -87,8 +87,9 @@ async function rotateAndAppend(
   rotation: RotationOptions | undefined,
   auditLine: string
 ): Promise<void> {
-  await assertPathIsRegularFile(toPathString(auditPath));
   if (rotation !== undefined) {
+    // Rotation touches paths before append's own pre-open check can protect them.
+    await assertPathIsRegularFile(toPathString(auditPath));
     await rotateIfNeeded(auditPath, rotation, Buffer.byteLength(auditLine, "utf8"));
   }
 

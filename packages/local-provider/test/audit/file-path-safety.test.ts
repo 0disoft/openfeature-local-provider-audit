@@ -1,5 +1,5 @@
 import { constants } from "node:fs";
-import { mkdtemp, open, rm, writeFile, type FileHandle } from "node:fs/promises";
+import { lstat, mkdtemp, open, readFile, rm, writeFile, type FileHandle } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
@@ -16,7 +16,7 @@ vi.mock("node:fs", async (original) => {
 });
 vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof import("node:fs/promises")>();
-  return { ...actual, open: vi.fn(actual.open) };
+  return { ...actual, lstat: vi.fn(actual.lstat), open: vi.fn(actual.open) };
 });
 afterEach(() => vi.restoreAllMocks());
 
@@ -30,6 +30,33 @@ function event() {
     providerName: "safety"
   });
 }
+
+it.each([
+  { label: "batched append", options: {}, writes: 64, checks: 1 },
+  { label: "locked append", options: { lock: true }, writes: 1, checks: 1 },
+  { label: "rotation-enabled append", options: { maxBytes: 1_000_000 }, writes: 1, checks: 2 }
+])(
+  "keeps required path checks for $label and writes every record",
+  async ({ options, writes, checks }) => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-path-check-"));
+    try {
+      const path = join(directory, "audit.jsonl");
+      await writeFile(path, "");
+      const record = event();
+      const sink = createFileAuditSink({ path, createDirectory: false, ...options });
+      vi.mocked(lstat).mockClear();
+      await Promise.all(Array.from({ length: writes }, () => sink.write(record)));
+      await sink.flush?.();
+      expect(vi.mocked(lstat).mock.calls.filter(([input]) => input === path)).toHaveLength(checks);
+      const lines = (await readFile(path, "utf8")).trimEnd().split("\n");
+      expect(lines.map((line) => JSON.parse(line))).toEqual(
+        Array(writes).fill(JSON.parse(JSON.stringify(record)))
+      );
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  }
+);
 
 it("rejects existing non-regular paths before open or rotation and drains the failed write", async () => {
   const directory = await mkdtemp(join(tmpdir(), "openfeature-file-type-"));

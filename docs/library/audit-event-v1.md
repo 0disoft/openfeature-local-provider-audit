@@ -189,6 +189,12 @@ initialization attempts both close and owned-marker removal even if they fail, a
 initialization errors are never retried as contention. Neither append nor cleanup
 is automatically retried. Foreign lock markers remain untouched.
 
+Nonrotating file appends perform one path-type check immediately before opening
+the file, including each coalesced batch. Rotation-enabled writes additionally
+check the path before inspecting or moving files. Opened-handle type, hard-link
+count and ownership validation always run before append; removing a duplicate
+path check does not make path-based I/O safe against arbitrary filesystem races.
+
 ## Immutable snapshot hash reuse
 
 The shared snapshot-hash path used by explanations and audit-event creation reuses

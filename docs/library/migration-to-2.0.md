@@ -8,8 +8,12 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.82` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.83` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.83 removes one duplicate path-stat operation from nonrotating file audit
+appends. Pre-open path validation, opened-handle checks and the separate check
+before rotation remain in place; audit records and failure contracts are unchanged.
 
 Alpha.81 checks array length against the remaining snapshot-capture node budget
 before key enumeration. Oversized arrays reject without per-index key allocation;
