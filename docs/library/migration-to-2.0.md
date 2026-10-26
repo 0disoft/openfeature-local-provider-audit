@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.93` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.94` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.94 isolates Promise-like results mistakenly returned by synchronous metrics
+binding. Rejections are observed without blocking registration or shutdown; late
+sessions are never adopted and their close method is called once, including after
+provider shutdown. Cleanup rejection is isolated; normal synchronous sessions retain
+their lifecycle and public signatures.
 
 Alpha.93 omits Promise-like results mistakenly returned by synchronous custom sink
 `getStats()` diagnostics and observes their rejections without awaiting them.

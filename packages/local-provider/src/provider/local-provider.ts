@@ -150,7 +150,14 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     this.state = this.createState(snapshot, provenance);
     this.metadata = { name };
     try {
-      this.metricsSession = metrics?.bindStatus(() => this.getStatus(), this.auditSink);
+      const session = metrics?.bindStatus(() => this.getStatus(), this.auditSink);
+      if (session !== undefined && "then" in session && typeof session.then === "function") {
+        // Binding is synchronous. Discard async sessions, releasing any late ownership.
+        observeDiagnosticResult(Promise.resolve(session).then((late) => late?.close()));
+        this.metricsSession = undefined;
+      } else {
+        this.metricsSession = session;
+      }
     } catch {
       // Diagnostics failures do not prevent provider registration.
       this.metricsSession = undefined;

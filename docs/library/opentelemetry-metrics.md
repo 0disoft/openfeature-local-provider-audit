@@ -101,5 +101,12 @@ on those descriptions alone.
 
 Custom integrations may implement `ProviderMetrics.bindStatus(readStatus, sink?)`
 returning a `ProviderMetricsSession` with `recordEvaluation(metric)` and `close()`.
+Binding remains synchronous. If a custom implementation mistakenly returns a
+Promise-like result, the provider observes its rejection without adopting or
+awaiting the session. Any session delivered later is closed once with its receiver
+preserved, even after provider shutdown; synchronous throws and asynchronous cleanup
+rejections are isolated. An unresolved binding does not delay registration, flag
+resolution or audit draining. Normal synchronous sessions require no extra Promise
+allocation. This does not cancel I/O started by custom binding code.
 They receive only an evaluation category/duration projection, status getter and
 optional caller-owned sink reference, not the evaluation request or context.

@@ -1,7 +1,7 @@
 import { setImmediate } from "node:timers/promises";
 import { expect, it, vi } from "vitest";
 import { createLocalProvider } from "../../src/provider/local-provider.js";
-import type { FileAuditSinkStats } from "../../src/public-types.js";
+import type { FileAuditSinkStats, ProviderMetricsSession } from "../../src/public-types.js";
 
 const snapshot = {
   schemaVersion: 1 as const,
@@ -146,4 +146,70 @@ it("keeps asynchronous counters omitted and accepts later synchronous counters",
   });
   expect(Object.isFrozen(captured)).toBe(true);
   await provider.onClose?.();
+});
+
+it.each([false, true])("isolates asynchronous metric binding (pending: %s)", async (pending) => {
+  const { value, delivered } = diagnostic(pending);
+  const provider = createLocalProvider({
+    snapshot,
+    env: {},
+    metrics: { bindStatus: () => value as unknown as ProviderMetricsSession }
+  });
+  await expect(
+    provider.resolveBooleanEvaluation("feature", false, {}, quiet)
+  ).resolves.toMatchObject({ value: true, reason: "STATIC" });
+  await provider.onClose?.();
+  await setImmediate();
+  expect(delivered).toHaveBeenCalledOnce();
+});
+
+it.each([false, true])(
+  "releases a late metric session exactly once (already closed: %s)",
+  async (closed) => {
+    let release!: (session: ProviderMetricsSession) => void;
+    const binding = new Promise<ProviderMetricsSession>((resolve) => {
+      release = resolve;
+    });
+    const recordEvaluation = vi.fn();
+    const session = {
+      recordEvaluation,
+      close: vi.fn(function (this: ProviderMetricsSession) {
+        expect(this).toBe(session);
+      })
+    };
+    const provider = createLocalProvider({
+      snapshot,
+      env: {},
+      metrics: { bindStatus: () => binding as unknown as ProviderMetricsSession }
+    });
+    if (closed) await provider.onClose?.();
+    release(session);
+    await setImmediate();
+    if (!closed)
+      await expect(
+        provider.resolveBooleanEvaluation("feature", false, {}, quiet)
+      ).resolves.toMatchObject({ value: true });
+    await provider.onClose?.();
+    await provider.onClose?.();
+    expect(session.close).toHaveBeenCalledOnce();
+    expect(recordEvaluation).not.toHaveBeenCalled();
+  }
+);
+
+it.each(["throw", "reject"])("isolates late metric session cleanup failure: %s", async (mode) => {
+  const { value, delivered } = diagnostic();
+  const close = vi.fn(() => {
+    if (mode === "throw") throw new Error("cleanup failed");
+    return value;
+  });
+  const session = { recordEvaluation() {}, close };
+  const provider = createLocalProvider({
+    snapshot,
+    env: {},
+    metrics: { bindStatus: () => Promise.resolve(session) as unknown as ProviderMetricsSession }
+  });
+  await provider.onClose?.();
+  await setImmediate();
+  expect(close).toHaveBeenCalledOnce();
+  expect(delivered).toHaveBeenCalledTimes(mode === "reject" ? 1 : 0);
 });
