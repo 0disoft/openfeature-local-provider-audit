@@ -83,6 +83,12 @@ not become an unhandled rejection. Never-settling diagnostics do not delay flag
 resolution or audit draining. The signatures remain synchronous `void` contracts;
 this defensive observation neither flushes nor cancels caller-owned diagnostics.
 Adapter observation failures are isolated per source/measurement.
+Counter `add`, histogram `record`, and both gauge `observe` paths also observe
+returned Promise-like rejections without waiting. This covers asynchronous custom
+instruments behind the structural Meter interface; synchronous `undefined` returns
+add no Promise allocation. Instrument construction and callback registration/removal
+retain their synchronous lifecycle/error contracts. This does not retry, flush or
+cancel instrument work, and never-settling measurements cannot delay resolution.
 Creating instruments can throw at explicit adapter construction, before provider
 registration. The caller's custom SDK code remains trusted and synchronous; the
 adapter cannot preempt blocking callbacks. Invalid numeric duration is ignored.

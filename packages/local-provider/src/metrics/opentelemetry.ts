@@ -1,4 +1,5 @@
 import { cleanupResources } from "../errors/resource-cleanup.js";
+import { observeDiagnosticResult } from "../errors/observe-diagnostic.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import type {
@@ -82,7 +83,8 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
     }
     for (const [state, value] of Object.entries(counts)) {
       try {
-        if (Number.isFinite(value) && value >= 0) result.observe(value, { state });
+        if (Number.isFinite(value) && value >= 0)
+          observeDiagnosticResult(result.observe(value, { state }));
       } catch {
         // A custom observer must not abort other operational measurements.
       }
@@ -117,7 +119,7 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
     ] as const) {
       if (!Number.isSafeInteger(value)) continue;
       try {
-        result.observe(value, { state });
+        observeDiagnosticResult(result.observe(value, { state }));
       } catch {
         /* Optional instrumentation; isolate each measurement. */
       }
@@ -155,20 +157,20 @@ export function createOpenTelemetryMetrics(meter: OpenTelemetryMeter): ProviderM
             error_code: metric.errorCode === undefined ? "none" : bounded(ERRORS, metric.errorCode)
           });
           try {
-            evaluations.add(1, attributes);
+            observeDiagnosticResult(evaluations.add(1, attributes));
           } catch {
             /* Optional instrumentation. */
           }
           try {
             if (metric.errorCode !== undefined || metric.reason === EVALUATION_REASONS.ERROR) {
-              errors.add(1, attributes);
+              observeDiagnosticResult(errors.add(1, attributes));
             }
           } catch {
             /* Optional instrumentation. */
           }
           try {
             if (Number.isFinite(metric.durationMs) && metric.durationMs >= 0) {
-              duration.record(metric.durationMs / 1_000, attributes);
+              observeDiagnosticResult(duration.record(metric.durationMs / 1_000, attributes));
             }
           } catch {
             /* Optional instrumentation. */

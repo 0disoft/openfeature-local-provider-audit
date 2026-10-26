@@ -1,4 +1,5 @@
 import type { Meter } from "@opentelemetry/api";
+import { setImmediate } from "node:timers/promises";
 import { MeterProvider, MetricReader } from "@opentelemetry/sdk-metrics";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
@@ -21,6 +22,56 @@ class ManualReader extends MetricReader {
 }
 
 describe("optional metrics", () => {
+  it.each(["evaluations", "errors", "duration", "operational", "queue"])(
+    "isolates a rejecting %s measurement",
+    async (phase) => {
+      const fixture = testMeter();
+      const delivered = vi.fn();
+      const rejected = {
+        // biome-ignore lint/suspicious/noThenProperty: Track a rejecting instrument without leaking a rejection from the regression baseline.
+        then(_resolve: unknown, reject: (cause: unknown) => void) {
+          delivered();
+          reject(new Error("measurement unavailable"));
+        }
+      };
+      if (phase === "evaluations") fixture.add.mockReturnValueOnce(rejected);
+      if (phase === "errors")
+        fixture.add.mockReturnValueOnce(undefined).mockReturnValueOnce(rejected);
+      if (phase === "duration") fixture.record.mockReturnValueOnce(rejected);
+      const provider = createLocalProvider({
+        ...options,
+        metrics: createOpenTelemetryMetrics(fixture.meter)
+      });
+      await expect(
+        provider.resolveBooleanEvaluation("missing", false, {}, logger)
+      ).resolves.toMatchObject({ value: false, reason: "DEFAULT" });
+      for (const [index, callback] of [...fixture.callbacks].entries()) {
+        const observe = vi.fn();
+        if ((phase === "operational" && index === 0) || (phase === "queue" && index === 1))
+          observe.mockReturnValueOnce(rejected);
+        callback({ observe });
+      }
+      await provider.onClose?.();
+      await setImmediate();
+      expect(delivered).toHaveBeenCalledOnce();
+      expect(fixture.callbacks.size).toBe(0);
+    }
+  );
+
+  it("does not wait for a measurement that never settles", async () => {
+    const fixture = testMeter();
+    fixture.add.mockReturnValue(new Promise(() => {}));
+    const provider = createLocalProvider({
+      ...options,
+      metrics: createOpenTelemetryMetrics(fixture.meter)
+    });
+    await expect(
+      provider.resolveBooleanEvaluation("checkout.enabled", false, {}, logger)
+    ).resolves.toMatchObject({ value: true, reason: "STATIC" });
+    await provider.onClose?.();
+    expect(fixture.callbacks.size).toBe(0);
+  });
+
   it("cleans both gauges after partial registration and cleanup failures", async () => {
     const fixture = testMeter();
     const metrics = createOpenTelemetryMetrics(fixture.meter);

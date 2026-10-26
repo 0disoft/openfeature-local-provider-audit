@@ -13,6 +13,7 @@ import {
 } from "../audit/audit-event.js";
 import { createEnvOverrides } from "../env/env-overrides.js";
 import { LocalProviderError } from "../errors/local-provider-error.js";
+import { observeDiagnosticResult } from "../errors/observe-diagnostic.js";
 import { LOCAL_PROVIDER_ERROR_CODES } from "../errors/error-codes.js";
 import { evaluateFlag } from "../evaluator/evaluate.js";
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
@@ -477,12 +478,6 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       ...(hasOverrideState(overrides) ? { overrideHash: createOverrideHash(overrides) } : {})
     };
   }
-}
-
-// Void callbacks may still return a Promise at runtime. Observe it without
-// awaiting optional diagnostics or allocating for normal synchronous callbacks.
-function observeDiagnosticResult(result: unknown): void {
-  if (result !== undefined) void Promise.resolve(result).catch(() => undefined);
 }
 
 function createFlagHashes(snapshot: FlagSnapshot): ReadonlyMap<string, string> {
