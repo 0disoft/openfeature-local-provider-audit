@@ -5,6 +5,35 @@ import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../../src/reasons.js";
 import { replayFixtures } from "./fixtures.js";
 
 describe("replayEvaluationFixture", () => {
+  it.each(["hole", "hidden accessor"])(
+    "rejects a shared %s array even when an extra property masks its missing enumerable slot",
+    (kind) => {
+      let reads = 0;
+      const value: boolean[] = Array(1);
+      if (kind === "hidden accessor")
+        Object.defineProperty(value, "0", {
+          get() {
+            reads++;
+            return false;
+          },
+          enumerable: false
+        });
+      Object.defineProperty(value, "extra", { value: false, enumerable: true });
+      const fixture: ReplayFixture = {
+        schemaVersion: 1,
+        name: kind,
+        snapshot: { schemaVersion: 1, flags: {} },
+        request: { flagKey: "missing", expectedType: "object", defaultValue: value },
+        expected: { value, reason: "DEFAULT", source: "default", errorCode: "FLAG_NOT_FOUND" }
+      };
+      expect(replayEvaluationFixture(fixture)).toMatchObject({
+        passed: false,
+        mismatches: [{ field: "value" }]
+      });
+      expect(reads).toBe(0);
+    }
+  );
+
   it("does not let hidden array methods falsify a comparison", () => {
     let calls = 0;
     const value = [true];

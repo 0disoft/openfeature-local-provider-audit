@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.87` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.88` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.88 rejects non-index array keys that mask missing enumerable data slots.
+Replay now reports these malformed shared values as mismatches instead of passing
+by identity. Dense arrays, object field names and existing traversal budgets retain
+their behavior; no public signature or serialized schema changes.
 
 Alpha.87 checks canonical audit-record size before record hashing. Over-limit JSON
 escapes and UTF-8 content no longer incur a discarded record digest; genesis

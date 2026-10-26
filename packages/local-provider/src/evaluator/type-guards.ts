@@ -42,6 +42,8 @@ export function isJsonValue(value: unknown): value is JsonValue {
         return false;
       if (array && keys.length !== length) return false;
       for (const key of keys) {
+        // A matching key count alone can hide holes behind non-index properties.
+        if (array && (!/^(0|[1-9]\d*)$/.test(key) || Number(key) >= length)) return false;
         const descriptor = Object.getOwnPropertyDescriptor(current, key);
         if (descriptor === undefined || !("value" in descriptor)) return false;
         stack.push({ value: descriptor.value, depth: entry.depth + 1 });

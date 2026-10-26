@@ -41,6 +41,10 @@ exports of production audit logs.
   getters. Cyclic, non-finite, accessor, over-depth (128 edges) or oversized
   (100,000 visited values) comparison values produce a field mismatch rather than
   a recursion/serialization exception. A malformed value is never considered equal.
+- Arrays require dense enumerable data indices: every enumerated key must be a
+  canonical nonnegative integer below `length`. Extra named or numeric-alias keys
+  cannot replace a missing index, even when expected and actual share the same array.
+  Valid array key enumeration order and ordinary JSON object names remain unrestricted.
 - Error message text is intentionally excluded from fixture comparison to avoid overfitting tests to non-contract copy.
 
 ## Review Blockers
