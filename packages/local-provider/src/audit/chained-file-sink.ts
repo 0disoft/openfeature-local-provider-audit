@@ -14,7 +14,7 @@ import { createLockOptions, serializeProcessWrite, withFileLock } from "./audit-
 import {
   chainInteger,
   createAuditChainCheckpoint,
-  createChainedAuditEvent,
+  createCapturedChainedAuditEvent,
   verifyAuditChain,
   verifyAuditChainRecord
 } from "./audit-chain.js";
@@ -352,7 +352,7 @@ export function createChainedFileAuditSink(
         bytes = 0;
       }
       for (const event of events) {
-        const record = createChainedAuditEvent(event, end, { maxRecordBytes });
+        const record = createCapturedChainedAuditEvent(event, end, { maxRecordBytes });
         const line = `${JSON.stringify(record)}\n`;
         const size = Buffer.byteLength(line);
         if (

@@ -30,6 +30,12 @@ import {
 } from "../../src/index.js";
 import { runCli } from "../../src/cli/run.js";
 import { staticSnapshot } from "../fixtures.js";
+import { captureChainEvent } from "../../src/audit/chain-event.js";
+
+vi.mock("../../src/audit/chain-event.js", async (original) => {
+  const actual = await original<typeof import("../../src/audit/chain-event.js")>();
+  return { ...actual, captureChainEvent: vi.fn(actual.captureChainEvent) };
+});
 
 vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof import("node:fs/promises")>();
@@ -62,6 +68,34 @@ async function records(files: readonly string[]) {
 }
 beforeEach(async () => {
   directory = await mkdtemp(join(tmpdir(), "of-chain-writer-"));
+});
+
+it("captures queued events once while isolating caller mutation and verifying the stored chain", async () => {
+  const keys = ["tenant"];
+  const input = {
+    ...event(),
+    context: {
+      targetingKeyPresent: false,
+      keyMode: "names" as const,
+      keys,
+      redacted: true as const
+    }
+  };
+  const audit = sink();
+  vi.mocked(captureChainEvent).mockClear();
+  const pending = audit.write(input);
+  keys.push("later");
+  await pending;
+  await audit.flush?.();
+  expect(captureChainEvent).toHaveBeenCalledOnce();
+  vi.mocked(captureChainEvent).mockClear();
+  const checkpoint = await audit.getCheckpoint();
+  expect(captureChainEvent).toHaveBeenCalled();
+  const stored = await records(checkpoint.files);
+  expect(stored[0]?.event.context.keys).toEqual(["tenant"]);
+  expect(
+    verifyAuditChain(stored, { start: checkpoint.start, expectedHead: checkpoint.head }).records
+  ).toBe(1);
 });
 afterEach(async () => {
   vi.restoreAllMocks();

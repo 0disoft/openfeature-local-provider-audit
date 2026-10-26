@@ -205,6 +205,16 @@ multi-record recovery before batch writes are enabled.
 Local batch validation and workload limits are recorded in
 `../testing/audit-batch-acceptance.md`.
 
+### Enqueue-time event ownership
+
+The chained file sink captures and deeply freezes each event synchronously before
+enqueueing it. Its internal record builder reuses that owned capture under the same
+record limit rather than copying it again. Public `createChainedAuditEvent` still
+captures arbitrary input, including caller-frozen objects; stored records still
+undergo complete verification. Canonical bytes, hashes, size limits and input
+mutation isolation are unchanged. This removes one event/context/key-array capture
+per queued event; canonicalization and storage work remain necessary.
+
 ### Operator-only storage diagnostics
 
 Optional `onError(error)` receives the original storage/lock/recovery failure after

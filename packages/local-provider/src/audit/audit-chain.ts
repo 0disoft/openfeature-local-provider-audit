@@ -28,6 +28,25 @@ export function createChainedAuditEvent(
   previous: AuditChainCheckpoint,
   options: AuditChainOptions = {}
 ): ChainedAuditEvent {
+  return createChainRecord(event, previous, options, false);
+}
+
+// Internal: only the file sink's enqueue-time capture, using the same record limit.
+// Arbitrary caller events must use the public capture path above, even when frozen.
+export function createCapturedChainedAuditEvent(
+  event: AuditEvent,
+  previous: AuditChainCheckpoint,
+  options: AuditChainOptions
+): ChainedAuditEvent {
+  return createChainRecord(event, previous, options, true);
+}
+
+function createChainRecord(
+  event: AuditEvent,
+  previous: AuditChainCheckpoint,
+  options: AuditChainOptions,
+  captured: boolean
+): ChainedAuditEvent {
   try {
     const limit = recordLimit(options);
     const start = captureCheckpoint(previous);
@@ -37,7 +56,7 @@ export function createChainedAuditEvent(
       chainId: start.chainId,
       sequence: start.sequence + 1,
       previousHash: start.hash,
-      event: captureChainEvent(event, limit)
+      event: captured ? event : captureChainEvent(event, limit)
     };
     const canonicalBody = stableStringify(body);
     const record = Object.freeze({
