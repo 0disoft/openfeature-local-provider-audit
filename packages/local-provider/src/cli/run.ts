@@ -141,11 +141,12 @@ async function validateSnapshotFile(options: ValidateCommandOptions, io: CliIo):
     }
 
     io.stdout(
-      `OK ${options.filePath} schemaVersion=${snapshot.schemaVersion} flags=${flagCount} format=${resolvedFormat}\n`
+      `OK ${escapeTerminalText(options.filePath)} schemaVersion=${snapshot.schemaVersion} flags=${flagCount} format=${resolvedFormat}\n`
     );
     return 0;
   } catch (error) {
-    io.stderr(`Invalid flag snapshot: ${error instanceof Error ? error.message : String(error)}\n`);
+    const message = error instanceof Error ? error.message : String(error);
+    io.stderr(`Invalid flag snapshot: ${escapeTerminalText(message)}\n`);
     return 1;
   }
 }
@@ -159,8 +160,16 @@ function parseFormat(value: string): SnapshotFileFormat | undefined {
 }
 
 function usageError(io: CliIo, message: string): number {
-  io.stderr(`Usage error: ${message}\n\n${helpText()}`);
+  io.stderr(`Usage error: ${escapeTerminalText(message)}\n\n${helpText()}`);
   return 2;
+}
+
+// Escape untrusted display fields, preserving framing newlines and JSON wire values.
+function escapeTerminalText(value: string): string {
+  return value.replace(
+    /[\p{Cc}\p{Zl}\p{Zp}\p{Bidi_Control}]/gu,
+    (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`
+  );
 }
 
 function helpText(): string {

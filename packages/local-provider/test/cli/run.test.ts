@@ -136,6 +136,64 @@ describe("CLI runner", () => {
     expect(io.output()).toBe("");
     expect(io.error()).toContain(`Usage error: ${message}`);
   });
+
+  it.each(["json", "yaml"])("escapes terminal controls from rejected %s fields", async (format) => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-cli-controls-"));
+    try {
+      const controls = "\u001b[2J\u0007\r\n\u009b\u2028\u2029\u202e\u2066";
+      const input = { schemaVersion: 1, flags: {}, [`untrusted${controls}`]: true };
+      await writeFile(join(directory, `flags.${format}`), JSON.stringify(input));
+      const io = createIo(directory);
+      expect(await runCli(["validate", `flags.${format}`], io)).toBe(1);
+      expect(io.output()).toBe("");
+      // Count rather than print hostile terminal sequences in assertion failures.
+      expect(
+        [
+          ...io
+            .error()
+            .slice(0, -1)
+            .matchAll(/[\p{Cc}\p{Zl}\p{Zp}\p{Bidi_Control}]/gu)
+        ].length
+      ).toBe(0);
+      expect(io.error().includes("\\u001b[2J\\u0007\\u000d\\u000a")).toBe(true);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
+
+  it.each(
+    [
+      ["unknown\u001b[2J\nforged"],
+      ["validate", "--format", "bad\u000d\u009b"],
+      ["validate", "--format=bad\u202e"],
+      ["validate", "--bad\u0007"]
+    ].map((args) => ({ args }))
+  )("keeps untrusted usage fields inert without flattening help", async ({ args }) => {
+    const io = createIo(process.cwd());
+    expect(await runCli(args, io)).toBe(2);
+    expect(
+      [...io.error().matchAll(/[\p{Cc}\p{Bidi_Control}]/gu)].filter(([value]) => value !== "\n")
+    ).toHaveLength(0);
+    expect(io.error().includes("\nforged")).toBe(false);
+    expect(io.error().includes("\n\nUsage:\n")).toBe(true);
+  });
+
+  it("escapes display-only bidi in a path while preserving JSON path and ordinary Unicode", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "openfeature-cli-path-"));
+    try {
+      const path = "설정-\u202e.json";
+      await writeFile(join(directory, path), createJsonSnapshot());
+      const human = createIo(directory);
+      expect(await runCli(["validate", path], human)).toBe(0);
+      expect(human.output().includes("설정-\\u202e.json")).toBe(true);
+      expect(human.output().includes("\u202e")).toBe(false);
+      const json = createIo(directory);
+      expect(await runCli(["validate", path, "--json"], json)).toBe(0);
+      expect(JSON.parse(json.output()).path).toBe(path);
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
+  });
 });
 
 function createIo(cwd: string): CliIo & { output(): string; error(): string } {

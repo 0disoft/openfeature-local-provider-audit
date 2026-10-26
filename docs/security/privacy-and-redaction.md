@@ -43,6 +43,14 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
   make it confidential and does not authenticate its author. Replay still requires
   the original sanitized inputs; audit records alone do not retain those inputs.
 - JSON Lines serialization is explicit.
+- Human-readable CLI `validate` errors, usage fields and successful validation paths
+  escape Unicode control characters, line/paragraph separators and bidirectional
+  controls as visible `\uXXXX` text. An untrusted snapshot field name or command
+  argument cannot insert terminal escape sequences, overwrite a diagnostic line or
+  change its display direction. Help/framing newlines and ordinary Unicode stay
+  intact. JSON output preserves original logical values and paths; schemas, exit
+  codes, programmatic library errors and generated declarations are unchanged.
+  This display encoding does not redact sensitive names or error text.
 - File audit sinks append only serialized redacted events.
 - Provider audit sink failures are logged without changing the evaluated result
   by default. Opt-in `returnDefault` emits generic failure details without the

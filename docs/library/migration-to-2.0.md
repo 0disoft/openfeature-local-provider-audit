@@ -8,8 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.95` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.96` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.96 escapes terminal controls, Unicode line/paragraph separators and bidi
+controls in human-readable validation errors, usage fields and validated file paths.
+Untrusted snapshot field names cannot inject terminal commands or diagnostic lines.
+Ordinary Unicode, framing/help newlines, exit codes and JSON wire values retain
+their behavior; this is display escaping, not identifier/value redaction. See
+`docs/security/privacy-and-redaction.md`.
 
 Alpha.95 avoids parsing, snapshot validation and serialization on automatic file
 notifications whose decoded input matches the last accepted SHA-256 fingerprint.
