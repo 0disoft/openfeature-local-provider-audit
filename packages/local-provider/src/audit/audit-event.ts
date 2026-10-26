@@ -78,7 +78,13 @@ export function createOverrideHash(overrides: EnvOverrideState | ReplayOverrideI
 }
 
 export function serializeAuditEvent(event: AuditEvent): string {
-  const line = `${JSON.stringify(captureFileAuditEvent(event))}\n`;
+  return serializeCapturedFileAuditEvent(captureFileAuditEvent(event));
+}
+
+// Internal: the file sink passes only its own deeply frozen enqueue-time capture.
+// Public serialization must still capture and validate arbitrary caller input above.
+export function serializeCapturedFileAuditEvent(event: AuditEvent): string {
+  const line = `${JSON.stringify(event)}\n`;
   if (Buffer.byteLength(line, "utf8") > MAX_FILE_AUDIT_RECORD_BYTES)
     throw new TypeError("Audit event exceeds the 16 MiB record limit.");
   return line;

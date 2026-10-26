@@ -93,6 +93,12 @@ raw user context by default.
   Existing non-regular paths are rejected before rotation/open. Where supported,
   nonblocking open also prevents a concurrent FIFO replacement from hanging the queue;
   the opened handle is still checked before writing.
+- Plain file sinks validate and deeply freeze a detached event once, before enqueue
+  through either `write` or `writeConfirmed`. The internal writer serializes those
+  owned captures without repeating validation or copying their context-key arrays.
+  Public `serializeAuditEvent` still captures every caller input, including frozen
+  objects. The same encoder enforces the 16 MiB UTF-8 JSON Lines record limit in
+  every path. FIFO, byte reservations, mutation isolation and output bytes remain.
 - With no rotation (`maxBytes`) and no lock configured, the plain file sink groups
   already waiting records into at most 64 records / 64 KiB of UTF-8 JSON Lines per
   append. There is no batching timer or delay added to wait for future records.

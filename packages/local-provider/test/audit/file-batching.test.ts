@@ -59,6 +59,46 @@ afterEach(async () => {
   await rm(directory, { recursive: true, force: true });
 });
 
+it.each([
+  { confirmed: false, policy: "batch", settings: {} },
+  { confirmed: true, policy: "batch", settings: {} },
+  { confirmed: false, policy: "rotation", settings: { maxBytes: 10_000 } },
+  { confirmed: true, policy: "lock", settings: { lock: true } }
+])(
+  "captures $policy confirmed=$confirmed input once before enqueue",
+  async ({ confirmed, settings }) => {
+    const marker = "one-capture";
+    const input = event(marker);
+    const expected = serializeAuditEvent(input);
+    const ownKeys = Reflect.ownKeys;
+    let captures = 0;
+    vi.spyOn(Reflect, "ownKeys").mockImplementation((target) => {
+      if (Object.getOwnPropertyDescriptor(target, "eventId")?.value === marker) captures++;
+      return ownKeys(target);
+    });
+    const sink = createFileAuditSink({ path, ...settings });
+    const writing = confirmed ? sink.writeConfirmed?.(input) : sink.write(input);
+    Object.assign(input, { eventId: "mutated-after-enqueue" });
+    await writing;
+    await sink.flush?.();
+    expect(captures).toBe(1);
+    expect(await readFile(path, "utf8")).toBe(expected);
+  }
+);
+
+it("never treats a frozen caller object as a validated capture", async () => {
+  const getter = vi.fn(() => {
+    throw new Error("caller getter must not run");
+  });
+  const input = Object.freeze(Object.defineProperty(event("frozen"), "toJSON", { get: getter }));
+  const sink = createFileAuditSink({ path });
+  expect(() => serializeAuditEvent(input)).toThrow("invalid or unsupported fields");
+  await expect(sink.write(input)).rejects.toThrow("invalid or unsupported fields");
+  await expect(sink.writeConfirmed?.(input)).rejects.toThrow("invalid or unsupported fields");
+  expect(getter).not.toHaveBeenCalled();
+  expect(handles).toHaveLength(0);
+});
+
 it("coalesces 128 confirmed records into two append/close operations, preserving FIFO", async () => {
   const sink = createFileAuditSink({ path });
   const records = Array.from({ length: 128 }, (_, index) => event(String(index)));

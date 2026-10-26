@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.76` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.77` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.77 removes repeated validation/copying of plain file-audit records after
+enqueue. Both write entrypoints still capture and freeze untrusted inputs before
+queuing. Only the sink-owned captures use internal serialization; the public
+serializer still validates input and all paths enforce the same 16 MiB wire limit.
+See `audit-event-v1.md`.
 
 Alpha.76 retains at most two actual SemVer strings per synchronous evaluation,
 avoiding repeated parsing when version attributes alternate. The older entry is

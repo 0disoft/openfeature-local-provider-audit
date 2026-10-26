@@ -8,7 +8,7 @@ import { dirname, resolve } from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import type { AuditEvent, AuditSink, FileAuditSinkOptions } from "../public-types.js";
-import { captureFileAuditEvent, serializeAuditEvent } from "./audit-event.js";
+import { captureFileAuditEvent, serializeCapturedFileAuditEvent } from "./audit-event.js";
 
 const FILE_AUDIT_BATCH_SIZE = 64;
 const FILE_AUDIT_BATCH_BYTES = 64 * 1024;
@@ -34,7 +34,7 @@ export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
       shouldCreateDirectory,
       rotation,
       lock,
-      events.map(serializeAuditEvent).join("")
+      events.map(serializeCapturedFileAuditEvent).join("")
     );
   const queued = createQueuedAuditSink(
     options,
