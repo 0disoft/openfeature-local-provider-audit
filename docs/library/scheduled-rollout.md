@@ -25,6 +25,9 @@ ambient clock is read by the pure evaluator. Unscheduled flags ignore evaluation
 
 Provider option `clock?: () => number` defaults to Date.now. A scheduled flag
 captures it once per evaluation; context fields cannot supply a trusted clock.
+Opt-in active signed expiry shares that initial timestamp and separately rechecks
+successful candidates after audit waiting, before final observations. The schedule
+decision still uses the initial timestamp; see `active-snapshot-expiry.md`.
 Throwing/invalid clocks become invalid time if the schedule is reached. Existing
 flag/type checks, emergency disabledVariant, override errors/values and first-match
 targeting rules precede the flag schedule. Ordinary unscheduled evaluations perform

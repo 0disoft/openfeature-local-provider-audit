@@ -23,6 +23,7 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "SnapshotExpiryPolicy",
   "ExportAuditEvidenceOptions",
   "AuditEvidenceFile",
   "AuditEvidenceExport",
@@ -73,6 +74,7 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "SnapshotExpiryPolicy",
   "ExportAuditEvidenceOptions",
   "AuditEvidenceFile",
   "AuditEvidenceExport",
@@ -782,6 +784,14 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     if (signedAudit.provenance?.artifactHash !== signedResult.provenance?.artifactHash) {
       throw new Error(moduleKind + " audit artifact linkage failed");
     }
+    const expiryLogger = { debug() {}, info() {}, warn() {}, error() {} };
+    const expiryOrigin = signedResult.provenance;
+    const expiring = api.createLocalProvider({ snapshot: jsonSnapshot, env: {}, provenance: expiryOrigin,
+      snapshotExpiryPolicy: "returnDefault", clock: () => expiryOrigin.expiresAt });
+    const expiredResolution = await expiring.resolveBooleanEvaluation("checkout.enabled", false, {}, expiryLogger);
+    if (expiredResolution.value !== false || expiredResolution.errorCode !== "PROVIDER_NOT_READY")
+      throw new Error(moduleKind + " authenticated active snapshot expiry failed");
+    await expiring.onClose();
     offlineProvider.updateSnapshot(jsonSnapshot);
     if (offlineProvider.getStatus().provenance !== undefined || signedRefresher.getProvenance() !== undefined) {
       throw new Error(moduleKind + " unsigned update retained signed origin");
@@ -810,11 +820,14 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     const managed = await api.createManagedLocalProvider({
       source: { async fetch() { managedFetches++; return { status: "content", content: Buffer.from(signed) }; } },
       verification: { audience: "packed", trustedKeys: { packed: signingKeys.publicKey } },
-      recovery: { path: auditPath + ".snapshots" }, bootstrap: jsonSnapshot
+      recovery: { path: auditPath + ".snapshots" }, bootstrap: jsonSnapshot,
+      provider: { snapshotExpiryPolicy: "returnDefault", clock: () => expiryOrigin.expiresAt }
     });
     if (managedFetches !== 0 || managed.getStatus().provenance?.artifactHash !== signedResult.provenance.artifactHash) {
       throw new Error(moduleKind + " managed offline recovery failed");
     }
+    if ((await managed.provider.resolveBooleanEvaluation("checkout.enabled", false, {}, expiryLogger)).errorCode !== "PROVIDER_NOT_READY")
+      throw new Error(moduleKind + " managed recovered snapshot expiry failed");
     await managed.refresh();
     const managedClose = managed.provider.onClose();
     if (managed.close() !== managedClose) throw new Error(moduleKind + " managed close was not shared");
@@ -1032,6 +1045,9 @@ const confirmedOptions: LocalProviderOptions = {
 const timedOutWrites: number = auditStatus.timedOutWrites;
 const origin: SignedSnapshotMetadata | undefined = status.provenance;
 const originOptions: LocalProviderOptions = { snapshot, ...(origin ? { provenance: origin } : {}) };
+const snapshotExpiryPolicy: SnapshotExpiryPolicy = "returnDefault";
+const expiringOptions: LocalProviderOptions = { snapshot, snapshotExpiryPolicy };
+void expiringOptions;
 declare const reloadable: ReloadableLocalProvider;
 reloadable.updateSnapshot(snapshot, origin);
 declare const audited: AuditEvent;

@@ -1,5 +1,11 @@
 # Public API
 
+Optional `LocalProviderOptions.snapshotExpiryPolicy` (`SnapshotExpiryPolicy`) adds
+Node-provider active signed expiry. Default `continue` preserves last-good behavior;
+`returnDefault` gates captured signed artifacts at expiry and after audit waiting.
+No portable-core API or per-evaluation signature check is added. See
+`active-snapshot-expiry.md` for clock, update, audit and unsigned boundaries.
+
 Status: Draft
 Repository Type: library
 

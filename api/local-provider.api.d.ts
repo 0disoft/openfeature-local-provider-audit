@@ -188,7 +188,9 @@ interface EnvOverrideState {
 export declare function parseJsonFlagSnapshot(json: string): FlagSnapshot;
 //#endregion
 //#region src/public-types.d.ts
+type SnapshotExpiryPolicy = "continue" | "returnDefault";
 interface LocalProviderOptions {
+  readonly snapshotExpiryPolicy?: SnapshotExpiryPolicy;
   readonly clock?: () => number;
   readonly snapshot: FlagSnapshot;
   readonly provenance?: SignedSnapshotMetadata;
@@ -906,6 +908,7 @@ export type {
   SignFlagSnapshotOptions,
   SignedSnapshotMetadata,
   SignedSnapshotStore,
+  SnapshotExpiryPolicy,
   SnapshotFileFormat,
   SnapshotRecovery,
   SnapshotRefreshResult,

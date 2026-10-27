@@ -33,7 +33,10 @@ export type {
   EnvOverrideState
 } from "./core-types.js";
 
+export type SnapshotExpiryPolicy = "continue" | "returnDefault";
+
 export interface LocalProviderOptions {
+  readonly snapshotExpiryPolicy?: SnapshotExpiryPolicy;
   readonly clock?: () => number;
   readonly snapshot: FlagSnapshot;
   readonly provenance?: SignedSnapshotMetadata;

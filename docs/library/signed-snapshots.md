@@ -111,9 +111,10 @@ floor, while ETag/source provenance still require matching active state. See
 `snapshot-recovery.md`. Updates remain serialized/coalesced.
 
 After a failed or expired refresh, the already active last good snapshot continues
-evaluating locally. Failure status records `signature` once and does not renew
-freshness. This API does not turn feature flags into authorization or automatically
-disable already active flags at expiry. The application owns stricter runtime policy.
+evaluating locally by default. Failure status records `signature` once and does not
+renew freshness. Opt-in provider `snapshotExpiryPolicy: "returnDefault"` checks active
+signed expiry during resolution; see `active-snapshot-expiry.md` for boundaries.
+Neither policy turns feature flags into authorization.
 
 ## Rotation, rollback and evidence
 

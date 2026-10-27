@@ -1,5 +1,11 @@
 # SDK Public API
 
+Provider `snapshotExpiryPolicy: "returnDefault"` opts into active signed expiry,
+returning the typed caller default with PROVIDER_NOT_READY at the provider decision
+boundary. The default remains continue. Managed-provider options forward this
+setting; unsigned bootstrap and SDK after/finally hooks retain their boundaries.
+See `docs/library/active-snapshot-expiry.md`.
+
 Status: Draft
 Repository Type: sdk
 

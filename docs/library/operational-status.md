@@ -1,5 +1,10 @@
 # Provider operational status
 
+`staleAfterMs` remains observational. Independent opt-in
+`snapshotExpiryPolicy: "returnDefault"` gates active signed expiry during resolution,
+without incrementing refresh failures or adding timers/status transitions. Captured
+provenance remains visible; see `active-snapshot-expiry.md` for the full contract.
+
 The low-level provider factories return an OpenFeature-compatible provider with
 `getStatus(): ProviderStatus` and `reportRefreshFailure(kind)`. Reloadable providers
 also retain `getSnapshot()` and `updateSnapshot(snapshot)`.

@@ -8,9 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.107`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.108`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.108 adds opt-in `snapshotExpiryPolicy: "returnDefault"` to Node providers.
+At active signed expiry or invalid trusted time, typed calls return their original
+default with PROVIDER_NOT_READY. Captured-artifact checks run initially and after
+audit waiting; observed expiry survives clock rollback and identical-provenance
+updates. Default last-good behavior, unsigned snapshots and portable core remain
+unchanged. See `active-snapshot-expiry.md` for audit and callback boundaries.
 
 Alpha.107 bounds release-tool registry verification to three minutes with up to
 36 read-only attempts. Each complete metadata/tarball attempt has a 15-second budget;

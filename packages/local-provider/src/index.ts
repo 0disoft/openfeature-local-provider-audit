@@ -86,6 +86,7 @@ export type {
   JsonObject,
   JsonValue,
   LocalProviderOptions,
+  SnapshotExpiryPolicy,
   ManagedLocalProviderOptions,
   WatchedLocalProviderOptions,
   WatchedLocalProvider,

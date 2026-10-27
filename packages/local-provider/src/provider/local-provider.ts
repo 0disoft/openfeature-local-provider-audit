@@ -45,6 +45,7 @@ import type {
 import { EVALUATION_REASONS, EVALUATION_SOURCES } from "../reasons.js";
 import { toOpenFeatureResolution } from "./openfeature-resolution.js";
 import { OperationalState } from "./operational-state.js";
+import { createActiveSnapshotExpiry, type ActiveSnapshotExpiry } from "./active-snapshot-expiry.js";
 import {
   flushAuditSink,
   resolveAuditPolicy,
@@ -65,6 +66,12 @@ export function createReloadableLocalProvider(
 }
 
 function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeatureProvider {
+  if (
+    options.snapshotExpiryPolicy !== undefined &&
+    options.snapshotExpiryPolicy !== "continue" &&
+    options.snapshotExpiryPolicy !== "returnDefault"
+  )
+    throw new TypeError("snapshotExpiryPolicy must be continue or returnDefault.");
   if (options.clock !== undefined && typeof options.clock !== "function")
     throw new TypeError("clock must be a function.");
   if (options.auditCorrelation !== undefined && typeof options.auditCorrelation !== "boolean")
@@ -103,7 +110,8 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     options.auditPseudonymizer,
     options.clock ?? Date.now,
     options.auditCorrelation ?? false,
-    options.onAuditOutcome
+    options.onAuditOutcome,
+    options.snapshotExpiryPolicy === "returnDefault"
   );
 }
 
@@ -123,6 +131,7 @@ function captureEnv(env: EnvSource): EnvSource {
 type OverrideOptions = CreateEnvOverridesOptions & { readonly env: EnvSource };
 
 interface ProviderState {
+  readonly expiry: ActiveSnapshotExpiry | undefined;
   readonly provenance: SignedSnapshotMetadata | undefined;
   readonly snapshot: FlagSnapshot;
   readonly snapshotHash: string;
@@ -159,7 +168,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     private readonly auditPseudonymizer: AuditPseudonymizer | undefined,
     private readonly clock: () => number,
     private readonly auditCorrelation: boolean,
-    private readonly onAuditOutcome: ((outcome: ProviderAuditOutcome) => void) | undefined
+    private readonly onAuditOutcome: ((outcome: ProviderAuditOutcome) => void) | undefined,
+    private readonly enforceSnapshotExpiry: boolean
   ) {
     this.operational = new OperationalState(staleAfterMs);
     this.state = this.createState(snapshot, provenance);
@@ -245,9 +255,13 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       // hashes or caller-frozen copies do not establish ownership or validity.
       const current = this.state;
       if (snapshot === current.snapshot) {
+        const captured = captureSnapshotProvenance(provenance, current.snapshotHash);
         return {
           ...current,
-          provenance: captureSnapshotProvenance(provenance, current.snapshotHash)
+          provenance: captured,
+          expiry: this.enforceSnapshotExpiry
+            ? createActiveSnapshotExpiry(captured, current)
+            : undefined
         };
       }
       return this.createState(snapshot, provenance);
@@ -261,7 +275,7 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     const previousState = this.state;
     this.operational.refreshed(nextState.snapshotHash !== previousState.snapshotHash);
     if (nextState.snapshotHash === previousState.snapshotHash) {
-      this.state = { ...previousState, provenance: nextState.provenance };
+      this.state = { ...previousState, provenance: nextState.provenance, expiry: nextState.expiry };
       return;
     }
     this.state = nextState;
@@ -368,6 +382,11 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       }
     }
 
+    // Recheck the captured artifact after audit waiting/synchronous sink work.
+    // Existing error defaults keep their precedence; no second audit is emitted.
+    if (result.errorCode === undefined && state.expiry?.unavailable(this.readClock()))
+      result = expiredSnapshotResult(request);
+
     if (startedAt !== undefined) {
       try {
         observeDiagnosticResult(
@@ -422,6 +441,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     state: ProviderState,
     logger: Logger
   ): EvaluationResult<T> {
+    if (state.expiry?.unavailable(request.evaluationTime ?? Number.NaN))
+      return expiredSnapshotResult(request);
     try {
       return evaluateFlag(state.snapshot, request);
     } catch (error) {
@@ -451,15 +472,12 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       descriptor !== undefined && "value" in descriptor ? descriptor.value : undefined;
     let evaluationTime: number | undefined;
     if (
-      state.snapshot.schemaVersion === 2 &&
-      Object.hasOwn(state.snapshot.flags, flagKey) &&
-      state.snapshot.flags[flagKey]?.schedule !== undefined
+      state.expiry !== undefined ||
+      (state.snapshot.schemaVersion === 2 &&
+        Object.hasOwn(state.snapshot.flags, flagKey) &&
+        state.snapshot.flags[flagKey]?.schedule !== undefined)
     ) {
-      try {
-        evaluationTime = this.clock();
-      } catch {
-        evaluationTime = Number.NaN;
-      }
+      evaluationTime = this.readClock();
     }
     return {
       ...(evaluationTime !== undefined ? { evaluationTime } : {}),
@@ -470,6 +488,14 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
       context,
       ...(typeof targetingKey === "string" ? { targetingKey } : {})
     } as EvaluationRequest<T>;
+  }
+
+  private readClock(): number {
+    try {
+      return this.clock();
+    } catch {
+      return Number.NaN;
+    }
   }
 
   private async writeAuditEvent<T extends FlagValue>(
@@ -534,16 +560,34 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     const validatedSnapshot = validateFlagSnapshot(snapshot);
     const overrides = createEnvOverrides(validatedSnapshot, this.overrideOptions);
     const snapshotHash = createSnapshotHash(validatedSnapshot);
+    const captured = captureSnapshotProvenance(provenance, snapshotHash);
 
     return {
       snapshot: validatedSnapshot,
       snapshotHash,
-      provenance: captureSnapshotProvenance(provenance, snapshotHash),
+      provenance: captured,
+      expiry: this.enforceSnapshotExpiry
+        ? createActiveSnapshotExpiry(captured, this.state)
+        : undefined,
       overrides,
       flagHashes: createFlagHashes(validatedSnapshot),
       ...(hasOverrideState(overrides) ? { overrideHash: createOverrideHash(overrides) } : {})
     };
   }
+}
+
+function expiredSnapshotResult<T extends FlagValue>(
+  request: EvaluationRequest<T>
+): EvaluationResult<T> {
+  return {
+    flagKey: request.flagKey,
+    value: request.defaultValue,
+    reason: EVALUATION_REASONS.ERROR,
+    source: EVALUATION_SOURCES.ERROR,
+    errorCode: LOCAL_PROVIDER_ERROR_CODES.PROVIDER_NOT_READY,
+    errorMessage: "Active signed snapshot expired or its clock is invalid.",
+    flagMetadata: {}
+  };
 }
 
 function createFlagHashes(snapshot: FlagSnapshot): ReadonlyMap<string, string> {
