@@ -33,6 +33,12 @@ contracts were covered by tests.
   direct file watching after a rename replaces the watched inode. On Windows, use `fs.watchFile`
   polling for the watched path to avoid Node.js native file-event crashes and path-prefix
   assertion failures seen on Node.js 24 runners.
+- Before each macOS direct-file watcher registration (initial and rearm), synchronously
+  stat the target and require a regular file. This avoids registering a FIFO before
+  the async loader can reject it. Symlinks to regular files remain valid. Initial
+  rejection closes the directory watcher; a failed rearm preserves the previous
+  handle and reports the error. This path check is not atomic against concurrent
+  replacement; watch paths must remain on trusted storage.
 - ADR 0011 adds optional metadata consistency polling for visible paths whose backing
   symlink changes without a visible-filename event. Native watching remains primary.
 - Debounce bursts of native events and suppress event-driven callbacks when the parsed snapshot

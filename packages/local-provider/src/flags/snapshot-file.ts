@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import {
   watch,
   watchFile,
+  statSync,
   constants,
   type FSWatcher,
   type Stats,
@@ -50,6 +51,7 @@ type SnapshotWatchFileListener = (current: Stats, previous: Stats) => void;
 
 interface SnapshotWatchRuntime {
   readonly platform: NodeJS.Platform;
+  statFile(path: string): Pick<Stats, "isFile">;
   watch(
     path: string,
     options: { readonly persistent: boolean },
@@ -79,6 +81,7 @@ interface SnapshotWatchOptions {
 
 const DEFAULT_SNAPSHOT_WATCH_RUNTIME: SnapshotWatchRuntime = {
   platform: process.platform,
+  statFile: statSync,
   watch(path, options, listener) {
     return watch(path, options, listener);
   },
@@ -343,7 +346,7 @@ export async function readFileWithinLimit(
   }
 }
 
-function assertRegularSnapshotFile(stats: Stats): void {
+function assertRegularSnapshotFile(stats: Pick<Stats, "isFile">): void {
   if (!stats.isFile()) {
     throw new LocalProviderError(
       LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR,
@@ -478,9 +481,7 @@ export function createSnapshotWatchHandle(
   }
 
   try {
-    fileWatcher = createNativeWatcher(options.target.path, options, runtime, () => {
-      if (!handleClosed) options.onChange();
-    });
+    fileWatcher = createMacOsFileWatcher();
   } catch (error) {
     handleClosed = true;
     cleanupResources(
@@ -509,15 +510,22 @@ export function createSnapshotWatchHandle(
 
   function rearmMacOsFileWatcher(): void {
     try {
-      const nextFileWatcher = createNativeWatcher(options.target.path, options, runtime, () => {
-        if (!handleClosed) options.onChange();
-      });
+      const nextFileWatcher = createMacOsFileWatcher();
       const previousFileWatcher = fileWatcher;
       fileWatcher = nextFileWatcher;
       previousFileWatcher?.close();
     } catch (error) {
       options.onError(error);
     }
+  }
+
+  function createMacOsFileWatcher(): FSWatcher {
+    // Native macOS registration can block on a FIFO before the async loader runs.
+    // Check synchronously at both registration sites; regular symlink targets remain valid.
+    assertRegularSnapshotFile(runtime.statFile(options.target.path));
+    return createNativeWatcher(options.target.path, options, runtime, () => {
+      if (!handleClosed) options.onChange();
+    });
   }
 }
 

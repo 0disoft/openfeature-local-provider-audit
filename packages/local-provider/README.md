@@ -4,7 +4,7 @@ Local OpenFeature provider for JSON/YAML flag snapshots, typed evaluation, expli
 CLI validation, environment overrides, deterministic rollout bucketing, replay fixtures,
 and redacted audit logs.
 
-## Managed local file monitoring (local v2 preview)
+## Managed local file monitoring (v2 preview)
 
 `createWatchedLocalProvider({ path })` starts the existing JSON/YAML watcher and
 creates a provider from its single initial load. Register runtime.provider through
@@ -13,9 +13,10 @@ owned watcher/provider shutdown. SDK shutdown shares that same cleanup. Failures
 retain last-good contents and are available through optional onFailure diagnostics.
 Ambient env overrides and context key names default off. See the repository's
 `docs/library/watched-provider.md` and executable node-basic example. This API is
-part of the unpublished v2 preview, not stable v1.
+part of the v2 preview. Published prereleases are available on npm `next`;
+stable v1 installations do not include it.
 
-## Managed signed delivery (local v2 preview)
+## Managed signed delivery (v2 preview)
 
 The Node package root exports `createManagedLocalProvider`. Pass an HTTPS or S3
 source, pinned verification policy, recovery path and safe bootstrap to connect
@@ -26,8 +27,8 @@ construction. First startup needs explicit authorization; ambient env overrides
 and context-key logging are off by default. Existing low-level APIs remain.
 
 See the repository's `docs/library/managed-provider.md` and executable GitOps
-example for inputs, authenticated recovery and ownership. This is an unpublished
-v2 feature; installing stable v1 does not provide it.
+example for inputs, authenticated recovery and ownership. This is a v2 preview
+feature; install a published prerelease through npm `next` to use it.
 
 ## Install
 
@@ -159,7 +160,7 @@ errors.
 
 ## Conditional Targeting (Schema V2)
 
-The unpublished 2.0 development version also accepts the following JSON/YAML shape.
+The 2.0 development prerelease also accepts the following JSON/YAML shape.
 Stable 1.0 readers reject v2. Existing v1 snapshots retain their old behavior.
 
 ```json

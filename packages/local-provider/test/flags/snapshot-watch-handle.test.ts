@@ -4,6 +4,35 @@ import { describe, expect, it, vi } from "vitest";
 import { createSnapshotWatchHandle } from "../../src/flags/snapshot-file.js";
 
 describe("snapshot watch handle", () => {
+  it("rejects a non-regular macOS target before native file registration and closes the directory", () => {
+    const fake = createFakeWatchRuntime("darwin");
+    fake.statFile.mockReturnValue({ isFile: () => false });
+    expect(() =>
+      createSnapshotWatchHandle(createWatchOptions(vi.fn(), vi.fn()), fake.runtime)
+    ).toThrow("Flag snapshot path must resolve to a regular file.");
+    expect(fake.records).toHaveLength(1);
+    expect(fake.records[0]?.watcher.closed).toBe(true);
+  });
+
+  it("rejects a special-file macOS replacement without registering it, then rearms a regular target", () => {
+    const fake = createFakeWatchRuntime("darwin");
+    const onChange = vi.fn(),
+      onError = vi.fn();
+    const handle = createSnapshotWatchHandle(createWatchOptions(onChange, onError), fake.runtime);
+    fake.statFile.mockReturnValue({ isFile: () => false });
+    fake.records[0]?.listener("rename", "flags.json");
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({ code: "PARSE_ERROR" }));
+    expect(fake.records).toHaveLength(2);
+    expect(fake.records[1]?.watcher.closed).toBe(false);
+    expect(onChange).toHaveBeenCalledOnce();
+    fake.statFile.mockReturnValue({ isFile: () => true });
+    fake.records[0]?.listener("rename", "flags.json");
+    expect(fake.records).toHaveLength(3);
+    expect(fake.records[1]?.watcher.closed).toBe(true);
+    handle.close();
+    expect(fake.records[2]?.watcher.closed).toBe(true);
+  });
+
   it("releases the macOS file watcher even when directory close fails", () => {
     const fake = createFakeWatchRuntime("darwin");
     const handle = createSnapshotWatchHandle(createWatchOptions(vi.fn(), vi.fn()), fake.runtime);
@@ -300,6 +329,7 @@ function createStats(values: Pick<Stats, "dev" | "ino" | "mtimeMs" | "ctimeMs" |
 
 function createFakeWatchRuntime(platform: NodeJS.Platform, failAtRecord?: number) {
   const records: FakeWatchRecord[] = [];
+  const statFile = vi.fn((): Pick<Stats, "isFile"> => ({ isFile: () => true }));
   const watchFile = vi.fn(
     (
       _path: string,
@@ -313,10 +343,12 @@ function createFakeWatchRuntime(platform: NodeJS.Platform, failAtRecord?: number
 
   return {
     records,
+    statFile,
     watchFile,
     unwatchFile,
     runtime: {
       platform,
+      statFile,
       watch(path: string, _options: { persistent: boolean }, listener: WatchListener<string>) {
         if (records.length === failAtRecord) {
           throw new Error("synthetic rearm failure");

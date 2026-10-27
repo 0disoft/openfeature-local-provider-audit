@@ -37,7 +37,7 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 
 - JSON and YAML flag snapshot parsing with schema v1 validation.
 - Opt-in schema v2 conditional targeting, conditional percentage rollout and emergency
-  variant selection (unpublished 2.0 development version).
+  variant selection (2.0 development prerelease).
 - Redacted evaluation explanations and local simulation/comparison CLI commands.
 - Local CLI validation for JSON/YAML flag snapshots.
 - Offline JSON Schema and CLI flag-key/value type generation ([authoring](docs/library/authoring.md)).
@@ -52,7 +52,7 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 - Caller-triggered HTTPS signed snapshot delivery, durable recovery and GitOps recipes.
 - Optional chained audit storage, rotation and trusted-checkpoint verification.
 
-These operations/integrity additions belong to the unpublished 2.0 checkout; see
+These operations/integrity additions belong to the 2.0 prerelease line; see
 the [P2 delivery record](docs/product/07-operations-and-integrity.md) and
 [local acceptance evidence](docs/testing/p2-acceptance.md).
 
@@ -78,10 +78,10 @@ Local evaluation also exists in other providers, including flagd. See the
 for current gaps and local issue/PR disposition. Independent external adoption has
 not yet been established; published consumer evidence identifies same-maintainer use.
 
-This checkout stages an unpublished v2 development prerelease. Read its exact
-version from the [package metadata](packages/local-provider/package.json), rather
-than an older runtime evidence record. New v2 features require building this
-checkout; the stable install command above is not an installation of this preview. See [v2 targeting](docs/library/flag-file-schema-v2.md),
+This checkout stages a v2 development prerelease. Read its exact version from the
+[package metadata](packages/local-provider/package.json). Published prereleases
+are available through `npm install @0disoft/openfeature-local-provider@next @openfeature/server-sdk`. The stable install command above
+selects `latest`; unpublished checkout changes require a local build. See [v2 targeting](docs/library/flag-file-schema-v2.md),
 [inspection CLI](docs/library/local-inspection.md), and
 [migration](docs/library/migration-to-2.0.md).
 

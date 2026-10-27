@@ -1,4 +1,4 @@
-# Migration to 2.0 (unpublished development prerelease)
+# Migration to 2.0 (development prerelease)
 
 Schema v1 remains supported. Its overrides, hashes, bucket algorithm, default return,
 redaction and watcher behavior are preserved. Do not change existing snapshots merely
@@ -8,8 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.102` prerelease, not a public release or stability claim.
+currently `2.0.0-alpha.103`. Published prereleases use npm `next`; this is not a
+stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.103 checks macOS direct-watch targets before native registration, both at
+startup and when rearming after replacement. Non-regular targets reject instead
+of entering a potentially blocking native FIFO watch. Regular-file symlink targets,
+directory cleanup and last-good state remain supported. See ADR 0007.
 
 Alpha.102 caps audit lock retry sleeps by the remaining monotonic wait budget
 and checks that budget before retrying an exclusive open. Late wakes cannot begin
