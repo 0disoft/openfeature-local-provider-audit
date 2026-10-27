@@ -164,7 +164,6 @@ jobs:
       - name: Verify npm registry bytes and channel
         env:
           PACKAGE_VERSION: ${{ needs.package.outputs.version }}
-          VERIFY_ATTEMPTS: ${{ steps.registry.outputs.published == 'true' && '1' || '12' }}
         run: >-
           node .tmp/candidate/registry-release.mjs verify
           --package "@0disoft/openfeature-local-provider"
@@ -173,7 +172,6 @@ jobs:
           --candidate "${{ steps.candidate.outputs.tarball }}"
           --expected-sha256 "${{ needs.package.outputs.candidate-sha256 }}"
           --output-dir ".tmp/registry"
-          --attempts "${VERIFY_ATTEMPTS}"
           --github-output "${GITHUB_OUTPUT}"
 
       - name: Upload verified registry artifact

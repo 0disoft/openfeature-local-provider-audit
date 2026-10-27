@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { createServer } from "node:http";
 import {
   assertTrustedPublishingNpmVersion,
   fetchJson,
@@ -190,3 +191,335 @@ function createRegistryFetch({ tarball = TARBALL, tarballStatus = 200 } = {}) {
     return new Response("not found", { status: 404 });
   };
 }
+
+const releaseOptions = {
+  packageName: PACKAGE_NAME,
+  version: VERSION,
+  expectedTag: EXPECTED_TAG,
+  candidateSha256: SHA256,
+  registryBaseUrl: "https://registry.example.test"
+};
+
+test("default verification tolerates more than a minute of propagation without publishing", async () => {
+  let reads = 0,
+    now = 0;
+  const stable = createRegistryFetch();
+  const result = await verifyRegistryReleaseWithRetry({
+    ...releaseOptions,
+    nowImpl: () => now,
+    delayImpl: async (ms) => {
+      now += ms;
+    },
+    fetchImpl: async (url, options) => {
+      assert.equal(options.method, "GET");
+      assert(options.signal instanceof AbortSignal);
+      return ++reads <= 13 ? new Response("pending", { status: 404 }) : stable(url);
+    }
+  });
+  assert.equal(now, 65_000);
+  assert.equal(reads, 16);
+  assert.equal(result.sha256, SHA256);
+});
+
+test("retries an independently stale dist-tag after the version becomes visible", async () => {
+  let tags = 0,
+    waits = 0;
+  const stable = createRegistryFetch();
+  await verifyRegistryReleaseWithRetry({
+    ...releaseOptions,
+    attempts: 3,
+    delayImpl: async () => {
+      waits++;
+    },
+    fetchImpl: async (url) => {
+      if (url.endsWith(encodeURIComponent(PACKAGE_NAME)) && ++tags < 3)
+        return Response.json({ "dist-tags": { next: "older" } });
+      return stable(url);
+    }
+  });
+  assert.equal(tags, 3);
+  assert.equal(waits, 2);
+});
+
+for (const status of [404, 408, 425, 429, 500, 503]) {
+  test(`retries transient HTTP ${status} reads and consumes failed responses`, async () => {
+    let reads = 0,
+      cancelled = 0;
+    const stable = createRegistryFetch();
+    await verifyRegistryReleaseWithRetry({
+      ...releaseOptions,
+      attempts: 2,
+      delayImpl: async () => {},
+      fetchImpl: async (url) => {
+        if (++reads === 1)
+          return new Response(
+            new ReadableStream({
+              cancel() {
+                cancelled++;
+              }
+            }),
+            { status }
+          );
+        return stable(url);
+      }
+    });
+    assert.equal(reads, 4);
+    assert.equal(cancelled, 1);
+  });
+}
+
+for (const kind of ["401", "403", "json", "hash", "version", "url"]) {
+  test(`does not retry permanent ${kind} verification failures`, async () => {
+    let reads = 0;
+    const stable = createRegistryFetch({
+      tarball: kind === "hash" ? Buffer.from("different bytes") : TARBALL
+    });
+    await assert.rejects(
+      verifyRegistryReleaseWithRetry({
+        ...releaseOptions,
+        attempts: 3,
+        delayImpl: async () => {
+          assert.fail("permanent failures must not retry");
+        },
+        fetchImpl: async (url) => {
+          reads++;
+          if (["401", "403"].includes(kind))
+            return new Response("denied", { status: Number(kind) });
+          if (kind === "json") return new Response("not json");
+          if (kind === "url")
+            return Response.json({ version: VERSION, dist: { tarball: "file:///not-network" } });
+          if (kind === "version")
+            return Response.json({ version: "wrong", dist: { tarball: TARBALL_URL } });
+          // A stale tag must not hide a digest mismatch behind transient retries.
+          if (kind === "hash" && url.endsWith(encodeURIComponent(PACKAGE_NAME)))
+            return Response.json({ "dist-tags": {} });
+          return stable(url);
+        }
+      })
+    );
+    assert(reads <= 3);
+  });
+}
+
+test("preserves the original transport cause when retries are exhausted", async () => {
+  const cause = new Error("connection reset");
+  let reads = 0;
+  await assert.rejects(
+    verifyRegistryReleaseWithRetry({
+      ...releaseOptions,
+      attempts: 2,
+      delayImpl: async () => {},
+      fetchImpl: async () => {
+        reads++;
+        throw cause;
+      }
+    }),
+    (error) => error.cause?.cause === cause
+  );
+  assert.equal(reads, 2);
+});
+
+test("starts no request at the exact overall deadline even before timers dispatch", async () => {
+  let now = 0,
+    reads = 0;
+  await assert.rejects(
+    verifyRegistryReleaseWithRetry({
+      ...releaseOptions,
+      timeoutMs: 10,
+      nowImpl: () => now,
+      delayImpl: async () => {
+        now += 5;
+      },
+      fetchImpl: async () => {
+        reads++;
+        return new Response("pending", { status: 404 });
+      }
+    }),
+    /deadline expired/
+  );
+  assert.equal(reads, 2);
+});
+
+test("rejects a matching response that completes after the attempt deadline", async () => {
+  let now = 0;
+  const stable = createRegistryFetch();
+  await assert.rejects(
+    verifyRegistryReleaseWithRetry({
+      ...releaseOptions,
+      attempts: 1,
+      timeoutMs: 100,
+      attemptTimeoutMs: 10,
+      nowImpl: () => now,
+      fetchImpl: async (url) => {
+        const response = await stable(url);
+        if (url === TARBALL_URL) now = 10;
+        return response;
+      }
+    }),
+    (error) => /timed out/.test(error.cause?.message)
+  );
+});
+
+test("bounds a fetch implementation that ignores cancellation", async () => {
+  let signal;
+  await assert.rejects(
+    verifyRegistryReleaseWithRetry({
+      ...releaseOptions,
+      timeoutMs: 15,
+      fetchImpl: async (_url, options) => {
+        signal = options.signal;
+        return new Promise(() => {});
+      }
+    }),
+    /deadline expired/
+  );
+  assert.equal(signal.aborted, true);
+});
+
+test("includes stalled tarball bodies in the attempt budget", async () => {
+  const stable = createRegistryFetch();
+  let body;
+  try {
+    await assert.rejects(
+      verifyRegistryReleaseWithRetry({
+        ...releaseOptions,
+        attempts: 1,
+        attemptTimeoutMs: 15,
+        fetchImpl: async (url) =>
+          url === TARBALL_URL
+            ? new Response(
+                new ReadableStream({
+                  start(controller) {
+                    body = controller;
+                  }
+                })
+              )
+            : stable(url)
+      }),
+      (error) => /timed out/.test(error.cause?.message)
+    );
+  } finally {
+    body?.error(new Error("fixture cleanup"));
+  }
+});
+
+test("preserves caller cancellation while waiting without any additional read", async () => {
+  const controller = new AbortController(),
+    reason = new Error("operator cancelled");
+  let reads = 0;
+  await assert.rejects(
+    verifyRegistryReleaseWithRetry({
+      ...releaseOptions,
+      signal: controller.signal,
+      fetchImpl: async () => {
+        reads++;
+        return new Response("pending", { status: 404 });
+      },
+      delayImpl: async () => {
+        controller.abort(reason);
+      }
+    }),
+    (error) => error === reason
+  );
+  assert.equal(reads, 1);
+});
+
+test("a failed or timed out pre-publish probe never means absent", async () => {
+  await assert.rejects(
+    probeRegistryVersion({
+      ...releaseOptions,
+      timeoutMs: 15,
+      fetchImpl: async () => new Promise(() => {})
+    }),
+    /probe timed out/
+  );
+});
+
+test("rejects unsafe timer and retry options before network reads", async () => {
+  for (const options of [
+    { attempts: 121 },
+    { delayMs: 60_001 },
+    { timeoutMs: 0 },
+    { attemptTimeoutMs: 60_001 },
+    { timeoutMs: Number.MAX_SAFE_INTEGER }
+  ]) {
+    await assert.rejects(
+      verifyRegistryReleaseWithRetry({
+        ...releaseOptions,
+        ...options,
+        fetchImpl: async () => {
+          assert.fail("invalid options started a read");
+        }
+      }),
+      /must be an integer/
+    );
+  }
+});
+
+test("honors Retry-After without extending the overall deadline", async () => {
+  let now = 0,
+    reads = 0;
+  await assert.rejects(
+    verifyRegistryReleaseWithRetry({
+      ...releaseOptions,
+      timeoutMs: 10_000,
+      nowImpl: () => now,
+      delayImpl: async (ms) => {
+        assert.equal(ms, 30_000);
+        now += ms;
+      },
+      fetchImpl: async () => {
+        reads++;
+        return new Response("busy", { status: 429, headers: { "retry-after": "30" } });
+      }
+    }),
+    /deadline expired/
+  );
+  assert.equal(reads, 1);
+});
+
+test("native fetch aborts a stalled tarball body within the verification budget", async () => {
+  let base,
+    tarballReads = 0;
+  const methods = [];
+  const server = createServer((request, response) => {
+    methods.push(request.method);
+    if (request.url === "/artifact.tgz") {
+      tarballReads++;
+      response.writeHead(200);
+      response.write("partial tarball");
+      return;
+    }
+    response.setHeader("content-type", "application/json");
+    response.end(
+      JSON.stringify(
+        request.url.endsWith(VERSION)
+          ? { version: VERSION, dist: { tarball: `${base}/artifact.tgz` } }
+          : { "dist-tags": { [EXPECTED_TAG]: VERSION } }
+      )
+    );
+  });
+  try {
+    await new Promise((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", resolve);
+    });
+    base = `http://127.0.0.1:${server.address().port}`;
+    await assert.rejects(
+      verifyRegistryReleaseWithRetry({
+        ...releaseOptions,
+        registryBaseUrl: base,
+        attempts: 1,
+        attemptTimeoutMs: 1000
+      }),
+      (error) => /timed out/.test(error.cause?.message)
+    );
+    assert.equal(tarballReads, 1);
+    assert.deepEqual(methods, ["GET", "GET", "GET"]);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve()))
+    );
+  }
+});

@@ -8,9 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.106`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.107`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.107 bounds release-tool registry verification to three minutes with up to
+36 read-only attempts. Each complete metadata/tarball attempt has a 15-second budget;
+transient propagation failures retry, while authentication, malformed metadata and
+candidate-byte mismatches stop immediately. No provider API changes or additional
+publication attempts are introduced; see `../ops/release.md`.
 
 Alpha.106 adds Node-only `exportChainedAuditEvidence`: exact retained source files
 are copied under the writer lock, then verified outside it before checkpoints and

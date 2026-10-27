@@ -6,8 +6,10 @@ import { setTimeout as delay } from "node:timers/promises";
 import { pathToFileURL } from "node:url";
 
 const DEFAULT_REGISTRY = "https://registry.npmjs.org";
-const DEFAULT_VERIFY_ATTEMPTS = 12;
+const DEFAULT_VERIFY_ATTEMPTS = 36;
 const DEFAULT_VERIFY_DELAY_MS = 5_000;
+const DEFAULT_VERIFY_TIMEOUT_MS = 180_000;
+const DEFAULT_ATTEMPT_TIMEOUT_MS = 15_000;
 const MINIMUM_TRUSTED_PUBLISHING_NPM = "11.5.1";
 
 export function sha256Bytes(bytes) {
@@ -58,14 +60,15 @@ export function validateRegistryRelease({
   if (typeof versionMetadata.dist?.tarball !== "string" || versionMetadata.dist.tarball === "") {
     throw new Error(`Registry metadata for ${packageName}@${version} is missing dist.tarball.`);
   }
-  if (rootMetadata["dist-tags"]?.[expectedTag] !== version) {
-    throw new Error(
-      `npm dist-tag ${expectedTag} does not resolve to ${version} for ${packageName}.`
-    );
-  }
   if (candidateSha256 !== registrySha256) {
     throw new Error(
       `Published tarball SHA-256 mismatch: candidate ${candidateSha256}, registry ${registrySha256}.`
+    );
+  }
+  if (rootMetadata["dist-tags"]?.[expectedTag] !== version) {
+    throw new RegistryReadError(
+      `npm dist-tag ${expectedTag} does not resolve to ${version} for ${packageName}.`,
+      true
     );
   }
 
@@ -82,25 +85,37 @@ export async function probeRegistryVersion({
   packageName,
   version,
   registryBaseUrl = DEFAULT_REGISTRY,
-  fetchImpl = globalThis.fetch
+  fetchImpl = globalThis.fetch,
+  signal,
+  timeoutMs = DEFAULT_ATTEMPT_TIMEOUT_MS
 }) {
   assertNonEmptyString(packageName, "packageName");
   assertNonEmptyString(version, "version");
   assertFetch(fetchImpl);
 
-  const encodedName = encodeURIComponent(packageName);
-  const response = await fetchImpl(
-    `${normalizeRegistryBase(registryBaseUrl)}/${encodedName}/${encodeURIComponent(version)}`,
-    { headers: { accept: "application/json" } }
+  assertBoundedInteger(timeoutMs, "timeoutMs", 1, 60_000);
+  return boundedRead(
+    timeoutMs,
+    signal,
+    new RegistryReadError("Registry version probe timed out.", true),
+    async (readSignal) => {
+      const encodedName = encodeURIComponent(packageName);
+      const response = await registryRequest(
+        `${normalizeRegistryBase(registryBaseUrl)}/${encodedName}/${encodeURIComponent(version)}`,
+        { headers: { accept: "application/json" }, signal: readSignal },
+        fetchImpl
+      );
+      if (response.status === 404) {
+        await response.body?.cancel();
+        return false;
+      }
+      if (!response.ok) {
+        await rejectHttp(response, "version metadata");
+      }
+      await parseJsonResponse(response, "version metadata", readSignal);
+      return true;
+    }
   );
-  if (response.status === 404) {
-    return false;
-  }
-  if (!response.ok) {
-    throw new Error(`version metadata request failed with HTTP ${response.status}.`);
-  }
-  await parseJsonResponse(response, "version metadata");
-  return true;
 }
 
 export async function fetchRegistryRelease({
@@ -109,7 +124,8 @@ export async function fetchRegistryRelease({
   expectedTag,
   candidateSha256,
   registryBaseUrl = DEFAULT_REGISTRY,
-  fetchImpl = globalThis.fetch
+  fetchImpl = globalThis.fetch,
+  signal
 }) {
   assertNonEmptyString(packageName, "packageName");
   assertNonEmptyString(version, "version");
@@ -122,24 +138,32 @@ export async function fetchRegistryRelease({
   const versionMetadata = await fetchJson(
     `${registryBase}/${encodedName}/${encodeURIComponent(version)}`,
     fetchImpl,
-    "version metadata"
+    "version metadata",
+    signal
   );
   const rootMetadata = await fetchJson(
     `${registryBase}/${encodedName}`,
     fetchImpl,
-    "package metadata"
+    "package metadata",
+    signal
   );
   const tarballUrl = versionMetadata?.dist?.tarball;
   if (typeof tarballUrl !== "string" || tarballUrl === "") {
     throw new Error(`Registry metadata for ${packageName}@${version} is missing dist.tarball.`);
   }
-  const tarballResponse = await fetchImpl(tarballUrl, {
-    headers: { accept: "application/octet-stream" }
-  });
+  const tarballResponse = await registryRequest(
+    tarballUrl,
+    {
+      headers: { accept: "application/octet-stream" },
+      signal
+    },
+    fetchImpl
+  );
   if (!tarballResponse.ok) {
-    throw new Error(`Registry tarball request failed with HTTP ${tarballResponse.status}.`);
+    await rejectHttp(tarballResponse, "Registry tarball");
   }
-  const tarball = Buffer.from(await tarballResponse.arrayBuffer());
+  const tarball = Buffer.from(await readBody(() => tarballResponse.arrayBuffer(), signal));
+  signal?.throwIfAborted();
   const registrySha256 = sha256Bytes(tarball);
   const release = validateRegistryRelease({
     packageName,
@@ -157,39 +181,190 @@ export async function verifyRegistryReleaseWithRetry({
   attempts = DEFAULT_VERIFY_ATTEMPTS,
   delayMs = DEFAULT_VERIFY_DELAY_MS,
   delayImpl = delay,
+  timeoutMs = DEFAULT_VERIFY_TIMEOUT_MS,
+  attemptTimeoutMs = DEFAULT_ATTEMPT_TIMEOUT_MS,
+  signal,
+  nowImpl = () => performance.now(),
   ...releaseOptions
 }) {
-  assertPositiveInteger(attempts, "attempts");
-  assertNonNegativeInteger(delayMs, "delayMs");
+  assertBoundedInteger(attempts, "attempts", 1, 120);
+  assertBoundedInteger(delayMs, "delayMs", 0, 60_000);
+  assertBoundedInteger(timeoutMs, "timeoutMs", 1, 300_000);
+  assertBoundedInteger(attemptTimeoutMs, "attemptTimeoutMs", 1, 60_000);
+  if (typeof nowImpl !== "function") throw new TypeError("nowImpl must be a function.");
   if (typeof delayImpl !== "function") {
     throw new TypeError("delayImpl must be a function.");
   }
 
   let lastError;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await fetchRegistryRelease(releaseOptions);
-    } catch (error) {
-      lastError = error;
-      if (attempt === attempts) {
-        break;
-      }
-      await delayImpl(delayMs);
-    }
-  }
-  throw new Error(
-    `Registry release verification failed after ${attempts} attempt${attempts === 1 ? "" : "s"}: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
-    { cause: lastError }
+  const expired = new RegistryReadError(
+    "Registry verification deadline expired; publication may already be complete. Reconcile using read-only verification, not another publish."
   );
+  try {
+    return await boundedRead(
+      timeoutMs,
+      signal,
+      expired,
+      async (readSignal, checkDeadline) => {
+        for (let attempt = 1; attempt <= attempts; attempt += 1) {
+          checkDeadline();
+          try {
+            return await boundedRead(
+              attemptTimeoutMs,
+              readSignal,
+              new RegistryReadError("Registry read attempt timed out.", true),
+              (attemptSignal) => fetchRegistryRelease({ ...releaseOptions, signal: attemptSignal }),
+              nowImpl
+            );
+          } catch (error) {
+            checkDeadline();
+            lastError = error;
+            if (!(error instanceof RegistryReadError) || !error.retryable) throw error;
+            if (attempt === attempts) {
+              break;
+            }
+            await delayImpl(Math.max(delayMs, error.retryAfterMs ?? 0), undefined, {
+              signal: readSignal
+            });
+          }
+        }
+        throw new Error(
+          `Registry release verification failed after ${attempts} attempt${attempts === 1 ? "" : "s"}: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+          { cause: lastError }
+        );
+      },
+      nowImpl
+    );
+  } catch (error) {
+    if (error === expired && lastError !== undefined) expired.cause = lastError;
+    throw error;
+  }
 }
 
-export async function fetchJson(url, fetchImpl = globalThis.fetch, label = "registry metadata") {
+export async function fetchJson(
+  url,
+  fetchImpl = globalThis.fetch,
+  label = "registry metadata",
+  signal
+) {
   assertFetch(fetchImpl);
-  const response = await fetchImpl(url, { headers: { accept: "application/json" } });
+  const response = await registryRequest(
+    url,
+    { headers: { accept: "application/json" }, signal },
+    fetchImpl
+  );
   if (!response.ok) {
-    throw new Error(`${label} request failed with HTTP ${response.status}.`);
+    await rejectHttp(response, label);
   }
-  return parseJsonResponse(response, label);
+  return parseJsonResponse(response, label, signal);
+}
+
+class RegistryReadError extends Error {
+  constructor(message, retryable = false, options) {
+    super(message, options);
+    this.retryable = retryable;
+  }
+}
+
+async function registryRequest(url, options, fetchImpl) {
+  const parsed = new URL(url);
+  if (!["http:", "https:"].includes(parsed.protocol))
+    throw new TypeError("Registry reads require HTTP(S).");
+  options.signal?.throwIfAborted();
+  try {
+    const response = await fetchImpl(url, { ...options, method: "GET" });
+    if (options.signal?.aborted) {
+      await response.body?.cancel();
+      options.signal.throwIfAborted();
+    }
+    return response;
+  } catch (error) {
+    options.signal?.throwIfAborted();
+    throw new RegistryReadError("Registry read transport failed.", true, { cause: error });
+  }
+}
+
+async function rejectHttp(response, label) {
+  const status = response.status;
+  const error = new RegistryReadError(
+    `${label} request failed with HTTP ${status}.`,
+    [404, 408, 425, 429].includes(status) || (status >= 500 && status <= 599)
+  );
+  const retryAfter = response.headers.get("retry-after");
+  if (retryAfter !== null) {
+    const wait = /^\d+$/.test(retryAfter)
+      ? Number(retryAfter) * 1000
+      : Date.parse(retryAfter) - Date.now();
+    if (!Number.isNaN(wait)) error.retryAfterMs = Math.min(300_000, Math.max(0, wait));
+  }
+  try {
+    await response.body?.cancel();
+  } catch (cleanup) {
+    const failure = new RegistryReadError(error.message, error.retryable, {
+      cause: new AggregateError([error, cleanup], "Registry response cleanup failed.", {
+        cause: error
+      })
+    });
+    failure.retryAfterMs = error.retryAfterMs;
+    throw failure;
+  }
+  throw error;
+}
+
+async function readBody(operation, signal) {
+  signal?.throwIfAborted();
+  try {
+    const result = await operation();
+    signal?.throwIfAborted();
+    return result;
+  } catch (error) {
+    signal?.throwIfAborted();
+    if (error instanceof SyntaxError) throw error;
+    throw new RegistryReadError("Registry response body transport failed.", true, { cause: error });
+  }
+}
+
+async function boundedRead(
+  timeoutMs,
+  signal,
+  expired,
+  operation,
+  nowImpl = () => performance.now()
+) {
+  signal?.throwIfAborted();
+  const started = nowImpl(),
+    controller = new AbortController();
+  const combined = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal;
+  const check = () => {
+    combined.throwIfAborted();
+    if (nowImpl() - started >= timeoutMs) {
+      controller.abort(expired);
+      throw expired;
+    }
+  };
+  let rejectAbort;
+  const aborted = new Promise((_, reject) => {
+    rejectAbort = () => reject(combined.reason);
+  });
+  combined.addEventListener("abort", rejectAbort, { once: true });
+  const timer = setTimeout(() => controller.abort(expired), timeoutMs);
+  try {
+    const result = await Promise.race([
+      Promise.resolve().then(() => {
+        check();
+        return operation(combined, check);
+      }),
+      aborted
+    ]);
+    check();
+    return result;
+  } catch (error) {
+    check();
+    throw error;
+  } finally {
+    clearTimeout(timer);
+    combined.removeEventListener("abort", rejectAbort);
+  }
 }
 
 async function main(args) {
@@ -256,7 +431,9 @@ async function main(args) {
       "--github-output",
       "--registry",
       "--attempts",
-      "--delay-ms"
+      "--delay-ms",
+      "--timeout-ms",
+      "--attempt-timeout-ms"
     ]);
 
     const candidateSha256 = sha256Bytes(await readFile(candidate));
@@ -272,7 +449,13 @@ async function main(args) {
       candidateSha256,
       registryBaseUrl: options.get("--registry"),
       attempts: parseIntegerOption(options, "--attempts", DEFAULT_VERIFY_ATTEMPTS),
-      delayMs: parseIntegerOption(options, "--delay-ms", DEFAULT_VERIFY_DELAY_MS)
+      delayMs: parseIntegerOption(options, "--delay-ms", DEFAULT_VERIFY_DELAY_MS),
+      timeoutMs: parseIntegerOption(options, "--timeout-ms", DEFAULT_VERIFY_TIMEOUT_MS),
+      attemptTimeoutMs: parseIntegerOption(
+        options,
+        "--attempt-timeout-ms",
+        DEFAULT_ATTEMPT_TIMEOUT_MS
+      )
     });
     await mkdir(outputDirectory, { recursive: true });
     const registryTarball = resolve(outputDirectory, basename(candidate));
@@ -350,11 +533,13 @@ async function writeGithubOutput(filePath, values) {
   await appendFile(filePath, lines, "utf8");
 }
 
-async function parseJsonResponse(response, label) {
+async function parseJsonResponse(response, label, signal) {
   try {
-    return await response.json();
+    return await readBody(() => response.json(), signal);
   } catch (error) {
-    throw new Error(`${label} response was not valid JSON: ${error.message}`);
+    signal?.throwIfAborted();
+    if (error instanceof RegistryReadError) throw error;
+    throw new Error(`${label} response was not valid JSON: ${error.message}`, { cause: error });
   }
 }
 
@@ -395,16 +580,9 @@ function assertFetch(value) {
   }
 }
 
-function assertPositiveInteger(value, label) {
-  if (!Number.isInteger(value) || value < 1) {
-    throw new TypeError(`${label} must be a positive integer.`);
-  }
-}
-
-function assertNonNegativeInteger(value, label) {
-  if (!Number.isInteger(value) || value < 0) {
-    throw new TypeError(`${label} must be a non-negative integer.`);
-  }
+function assertBoundedInteger(value, label, min, max) {
+  if (!Number.isSafeInteger(value) || value < min || value > max)
+    throw new TypeError(`${label} must be an integer from ${min} through ${max}.`);
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : undefined;
