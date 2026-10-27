@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-10-27T19:48:38.346Z",
+  "packageVersion": "2.0.0-alpha.107",
+  "tarballHash": "b67c088f6689e067e3873d3a77ba20aef8a02b8a6b10fd1fd9202c74ec56f179",
+  "coreHash": "a668e921843572a6672b8dac1393da0a534ce2285902f5e9622c571b51b2e282",
+  "cases": 1737,
+  "parseFailures": 3,
+  "resultHash": "4661732a09e5ee4f59b63a857fa59c3d0e4c02e2a4103cb2d4256cedf4e3048e",
+  "host": {
+    "node": "v24.14.0",
+    "platform": "win32",
+    "arch": "x64"
+  },
+  "runtimes": [
+    {
+      "name": "bun",
+      "version": "1.4.4",
+      "passed": true,
+      "resultHash": "4661732a09e5ee4f59b63a857fa59c3d0e4c02e2a4103cb2d4256cedf4e3048e"
+    },
+    {
+      "name": "deno",
+      "version": "deno 2.9.6 (stable, release, x86_64-pc-windows-msvc)\nv8 15.0.245.2-rusty\ntypescript 6.0.3",
+      "passed": true,
+      "resultHash": "4661732a09e5ee4f59b63a857fa59c3d0e4c02e2a4103cb2d4256cedf4e3048e"
+    },
+    {
+      "name": "browser",
+      "version": "155.0.8059.40",
+      "passed": true,
+      "resultHash": "4661732a09e5ee4f59b63a857fa59c3d0e4c02e2a4103cb2d4256cedf4e3048e"
+    },
+    {
+      "name": "workerd",
+      "version": "workerd 2026-10-19",
+      "passed": true,
+      "resultHash": "4661732a09e5ee4f59b63a857fa59c3d0e4c02e2a4103cb2d4256cedf4e3048e",
+      "compatibilityDate": "2026-10-19",
+      "compatibilityFlags": ["no_nodejs_compat", "no_nodejs_compat_v2"]
+    }
+  ],
+  "sourceCommit": "e579b214d09b30535ef8608e0d1e71052bb9e384",
+  "measurementScope": "Exact locally packed portable core on this Windows host; not provider APIs or hosted deployment"
+}

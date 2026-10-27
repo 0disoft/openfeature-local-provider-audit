@@ -1,5 +1,29 @@
 # Portable core runtime acceptance
 
+## Current local artifact: alpha.107
+
+Executed 2026-10-27T19:48:38.346Z (2026-10-28 KST), source commit
+`e579b214d09b30535ef8608e0d1e71052bb9e384`, local unpublished
+`2.0.0-alpha.107`, Windows x64, Node controller v24.14.0.
+The full existing `pnpm run smoke:core-runtimes` selection passed: Bun 1.4.4,
+Deno 2.9.6, actual headless Chromium 155.0.8059.40 and native workerd 2026-10-19.
+Each matched native Node on 1,737 evaluations and three expected parser failures,
+including disabled Node compatibility/global checks where applicable. Deno retained
+its denied filesystem/network/environment/process permissions. Existing installed
+executables were used; no dependency or hosted runtime was installed/deployed.
+
+Exact receipt: [core-runtime-evidence-alpha107.json](core-runtime-evidence-alpha107.json).
+Tarball SHA-256: `b67c088f6689e067e3873d3a77ba20aef8a02b8a6b10fd1fd9202c74ec56f179`.
+Core ESM SHA-256: `a668e921843572a6672b8dac1393da0a534ce2285902f5e9622c571b51b2e282`.
+Result SHA-256: `4661732a09e5ee4f59b63a857fa59c3d0e4c02e2a4103cb2d4256cedf4e3048e`.
+The corpus grew since alpha.18, so different historical result hashes do not imply
+a regression. This qualifies only the packed portable core on this host, not the
+Node provider/file/audit/source APIs on other runtimes, other host OSs, cloud accounts,
+production performance or independent adoption. Sequential fixture processes,
+loopback servers and temporary artifacts were closed/removed by the harness.
+
+## Historical local artifact: alpha.18
+
 Executed 2026-10-21T16:09:47.537Z on Windows x64, Node controller v24.14.0.
 Artifact: local unpublished 2.0.0-alpha.18. This evidence extends only /core,
 not the Node OpenFeature provider, audit/file/CLI/source APIs or cloud deployment.

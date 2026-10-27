@@ -1,5 +1,45 @@
 # Local evaluation baseline
 
+## Current local sample: alpha.107
+
+Measured 2026-10-27T19:48:12.734Z (2026-10-28 KST), source commit
+`e579b214d09b30535ef8608e0d1e71052bb9e384`, local unpublished
+`2.0.0-alpha.107`, Windows x64, Node v24.14.0. Command:
+`corepack pnpm run benchmark:evaluation --iterations 1000 --output .git/current-evaluation-evidence.json`.
+All 17 existing scenarios completed with 1,000 sequential calls each. Setup is
+outside timing and existing result/rule/watcher assertions passed. The bounded
+audit queue was sized to avoid saturation; no provider warnings occurred.
+Machine-readable measurements and artifact/source provenance are retained in
+[evaluation-performance-evidence-alpha107.json](evaluation-performance-evidence-alpha107.json).
+
+| Case | p50 microseconds | p95 microseconds |
+| --- | ---: | ---: |
+| Static, 1,000 flags | 0.4 | 0.5 |
+| Percentage, 1,000 flags | 5.8 | 7.8 |
+| Targeting, 100 visited rules / 1,000 flags | 13.9 | 15.8 |
+| SemVer, 100 rules / valid input | 20.8 | 42.6 |
+| SemVer, 100 rules / invalid input | 48.9 | 84.2 |
+| Provider, audit disabled | 1.9 | 3.7 |
+| Provider, non-blocking plain file audit | 27.2 | 55.3 |
+| Provider, blocking plain file audit | 987.3 | 1,173.0 |
+
+Non-blocking audit returned with 1,000 pending writes / 425,000 pending payload
+bytes, then drained in 29.2 ms. After flush both counts were zero, with no dropped
+or rejected writes. Its observed heap delta was 13,545,176 bytes; this is not peak
+memory. Blocking audit had no pending writes at return. These plain file-sink
+measurements do not qualify chained fsync/batching, evidence export, audit durability
+or remote delivery. One atomic file replacement propagated in 63.6 ms with 10 ms
+debounce and 50 ms polling; this is not a maximum propagation-time guarantee.
+
+This is one informational developer-machine sample, including clock/JIT/OS effects.
+It is not an A/B comparison, throughput/SLO claim, CI performance gate or proof of
+an improvement over historical samples. Historical case sets, iteration counts and
+artifacts differ. Other OSs, physical hosts, runtime versions and production loads
+remain unmeasured; portable-core conformance is a separate receipt and does not
+establish these Node/provider timings on non-Node runtimes.
+
+## Historical October 21 baseline
+
 Measured 2026-10-21 on Windows x64, Node.js 24.14.0, pnpm 12.14.0. Source base
 4fa88d0 with the evaluation benchmark introduced alongside this report. Command:
 `corepack pnpm run benchmark:evaluation --iterations 1000 --output .git/evaluation-baseline.json`.

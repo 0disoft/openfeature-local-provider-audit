@@ -47,6 +47,18 @@ Preserve unrelated changes and resume unfinished work before selecting another u
 
 ## Verification boundaries
 
+Operational follow-up status on 2026-10-28 KST:
+
+- Registry propagation policy completed in local alpha.107: bounded read-only
+  reconciliation, per-attempt/overall deadlines and transient-only retries;
+  candidate mismatches never retry or trigger another publish. See `../ops/release.md`.
+- Current local alpha.107 evidence refreshed: full four-runtime packed-core
+  conformance and a 17-scenario sequential Node evaluation/audit sample, both pinned
+  to source/artifact identity. Historical receipts are preserved. See
+  `../testing/core-runtime-acceptance.md` and `../testing/evaluation-performance.md`.
+- Next: opt-in active-snapshot expiry, then selected bounded targeting/migration
+  semantics. Snapshot-recovery journal diagnostics remain a separate future task.
+
 Use narrow regression checks per unit, then the existing complete checks when runtime
 or public behavior changes. No hosted CI run or independent-user evidence is needed.
 Actual publication remains a separate explicitly authorized action. Native operating

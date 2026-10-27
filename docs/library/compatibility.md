@@ -160,7 +160,20 @@ validation boundaries, the development-host minimum, and rollback.
 - Replay fixture drift is accepted without explaining the behavior change.
 - Package metadata drifts from docs/adr/0004-package-license-runtime-policy.md.
 
-## P3 portable core runtime matrix (local alpha.18)
+## P3 portable core runtime matrix (local alpha.107)
+
+Verified on 2026-10-28 KST from source `e579b21`, using the exact local unpublished
+alpha.107 tarball on Windows x64. Bun 1.4.4, Deno 2.9.6, Chromium 155.0.8059.40
+and native workerd 2026-10-19 each matched the Node v24.14.0 reference on 1,737
+evaluations and three expected parser failures. The full four-runtime selection
+passed with the existing no-Node/sandbox assertions and sequential cleanup.
+
+The claim covers only `/core`, not Node SDK registration, file/audit/source APIs
+or hosted Worker deployment. See `../testing/core-runtime-acceptance.md` and
+`../testing/core-runtime-evidence-alpha107.json` for exact hashes and boundaries.
+Other host OSs/runtime versions and production workloads remain unqualified.
+
+### Historical local alpha.18 matrix
 
 The package root retains Node 22/24 only. The `/core` JSON parser, synchronous
 evaluator, errors/reasons and neutral types have this additional verified matrix:
