@@ -8,9 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.105`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.106`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.106 adds Node-only `exportChainedAuditEvidence`: exact retained source files
+are copied under the writer lock, then verified outside it before checkpoints and
+a completion inventory are published. Existing destinations are rejected and failed
+partial exports preserved. No source recovery or network delivery is added; see
+`audit-evidence.md` for bounds, cancellation and unauthenticated checkpoints.
 
 Alpha.105 adds the read-only `audit-diagnose` command. It inspects bounded chained
 audit storage without taking locks, changing evidence or invoking recovery; busy

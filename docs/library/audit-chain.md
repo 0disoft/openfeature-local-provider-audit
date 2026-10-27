@@ -186,8 +186,10 @@ checks. Unrelated names, temporary files and future-sequence evidence are preser
 remove other confirmed unreferenced artifacts only after stopping writers. Existing-
 history backup restore still needs independent checkpoints.
 
-Quiesce writers or make an external consistent copy before exporting files and
-checkpoints, because later rotation can remove files after the lock is released.
+Use `exportChainedAuditEvidence` to copy retained files and matched checkpoints
+under the shared writer lock; see `audit-evidence.md`. Merely calling
+`getCheckpoint()` and copying later is unsafe because rotation can remove files
+after the lock is released. Flush/quiesce producers if all pending events are required.
 Store checkpoint copies outside the log's writable trust boundary; the operational
 manifest is not independent authentication. No remote checkpoint exporter is
 installed. Requirement-by-requirement local evidence is recorded in

@@ -16,6 +16,12 @@ keeping application code on the standard OpenFeature evaluation API.
 
 ## Required Decisions
 
+`exportChainedAuditEvidence` is an explicit Node operator action, separate from SDK
+resolution and producer flushing. It captures retained committed files/checkpoints
+under the writer lock, then validates the copy before publishing a completion marker.
+Caller-owned delivery starts after success; it adds no uploader or background task.
+See `docs/library/audit-evidence.md` for quotas, cancellation and checkpoint trust.
+
 Optional provider `auditCorrelation` exposes the candidate event ID and audit
 outcome in details metadata, including audit-default errors. `onAuditOutcome`
 observes a frozen redacted provider response independently of metadata opt-in.

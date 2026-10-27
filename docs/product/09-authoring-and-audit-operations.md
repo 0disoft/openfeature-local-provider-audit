@@ -34,9 +34,11 @@ Preserve unrelated changes and resume unfinished work before selecting another u
 7. Read-only chained audit diagnosis: completed in local alpha.105 through the
    bounded `audit-diagnose` CLI. It reports observed lock/manifest/segment issues
    without initializing, recovering or deleting evidence; active changes remain
-   inconclusive. See `../library/audit-diagnosis.md`. Consistent evidence export
-   remains pending: bounded local copies paired with checkpoints, then caller-owned
-   delivery after releasing writer locks. Snapshot-recovery journal inspection is
+   inconclusive. See `../library/audit-diagnosis.md`. Consistent evidence export is
+   completed in local alpha.106: bounded exact local copies under the writer lock,
+   then streamed verification, matched checkpoints and a completion inventory;
+   caller-owned delivery follows lock release. See `../library/audit-evidence.md`.
+   Snapshot-recovery journal inspection is
    a separate future diagnostic surface, not implied by the chained audit command.
 8. Targeting and migration: deferred until the preceding units are complete and
    concrete required expressions/formats are selected. Extend bounded operators or

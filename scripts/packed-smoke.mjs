@@ -23,6 +23,9 @@ const PACKAGE_NAME = "@0disoft/openfeature-local-provider";
 const STRICT_CONSUMER_TYPESCRIPT_VERSION = "5.9.3";
 const MAX_PACKED_TARBALL_BYTES = 1_048_576;
 const V2_TYPE_EXPORTS = new Set([
+  "ExportAuditEvidenceOptions",
+  "AuditEvidenceFile",
+  "AuditEvidenceExport",
   "ScheduledRollout",
   "ScheduleEvaluation",
   "AuditPseudonym",
@@ -70,6 +73,9 @@ const V2_TYPE_EXPORTS = new Set([
   "RuleExplanation"
 ]);
 const PUBLIC_TYPE_EXPORTS = [
+  "ExportAuditEvidenceOptions",
+  "AuditEvidenceFile",
+  "AuditEvidenceExport",
   "ScheduledRollout",
   "ScheduleEvaluation",
   "AuditPseudonym",
@@ -589,6 +595,7 @@ const EXPECTED_RUNTIME_EXPORTS = ${JSON.stringify(
             "verifyAuditChainRecord",
             "verifyAuditChain",
             "createChainedFileAuditSink",
+            "exportChainedAuditEvidence",
             "createHmacAuditPseudonymizer"
           ]
         : []),
@@ -909,6 +916,18 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
       throw new Error(moduleKind + " chained file checkpoint failed");
     }
     const fs = require("node:fs/promises");
+    const exported = await api.exportChainedAuditEvidence({ directory: auditPath + ".chain-store", destination: auditPath + ".evidence" });
+    const receipt = JSON.parse(await fs.readFile(auditPath + ".evidence/evidence.json", "utf8"));
+    if (exported.start.sequence !== 1 || exported.head.sequence !== 3 || exported.records !== 2 ||
+      exported.checkpointAuthenticated !== false || JSON.stringify(receipt) !== JSON.stringify(exported)) {
+      throw new Error(moduleKind + " consistent audit evidence export failed");
+    }
+    for (const file of exported.files) {
+      const bytes = await fs.readFile(auditPath + ".evidence/" + file.name);
+      if (bytes.length !== file.bytes || require("node:crypto").createHash("sha256").update(bytes).digest("hex") !== file.sha256) {
+        throw new Error(moduleKind + " audit evidence inventory mismatch");
+      }
+    }
     await fs.writeFile(auditPath + ".chain", JSON.stringify(chained) + "\\n");
     await fs.writeFile(auditPath + ".head", JSON.stringify(head));
     const binary = require("node:path").join(process.cwd(), "node_modules", "@0disoft/openfeature-local-provider", "bin", "openfeature-local-provider.js");
@@ -960,7 +979,7 @@ function createTypedConsumerSource(moduleKind, targeting) {
   );
   const valueImport =
     moduleKind === "esm"
-      ? `import { createLocalProvider } from "${PACKAGE_NAME}";`
+      ? `import { createLocalProvider${targeting ? ", exportChainedAuditEvidence" : ""} } from "${PACKAGE_NAME}";`
       : `import providerPackage = require("${PACKAGE_NAME}");`;
   const createProvider =
     moduleKind === "esm"
@@ -1057,6 +1076,11 @@ const verifiedHead: AuditChainCheckpoint = chainVerification.head;
 declare const chainedFileSink: ChainedFileAuditSink;
 const fileCheckpointPromise: Promise<AuditChainFileCheckpoint> = chainedFileSink.getCheckpoint();
 const chainedFileOptions: ChainedFileAuditSinkOptions = { directory: "caller-owned-audit", chainId: "typed", maxSegments: 5 };
+const evidenceOptions: ExportAuditEvidenceOptions = { directory: "caller-owned-audit", destination: "caller-owned-export", maxBytes: 1024, maxRecords: 0, signal: new AbortController().signal };
+const evidencePromise: Promise<AuditEvidenceExport> = ${moduleKind === "esm" ? "exportChainedAuditEvidence" : "providerPackage.exportChainedAuditEvidence"}(evidenceOptions);
+declare const evidence: AuditEvidenceExport;
+const evidenceFile: AuditEvidenceFile | undefined = evidence.files[0];
+void evidencePromise; void evidenceFile;
 void fileCheckpointPromise; void chainedFileOptions;
 void chainRecord; void verifyOptions; void verifiedHead;
 void refreshOptions;

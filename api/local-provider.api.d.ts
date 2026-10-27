@@ -669,6 +669,30 @@ interface AuditChainFileCheckpoint {
   readonly head: AuditChainCheckpoint;
   readonly files: readonly string[];
 }
+interface ExportAuditEvidenceOptions {
+  readonly directory: string | URL;
+  readonly destination: string | URL;
+  readonly maxBytes?: number;
+  readonly maxRecordBytes?: number;
+  readonly maxRecords?: number;
+  readonly lockTimeoutMs?: number;
+  readonly signal?: AbortSignal;
+  onError?(error: unknown): void | Promise<void>;
+}
+interface AuditEvidenceFile {
+  readonly name: string;
+  readonly bytes: number;
+  readonly sha256: string;
+}
+interface AuditEvidenceExport {
+  readonly schemaVersion: 1;
+  readonly checkpointAuthenticated: false;
+  readonly start: AuditChainCheckpoint;
+  readonly head: AuditChainCheckpoint;
+  readonly records: number;
+  readonly sourceBytes: number;
+  readonly files: readonly AuditEvidenceFile[];
+}
 interface ChainedFileAuditSink extends AuditSink {
   getCheckpoint(): Promise<AuditChainFileCheckpoint>;
 }
@@ -757,6 +781,11 @@ export declare function createChainedFileAuditSink(
   options: ChainedFileAuditSinkOptions
 ): ChainedFileAuditSink;
 //#endregion
+//#region src/audit/export-evidence.d.ts
+export declare function exportChainedAuditEvidence(
+  options: ExportAuditEvidenceOptions
+): Promise<AuditEvidenceExport>;
+//#endregion
 //#region src/audit/pseudonym.d.ts
 export declare function createHmacAuditPseudonymizer(
   options: HmacAuditPseudonymizerOptions
@@ -810,6 +839,8 @@ export type {
   AuditChainVerification,
   AuditContextKeyMode,
   AuditEvent,
+  AuditEvidenceExport,
+  AuditEvidenceFile,
   AuditFailurePolicy,
   AuditPseudonym,
   AuditPseudonymizer,
@@ -832,6 +863,7 @@ export type {
   EvaluationRequest,
   EvaluationResult,
   EvaluationSource,
+  ExportAuditEvidenceOptions,
   FileAuditSinkOptions,
   FileAuditSinkStats,
   FileSnapshotStoreOptions,

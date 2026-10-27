@@ -555,6 +555,33 @@ export interface AuditChainFileCheckpoint {
   readonly files: readonly string[];
 }
 
+export interface ExportAuditEvidenceOptions {
+  readonly directory: string | URL;
+  readonly destination: string | URL;
+  readonly maxBytes?: number;
+  readonly maxRecordBytes?: number;
+  readonly maxRecords?: number;
+  readonly lockTimeoutMs?: number;
+  readonly signal?: AbortSignal;
+  onError?(error: unknown): void | Promise<void>;
+}
+
+export interface AuditEvidenceFile {
+  readonly name: string;
+  readonly bytes: number;
+  readonly sha256: string;
+}
+
+export interface AuditEvidenceExport {
+  readonly schemaVersion: 1;
+  readonly checkpointAuthenticated: false;
+  readonly start: AuditChainCheckpoint;
+  readonly head: AuditChainCheckpoint;
+  readonly records: number;
+  readonly sourceBytes: number;
+  readonly files: readonly AuditEvidenceFile[];
+}
+
 export interface ChainedFileAuditSink extends AuditSink {
   getCheckpoint(): Promise<AuditChainFileCheckpoint>;
 }

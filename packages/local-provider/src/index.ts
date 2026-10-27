@@ -18,6 +18,7 @@ export {
   verifyAuditChain
 } from "./audit/audit-chain.js";
 export { createChainedFileAuditSink } from "./audit/chained-file-sink.js";
+export { exportChainedAuditEvidence } from "./audit/export-evidence.js";
 export { createHmacAuditPseudonymizer } from "./audit/pseudonym.js";
 export { createFileAuditSink } from "./audit/audit-sink.js";
 export { createOpenTelemetryMetrics } from "./metrics/opentelemetry.js";
@@ -59,6 +60,9 @@ export type {
   AuditChainVerification,
   ChainedFileAuditSinkOptions,
   AuditChainFileCheckpoint,
+  ExportAuditEvidenceOptions,
+  AuditEvidenceFile,
+  AuditEvidenceExport,
   ChainedFileAuditSink,
   AuditContextKeyMode,
   AuditQueueOverflowPolicy,

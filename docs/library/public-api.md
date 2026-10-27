@@ -52,6 +52,12 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+`exportChainedAuditEvidence`, `ExportAuditEvidenceOptions`, `AuditEvidenceFile` and
+`AuditEvidenceExport` add bounded consistent local copies of retained chained
+audit evidence. Capture uses the writer lock; copy verification and caller-owned
+delivery occur after release. No source recovery, remote uploader or portable-core
+export is added. See `audit-evidence.md` for limits, partial output and trust boundaries.
+
 The read-only `audit-diagnose <directory>` CLI reports bounded, redacted observations
 of chained audit storage. It does not recover, clean or create storage and adds no
 root/core exports. See `audit-diagnosis.md` for limits and observation/trust boundaries.
