@@ -97,7 +97,9 @@ it.each([1, 7, 4093])(
   "preserves BOM, UTF-8, CRLF and line boundaries with %s-byte reads",
   async (size) => {
     cap = size;
-    const line = size === 1 ? "가😀\r" : `${"a".repeat(65535)}가😀\r`;
+    // Small reads cover UTF-8 framing/allocation bounds; the 4093-byte case
+    // retains the 64-KiB boundary without thousands of extra real I/O calls.
+    const line = size === 1 ? "가😀\r" : `${"a".repeat(size === 7 ? 511 : 65535)}가😀\r`;
     const data = Buffer.from(`\uFEFF${line}\n\uFEFFnext\nlast\n`);
     expect(await collect(data, Buffer.byteLength(line))).toEqual([line, "\uFEFFnext", "last"]);
     expect(closes).toBe(1);

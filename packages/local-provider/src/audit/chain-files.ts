@@ -13,14 +13,17 @@ export function assertOwnedFile(stats: Stats | BigIntStats): void {
     throw new Error();
 }
 export async function openChainFile(path: string): Promise<FileHandle> {
+  return openOwnedChainFile(path, constants.O_RDWR | constants.O_APPEND);
+}
+export async function openReadOnlyChainFile(path: string): Promise<FileHandle> {
+  return openOwnedChainFile(path, constants.O_RDONLY);
+}
+async function openOwnedChainFile(path: string, flags: number): Promise<FileHandle> {
   const before = await lstat(path, { bigint: true });
   assertOwnedFile(before);
   const handle = await open(
     path,
-    constants.O_RDWR |
-      constants.O_APPEND |
-      (constants.O_NOFOLLOW ?? 0) |
-      (constants.O_NONBLOCK ?? 0)
+    flags | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0)
   );
   try {
     const after = await handle.stat({ bigint: true });
@@ -51,10 +54,13 @@ export async function readChainRange(
   }
   return buffer;
 }
-export async function readChainMetadata(path: string): Promise<unknown | undefined> {
+export async function readChainMetadata(
+  path: string,
+  readOnly = false
+): Promise<unknown | undefined> {
   let handle: FileHandle;
   try {
-    handle = await openChainFile(path);
+    handle = await (readOnly ? openReadOnlyChainFile(path) : openChainFile(path));
   } catch (error) {
     if (missing(error)) return undefined;
     throw error;

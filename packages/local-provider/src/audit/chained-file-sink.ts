@@ -19,7 +19,7 @@ import {
   verifyAuditChainRecord
 } from "./audit-chain.js";
 import { MAX_CHAIN_BATCH_BYTES, MAX_CHAIN_BATCH_RECORDS } from "./chain-policy.js";
-import { captureChainEvent, dataRecord } from "./chain-event.js";
+import { captureChainEvent } from "./chain-event.js";
 import { createQueuedAuditSink } from "./queued-sink.js";
 import { readChainLines } from "./read-chain-lines.js";
 import {
@@ -32,17 +32,11 @@ import {
   writeChainMetadata
 } from "./chain-files.js";
 
-interface Segment {
-  readonly file: string;
-  readonly start: AuditChainCheckpoint;
-  readonly head: AuditChainCheckpoint;
-  readonly size: number;
-}
-interface Manifest {
-  readonly schemaVersion: 1;
-  readonly initial: AuditChainCheckpoint;
-  readonly segments: readonly Segment[];
-}
+import {
+  parseChainManifest,
+  type ChainManifest as Manifest,
+  type ChainSegment as Segment
+} from "./chain-manifest.js";
 const same = (left: AuditChainCheckpoint, right: AuditChainCheckpoint) =>
   left.chainId === right.chainId && left.sequence === right.sequence && left.hash === right.hash;
 const head = (state: Manifest) => state.segments[state.segments.length - 1]?.head ?? state.initial;
@@ -131,11 +125,6 @@ export function createChainedFileAuditSink(
       throw unavailable();
     }
   }
-  function checkpoint(value: unknown): AuditChainCheckpoint {
-    const result = verifyAuditChain([], { start: value as AuditChainCheckpoint }).head;
-    if (result.chainId !== initial.chainId) throw new Error();
-    return result;
-  }
   async function load(): Promise<Manifest> {
     const raw = await readChainMetadata(path);
     if (raw === undefined) {
@@ -145,36 +134,9 @@ export function createChainedFileAuditSink(
       await writeChainMetadata(path, state);
       return state;
     }
-    const record = dataRecord(raw, ["schemaVersion", "initial", "segments"]);
-    if (
-      record.schemaVersion !== 1 ||
-      !same(checkpoint(record.initial), initial) ||
-      !Array.isArray(record.segments) ||
-      record.segments.length > 128
-    )
-      throw new Error();
-    const segments: Segment[] = [];
-    for (const item of record.segments) {
-      const segment = dataRecord(item, ["file", "start", "head", "size"]);
-      const start = checkpoint(segment.start),
-        end = checkpoint(segment.head);
-      if (
-        segment.file !== name(start) ||
-        end.sequence <= start.sequence ||
-        start.sequence < initial.sequence ||
-        (segments.length > 0 && !same(start, segments[segments.length - 1]?.head ?? initial)) ||
-        (start.sequence === initial.sequence && !same(start, initial))
-      )
-        throw new Error();
-      segments.push({
-        file: segment.file as string,
-        start,
-        head: end,
-        size: chainInteger(segment.size as number, 1, 116 * 1024 * 1024)
-      });
-    }
-    return { schemaVersion: 1, initial, segments };
+    return parseChainManifest(raw, initial);
   }
+
   async function commitSegments(state: Manifest, segments: readonly Segment[]): Promise<Manifest> {
     const next: Manifest = { ...state, segments: segments.slice(-maxSegments) };
     await writeChainMetadata(path, next);

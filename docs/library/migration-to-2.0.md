@@ -8,9 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.104`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.105`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.105 adds the read-only `audit-diagnose` command. It inspects bounded chained
+audit storage without taking locks, changing evidence or invoking recovery; busy
+and detected concurrent changes withhold a definitive verdict. See `audit-diagnosis.md`.
 
 Alpha.104 adds opt-in audit correlation metadata and a redacted provider-outcome
 observer. Candidate audit records remain unchanged; ordinary submission, confirmed

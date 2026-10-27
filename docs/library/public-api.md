@@ -52,6 +52,10 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+The read-only `audit-diagnose <directory>` CLI reports bounded, redacted observations
+of chained audit storage. It does not recover, clean or create storage and adds no
+root/core exports. See `audit-diagnosis.md` for limits and observation/trust boundaries.
+
 Provider options `auditCorrelation` and `onAuditOutcome` add opt-in candidate-event
 IDs and at-return audit outcomes. `AuditWriteOutcome` and `ProviderAuditOutcome` are
 root type exports, not portable-core APIs. See `audit-failure-policy.md` for privacy,

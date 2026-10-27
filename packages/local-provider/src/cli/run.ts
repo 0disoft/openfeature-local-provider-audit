@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { loadFlagSnapshotFile, resolveSnapshotFileFormat } from "../flags/snapshot-file.js";
 import type { SnapshotFileFormat } from "../public-types.js";
 import { AUDIT_CHAIN_HELP, runAuditVerification } from "./audit-verification.js";
+import { AUDIT_DIAGNOSIS_HELP, runAuditDiagnosis } from "./audit-diagnosis.js";
 import { GENERATE_TYPES_HELP, runTypeGeneration } from "./generate-types.js";
 import { INSPECTION_HELP, runInspection } from "./inspection.js";
 
@@ -34,6 +35,7 @@ export async function runCli(args: readonly string[], io: CliIo): Promise<number
   if (command === "generate-types") return runTypeGeneration(rest, io);
 
   if (command === "audit-verify") return runAuditVerification(rest, io);
+  if (command === "audit-diagnose") return runAuditDiagnosis(rest, io);
 
   if (["evaluate", "explain", "simulate", "compare"].includes(command)) {
     return runInspection(command, rest, io);
@@ -181,6 +183,7 @@ function helpText(): string {
 Commands:
   generate-types  Generate TypeScript flag keys and declared value types.
   audit-verify  Verify chained audit JSON Lines and optional trusted checkpoints.
+  audit-diagnose  Inspect a chained audit directory without modifying evidence.
   validate  Load and validate a local JSON or YAML flag snapshot.
   evaluate  Explain a local evaluation without raw values (alias: explain).
   simulate  Aggregate a local request set.
@@ -189,6 +192,7 @@ Commands:
 ${GENERATE_TYPES_HELP}
 ${INSPECTION_HELP}
 ${AUDIT_CHAIN_HELP}
+${AUDIT_DIAGNOSIS_HELP}
 `;
 }
 

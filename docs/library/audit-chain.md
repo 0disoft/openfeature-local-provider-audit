@@ -105,6 +105,10 @@ and retention belong to the operator; no remote writer is installed here.
 
 ## Segmented chained file sink
 
+Use the separate read-only `audit-diagnose <directory>` command for bounded,
+redacted diagnosis without recovery or cleanup. See `audit-diagnosis.md`; a valid
+observation is not an atomic copy or an authenticated checkpoint.
+
 `createChainedFileAuditSink({ directory, chainId, initialCheckpoint?,
 maxSegmentBytes?, maxSegments?, maxRecordBytes?, maxVerificationBytes?,
 maxQueueSize?, maxQueueBytes?, batchSize?, maxBatchBytes?, lockTimeoutMs? })` implements AuditSink including confirmed writes,
