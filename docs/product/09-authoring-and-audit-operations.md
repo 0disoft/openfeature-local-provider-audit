@@ -25,9 +25,12 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    structural conformance tests, explicit runtime-only semantic constraints, and
    standalone flag-key/value declaration generation with packed TypeScript consumer
    verification; see `../library/authoring.md`.
-6. Audit outcome correlation: pending. Opt-in event ID and confirmation outcome for
-   the final SDK resolution; preserve candidate records and default privacy. Do not
-   claim business execution or attempt to confirm an error through a failing sink.
+6. Audit outcome correlation: completed in local alpha.104. Opt-in provider metadata
+   links candidate event IDs to at-return write outcomes and audit-default decisions;
+   an isolated redacted observer reports the provider response. SDK after/finally
+   hooks are a separate boundary. Candidate records and default privacy remain;
+   no business execution claim or recursive error audit is made. See
+   `../library/audit-failure-policy.md`.
 7. Evidence export and read-only diagnosis: pending. Bounded consistent local copies
    paired with checkpoints, then caller-owned delivery after releasing writer locks.
    Diagnose locks/journals without stealing locks or deleting forensic evidence.

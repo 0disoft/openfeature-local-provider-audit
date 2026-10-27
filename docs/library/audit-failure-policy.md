@@ -49,6 +49,54 @@ write may append later, even though the caller received a default. Do not infer
 business execution or the final failure-policy response from this candidate record.
 No second recursive audit write is attempted after an audit failure.
 
+## Opt-in outcome correlation
+
+Set `auditCorrelation: true` to add these provider-owned `flagMetadata` fields:
+
+- `localProviderAuditEventId`: the candidate record's ID, omitted if no sink or
+  event creation failed. Enabling correlation overrides conflicting snapshot metadata.
+- `localProviderAuditWriteOutcome`: `notRequested` (no sink), `pending` (not awaited),
+  `submitted` (ordinary `write` resolved), `confirmed` (`writeConfirmed` resolved),
+  `failed` (event creation/write failed), or `timedOut` (blocking wait expired).
+- `localProviderAuditDefaultApplied`: whether the audit failure policy replaced
+  the candidate with the caller's default. This is not a general default-value detector.
+
+`submitted` does not establish storage: an enqueue-only sink may drop a write.
+`confirmed` has only the trusted sink's acknowledgment guarantees described above.
+These fields describe what was known when the provider prepared its response;
+late completion does not rewrite returned metadata or publish a second outcome.
+The audit record format and chain hashes remain unchanged. Metadata is off by default.
+
+Independently, optional `onAuditOutcome(outcome)` observes one frozen
+`ProviderAuditOutcome` per provider response. It includes event ID when available,
+snapshot hash, requested type, returned reason/source/internal error code,
+`writeOutcome` and `auditDefaultApplied`. It excludes context, identifiers, flag keys,
+values, original flag metadata and raw exceptions. No observer is installed by default.
+
+```ts
+const provider = createLocalProvider({
+  snapshot,
+  auditSink: sink,
+  auditFailurePolicy: "returnDefault",
+  auditCorrelation: true,
+  onAuditOutcome(outcome) {
+    // Deliver this redacted outcome to a separate, caller-owned diagnostic path.
+    observeProviderOutcome(outcome);
+  }
+});
+```
+
+Observers run synchronously once, outside the audit write. Throws and returned
+promise rejections are isolated, and returned promises are not awaited. Keep the
+callback short and bound any caller-owned delivery queue; synchronous callbacks
+cannot be preempted. This callback does not confirm its own delivery or retry audit
+writes. Concurrent evaluations retain separate IDs and the snapshot each evaluated.
+
+This is the **provider response**, not proof of a final SDK or business outcome.
+OpenFeature `after` hooks may still fail and replace a successful response. Use SDK
+`finally` hooks for SDK-level observation and correlate details when metadata survives;
+applications own business-action records. Neither integration proves that an action ran.
+
 `auditTimeoutMs` bounds asynchronous waiting and must be an integer from 1 to
 2,147,483,647. It requires a sink and blocking mode. Enabled blocking sinks default to 1,000 ms for both failure policies. Set an explicit
 positive auditTimeoutMs to allow a longer or shorter finite wait. Best-effort blocking

@@ -20,6 +20,8 @@ import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { validateFlagSnapshot } from "../flags/validate-snapshot.js";
 import type {
   AuditSink,
+  AuditWriteOutcome,
+  ProviderAuditOutcome,
   AuditPseudonymizer,
   AuditContextKeyMode,
   CreateEnvOverridesOptions,
@@ -65,6 +67,10 @@ export function createReloadableLocalProvider(
 function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeatureProvider {
   if (options.clock !== undefined && typeof options.clock !== "function")
     throw new TypeError("clock must be a function.");
+  if (options.auditCorrelation !== undefined && typeof options.auditCorrelation !== "boolean")
+    throw new TypeError("auditCorrelation must be a boolean.");
+  if (options.onAuditOutcome !== undefined && typeof options.onAuditOutcome !== "function")
+    throw new TypeError("onAuditOutcome must be a function.");
   if (
     options.auditPseudonymizer !== undefined &&
     typeof options.auditPseudonymizer.pseudonymize !== "function"
@@ -95,7 +101,9 @@ function createLocalFeatureProvider(options: LocalProviderOptions): LocalFeature
     options.metrics,
     options.provenance,
     options.auditPseudonymizer,
-    options.clock ?? Date.now
+    options.clock ?? Date.now,
+    options.auditCorrelation ?? false,
+    options.onAuditOutcome
   );
 }
 
@@ -123,6 +131,11 @@ interface ProviderState {
   readonly flagHashes: ReadonlyMap<string, string>;
 }
 
+interface AuditAttempt {
+  eventId?: string;
+  outcome: AuditWriteOutcome;
+}
+
 class LocalFeatureProvider implements ReloadableLocalProvider {
   readonly metadata: { readonly name: string };
   readonly events = new OpenFeatureEventEmitter();
@@ -144,7 +157,9 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     metrics: ProviderMetrics | undefined,
     provenance: SignedSnapshotMetadata | undefined,
     private readonly auditPseudonymizer: AuditPseudonymizer | undefined,
-    private readonly clock: () => number
+    private readonly clock: () => number,
+    private readonly auditCorrelation: boolean,
+    private readonly onAuditOutcome: ((outcome: ProviderAuditOutcome) => void) | undefined
   ) {
     this.operational = new OperationalState(staleAfterMs);
     this.state = this.createState(snapshot, provenance);
@@ -326,13 +341,21 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     );
     let result = this.evaluateSafely(request, state, logger);
 
-    const auditWrite = this.writeAuditEvent(request, result, state, logger);
+    const attempt: AuditAttempt | undefined =
+      this.auditCorrelation || this.onAuditOutcome !== undefined
+        ? { outcome: this.auditSink === undefined ? "notRequested" : "pending" }
+        : undefined;
+    let timedOut = false;
+    let auditDefaultApplied = false;
+    const auditWrite = this.writeAuditEvent(request, result, state, logger, attempt);
 
     if (this.auditPolicy.writeMode === "blocking") {
       const confirmed = await waitForAudit(auditWrite, this.auditPolicy.timeoutMs, () => {
+        timedOut = true;
         this.operational.auditTimedOut();
       });
       if (!confirmed && this.auditPolicy.failurePolicy === "returnDefault") {
+        auditDefaultApplied = true;
         result = {
           flagKey,
           value: defaultValue,
@@ -360,7 +383,38 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
         // Metrics are optional and must not change the resolution.
       }
     }
-    return toOpenFeatureResolution(result) as ResolutionDetails<T>;
+    const resolution = toOpenFeatureResolution(result);
+    if (attempt !== undefined) {
+      const writeOutcome = timedOut ? "timedOut" : attempt.outcome;
+      if (this.auditCorrelation) {
+        const metadata = { ...resolution.flagMetadata };
+        // These names are provider-owned only when correlation is enabled.
+        delete metadata.localProviderAuditEventId;
+        if (attempt.eventId !== undefined) metadata.localProviderAuditEventId = attempt.eventId;
+        metadata.localProviderAuditWriteOutcome = writeOutcome;
+        metadata.localProviderAuditDefaultApplied = auditDefaultApplied;
+        resolution.flagMetadata = metadata;
+      }
+      try {
+        observeDiagnosticResult(
+          this.onAuditOutcome?.(
+            Object.freeze({
+              ...(attempt.eventId !== undefined ? { eventId: attempt.eventId } : {}),
+              snapshotHash: state.snapshotHash,
+              requestedType: expectedType,
+              reason: result.reason,
+              source: result.source,
+              ...(result.errorCode !== undefined ? { errorCode: result.errorCode } : {}),
+              writeOutcome,
+              auditDefaultApplied
+            })
+          )
+        );
+      } catch {
+        // Optional outcome observers cannot alter the returned resolution.
+      }
+    }
+    return resolution as ResolutionDetails<T>;
   }
 
   private evaluateSafely<T extends FlagValue>(
@@ -422,7 +476,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
     request: EvaluationRequest<T>,
     result: EvaluationResult<T>,
     state: ProviderState,
-    logger: Logger
+    logger: Logger,
+    attempt?: AuditAttempt
   ): Promise<boolean> {
     if (this.auditSink === undefined) {
       return true;
@@ -444,17 +499,21 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
         result,
         redaction: { contextKeys: this.auditContextKeyMode }
       });
+      if (attempt !== undefined) attempt.eventId = event.eventId;
       if (this.auditPolicy.failurePolicy === "returnDefault") {
         // Validated at construction; keep the receiver for stateful custom sinks.
         if (this.auditSink.writeConfirmed === undefined) {
           throw new Error("Audit confirmation is unavailable.");
         }
         await this.auditSink.writeConfirmed(event);
+        if (attempt !== undefined) attempt.outcome = "confirmed";
       } else {
         await this.auditSink.write(event);
+        if (attempt !== undefined) attempt.outcome = "submitted";
       }
       return true;
     } catch (error) {
+      if (attempt !== undefined) attempt.outcome = "failed";
       failed = true;
       this.warn(logger, "openfeature-local-provider audit sink write failed", error);
       return false;

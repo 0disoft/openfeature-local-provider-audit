@@ -16,6 +16,12 @@ keeping application code on the standard OpenFeature evaluation API.
 
 ## Required Decisions
 
+Optional provider `auditCorrelation` exposes the candidate event ID and audit
+outcome in details metadata, including audit-default errors. `onAuditOutcome`
+observes a frozen redacted provider response independently of metadata opt-in.
+Provider responses precede SDK after/finally hooks and do not prove business
+execution. See `docs/library/audit-failure-policy.md`.
+
 Scheduled schema-v2 flags evaluate against provider `clock` (default Date.now),
 captured once per evaluation of a scheduled flag. SDK context cannot override this
 clock. Pure requests/replay/CLI supply `evaluationTime` explicitly. No timer or

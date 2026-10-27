@@ -8,9 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.103`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.104`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.104 adds opt-in audit correlation metadata and a redacted provider-outcome
+observer. Candidate audit records remain unchanged; ordinary submission, confirmed
+writing, failure and timeout have distinct meanings. SDK hooks and business execution
+remain separate boundaries. See `audit-failure-policy.md`.
 
 Alpha.103 checks macOS direct-watch targets before native registration, both at
 startup and when rearming after replacement. Non-regular targets reject instead

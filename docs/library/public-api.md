@@ -52,6 +52,11 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+Provider options `auditCorrelation` and `onAuditOutcome` add opt-in candidate-event
+IDs and at-return audit outcomes. `AuditWriteOutcome` and `ProviderAuditOutcome` are
+root type exports, not portable-core APIs. See `audit-failure-policy.md` for privacy,
+acknowledgment semantics and the provider/SDK/business boundary.
+
 `createWatchedLocalProvider`, `WatchedLocalProviderOptions` and `WatchedLocalProvider`
 connect unsigned JSON/YAML monitoring, one initial load, provider status/diagnostics
 and SDK-linked shutdown. Automatic unchanged filtering and freshness keep existing

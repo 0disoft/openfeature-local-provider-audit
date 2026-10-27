@@ -48,8 +48,29 @@ export interface LocalProviderOptions {
   readonly auditShutdownTimeoutMs?: number;
   readonly auditRedaction?: AuditRedactionOptions;
   readonly auditPseudonymizer?: AuditPseudonymizer;
+  readonly auditCorrelation?: boolean;
+  readonly onAuditOutcome?: (outcome: ProviderAuditOutcome) => void;
   readonly staleAfterMs?: number;
   readonly metrics?: ProviderMetrics;
+}
+
+export type AuditWriteOutcome =
+  | "notRequested"
+  | "pending"
+  | "submitted"
+  | "confirmed"
+  | "failed"
+  | "timedOut";
+
+export interface ProviderAuditOutcome {
+  readonly eventId?: string;
+  readonly snapshotHash: string;
+  readonly requestedType: FlagType;
+  readonly reason: EvaluationReason;
+  readonly source: EvaluationSource;
+  readonly errorCode?: LocalProviderErrorCode;
+  readonly writeOutcome: AuditWriteOutcome;
+  readonly auditDefaultApplied: boolean;
 }
 
 export interface ProviderEvaluationMetric {

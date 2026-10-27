@@ -66,6 +66,8 @@ export type {
   AuditSink,
   AuditWriteMode,
   AuditFailurePolicy,
+  AuditWriteOutcome,
+  ProviderAuditOutcome,
   CreateEnvOverridesOptions,
   CreateAuditEventOptions,
   EvaluationContext,

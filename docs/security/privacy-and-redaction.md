@@ -32,6 +32,10 @@ authorization claims, IP addresses, and tokens into flag evaluation context.
   `names` choice.
 - Snapshot and override data are represented by SHA-256 hashes.
 - Evaluated values are excluded from audit events.
+- Opt-in provider outcome correlation links a response to its existing candidate
+  event ID, not to a user across evaluations. Its observer excludes flag keys,
+  context, values, raw exceptions and caller metadata; hashes are identifiers, not
+  confidentiality. See `../library/audit-failure-policy.md` for at-return semantics.
 - V2 rule IDs are included only for selected targeting rules; flag names, rule IDs,
   variant names and caller metadata must be non-sensitive. Explanations omit values,
   context fields and condition operands, but match outcomes can still reveal cohort
