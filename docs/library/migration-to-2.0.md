@@ -8,8 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently a local `2.0.0-alpha.101` prerelease, not a public release or stability claim.
+currently a local `2.0.0-alpha.102` prerelease, not a public release or stability claim.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.102 caps audit lock retry sleeps by the remaining monotonic wait budget
+and checks that budget before retrying an exclusive open. Late wakes cannot begin
+a new acquisition attempt after expiry; the initial zero-wait attempt, ownership
+cleanup and initialization failure semantics remain. See `audit-event-v1.md`.
 
 Alpha.101 checks the managed startup recovery deadline after synchronous recovery
 finishes. Expired results cannot construct a provider or bind metrics while the

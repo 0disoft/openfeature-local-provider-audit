@@ -134,6 +134,11 @@ raw user context by default.
   working-directory changes cannot redirect writes, rotation or locking independently.
 - File audit sinks support optional advisory `.lock` files with `lock` and
   `lockTimeoutMs`. Lock wait deadlines use monotonic elapsed time.
+  After contention, retry sleeps are capped by the remaining wait budget and the
+  budget is checked again before another exclusive open. A late timer wake cannot
+  begin a new attempt after expiry. One initial attempt is still allowed with a
+  zero wait budget. This does not interrupt already-started filesystem operations
+  or bound lock initialization/release time. Both file sinks share this lock path.
   `staleLockMs` is deprecated and supplying it throws: time-based takeover cannot
   safely exclude live writers or conditionally remove only an inspected owner.
 - Each acquired lock captures its handle's device/inode identity as exact `bigint`

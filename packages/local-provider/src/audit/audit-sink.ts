@@ -233,16 +233,21 @@ export async function acquireFileLock(
   if (lock.staleMs !== undefined)
     throw new TypeError("Automatic stale lock takeover is unsupported.");
   const startedAt = performance.now();
+  const remainingWaitMs = () => {
+    const remaining = lock.timeoutMs - (performance.now() - startedAt);
+    if (remaining <= 0) throw new Error(`Timed out acquiring audit file lock: ${lock.path}`);
+    return remaining;
+  };
 
-  while (true) {
+  for (let attempt = 0; ; attempt++) {
+    // Preserve one initial attempt, including a zero wait budget.
+    if (attempt > 0) remainingWaitMs();
     let handle: FileHandle;
     try {
       handle = await open(lock.path, "wx");
     } catch (error) {
       if (!isAlreadyExistsError(error)) throw error;
-      if (performance.now() - startedAt >= lock.timeoutMs)
-        throw new Error(`Timed out acquiring audit file lock: ${lock.path}`);
-      await delay(lock.retryMs);
+      await delay(Math.min(lock.retryMs, remainingWaitMs()));
       continue;
     }
     const ownerToken = randomUUID();
