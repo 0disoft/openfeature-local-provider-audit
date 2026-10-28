@@ -8,9 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.111`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.112`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.112 adds v2 `exists` and guarded `not` conditions. Invalid/unsafe/wrong-type
+observations never become matches through negation; positive groups and old snapshots
+retain their behavior. Upgrade evaluators/replay tools before using the new forms;
+see `presence-and-negation.md` for the truth table and bounded traversal contract.
 
 Alpha.111 adds read-only static `import-flagd` conversion with a redacted default
 report, explicit sensitive output and whole-file rejection on unsupported semantics.

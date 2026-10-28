@@ -76,10 +76,12 @@ function schema(version) {
     definitions.condition = {
       description: "Runtime also limits condition depth to 8 and nodes per rule to 100.",
       oneOf: [
+        object({ not: ref("condition") }),
         ...["all", "any"].map((name) =>
           object({ [name]: { type: "array", minItems: 1, maxItems: 20, items: ref("condition") } })
         ),
         object({ attribute, op: { const: "eq" }, value: scalarOperand }),
+        object({ attribute, op: { const: "exists" }, value: { type: "boolean" } }),
         object({
           attribute,
           op: { enum: ["startsWith", "endsWith"] },

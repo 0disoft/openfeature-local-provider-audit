@@ -44,9 +44,11 @@ export interface ScheduleEvaluation {
 }
 
 export type TargetingCondition =
+  | { readonly not: TargetingCondition }
   | { readonly all: readonly TargetingCondition[] }
   | { readonly any: readonly TargetingCondition[] }
   | { readonly attribute: readonly string[]; readonly op: "eq"; readonly value: ConditionScalar }
+  | { readonly attribute: readonly string[]; readonly op: "exists"; readonly value: boolean }
   | {
       readonly attribute: readonly string[];
       readonly op: "in";

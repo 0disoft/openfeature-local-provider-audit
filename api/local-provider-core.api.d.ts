@@ -70,6 +70,9 @@ interface ScheduleEvaluation {
 }
 type TargetingCondition =
   | {
+      readonly not: TargetingCondition;
+    }
+  | {
       readonly all: readonly TargetingCondition[];
     }
   | {
@@ -79,6 +82,11 @@ type TargetingCondition =
       readonly attribute: readonly string[];
       readonly op: "eq";
       readonly value: ConditionScalar;
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "exists";
+      readonly value: boolean;
     }
   | {
       readonly attribute: readonly string[];

@@ -40,6 +40,10 @@ export function validateTargetingRules(
 function condition(value: unknown, budget: { nodes: number }, depth: number): TargetingCondition {
   if (depth > 8 || ++budget.nodes > 100) fail("condition exceeds 8 levels or 100 nodes");
   if (!isRecord(value)) fail("condition must be an object");
+  if (Object.hasOwn(value, "not")) {
+    keys(value, ["not"]);
+    return { not: condition(value.not, budget, depth + 1) };
+  }
   if (Object.hasOwn(value, "all") || Object.hasOwn(value, "any")) {
     const name = Object.hasOwn(value, "all") ? "all" : "any";
     keys(value, [name]);
@@ -63,6 +67,9 @@ function condition(value: unknown, budget: { nodes: number }, depth: number): Ta
   const path = attribute.slice() as string[];
   const operand = value.value;
   switch (value.op) {
+    case "exists":
+      if (typeof operand !== "boolean") fail("exists requires a boolean");
+      return { attribute: path, op: "exists", value: operand };
     case "startsWith":
     case "endsWith":
       if (typeof operand !== "string" || operand.length < 1 || operand.length > 4096)

@@ -76,6 +76,120 @@ function hasOwnGroup<K extends "all" | "any">(
   return Object.hasOwn(condition, key);
 }
 
+function hasNot(condition: TargetingCondition): condition is { readonly not: TargetingCondition } {
+  return Object.hasOwn(condition, "not");
+}
+
+type Leaf = Extract<TargetingCondition, { readonly attribute: readonly string[] }>;
+const MISSING = Symbol("missing attribute");
+const INVALID = Symbol("invalid attribute");
+
+// New predicates distinguish absent own data from denied access or malformed paths.
+function readCheckedAttribute(
+  path: readonly string[],
+  request: EvaluationRequest<FlagValue>
+): unknown {
+  try {
+    if (path.length === 1 && path[0] === "targetingKey") {
+      const explicit = Object.getOwnPropertyDescriptor(request, "targetingKey");
+      if (explicit && !("value" in explicit)) return INVALID;
+      if (!explicit && "targetingKey" in request) return INVALID;
+      if (explicit?.value !== undefined)
+        return typeof explicit.value === "string" ? explicit.value : INVALID;
+    }
+    const context = Object.getOwnPropertyDescriptor(request, "context");
+    if (context && !("value" in context)) return INVALID;
+    if (!context && "context" in request) return INVALID;
+    let value: unknown = context?.value;
+    for (const key of path) {
+      if (["__proto__", "prototype", "constructor"].includes(key)) return INVALID;
+      if (value === undefined) return MISSING;
+      if (value === null || typeof value !== "object") return INVALID;
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor) return key in value ? INVALID : MISSING;
+      if (!("value" in descriptor)) return INVALID;
+      value = descriptor.value;
+    }
+    return value === undefined ? MISSING : value;
+  } catch {
+    // Proxy traps cannot be made side-effect free, but exceptions never become matches.
+    return INVALID;
+  }
+}
+
+function boundedScalar(value: unknown): value is ConditionScalar {
+  return (
+    value === null ||
+    typeof value === "boolean" ||
+    (typeof value === "number" && Number.isFinite(value)) ||
+    (typeof value === "string" && value.length <= 4096)
+  );
+}
+
+function presence(actual: unknown, expected: boolean): boolean | undefined {
+  if (actual === MISSING) return !expected;
+  if (
+    actual === INVALID ||
+    !(boundedScalar(actual) || (typeof actual === "object" && actual !== null))
+  )
+    return undefined;
+  return expected;
+}
+
+// Invalid dominates the entire subtree under not. Never short-circuit a known
+// boolean past an unchecked sibling and then invert it into a match.
+function checkedCondition(
+  condition: TargetingCondition,
+  request: EvaluationRequest<FlagValue>,
+  evaluation: ConditionEvaluation
+): boolean | undefined {
+  if (hasNot(condition)) {
+    const result = checkedCondition(condition.not, request, evaluation);
+    return result === undefined ? undefined : !result;
+  }
+  if (hasOwnGroup(condition, "all") || hasOwnGroup(condition, "any")) {
+    const all = hasOwnGroup(condition, "all");
+    const children = hasOwnGroup(condition, "all") ? condition.all : condition.any;
+    let result = all;
+    for (const child of children) {
+      const matched = checkedCondition(child, request, evaluation);
+      if (matched === undefined) return undefined;
+      result = all ? result && matched : result || matched;
+    }
+    return result;
+  }
+  const actual = readCheckedAttribute(condition.attribute, request);
+  if (condition.op === "exists") return presence(actual, condition.value);
+  if (!boundedScalar(actual)) return undefined;
+  switch (condition.op) {
+    case "eq":
+      if (typeof actual !== typeof condition.value) return undefined;
+      break;
+    case "in":
+      if (!condition.value.some((candidate) => typeof candidate === typeof actual))
+        return undefined;
+      break;
+    case "gt":
+    case "gte":
+    case "lt":
+    case "lte":
+      if (typeof actual !== "number") return undefined;
+      break;
+    case "startsWith":
+    case "endsWith":
+      if (typeof actual !== "string") return undefined;
+      break;
+    default:
+      if (
+        typeof actual !== "string" ||
+        !actualSemver(actual, evaluation) ||
+        !operandSemver(condition, condition.value)
+      )
+        return undefined;
+  }
+  return matchesLeaf(condition, actual, evaluation);
+}
+
 export function matchesCondition(
   condition: TargetingCondition,
   request: EvaluationRequest<FlagValue>,
@@ -86,11 +200,25 @@ export function matchesCondition(
     previousParsed: undefined
   }
 ): boolean {
+  if (hasNot(condition)) {
+    const result = checkedCondition(condition.not, request, evaluation);
+    return result === undefined ? false : !result;
+  }
   if (hasOwnGroup(condition, "all"))
     return condition.all.every((child) => matchesCondition(child, request, evaluation));
   if (hasOwnGroup(condition, "any"))
     return condition.any.some((child) => matchesCondition(child, request, evaluation));
+  if (condition.op === "exists")
+    return presence(readCheckedAttribute(condition.attribute, request), condition.value) === true;
   const actual = readAttribute(condition.attribute, request);
+  return matchesLeaf(condition, actual, evaluation);
+}
+
+function matchesLeaf(
+  condition: Exclude<Leaf, { readonly op: "exists" }>,
+  actual: unknown,
+  evaluation: ConditionEvaluation
+): boolean {
   if (typeof actual === "string" && actual.length > 4096) return false;
   switch (condition.op) {
     case "eq":

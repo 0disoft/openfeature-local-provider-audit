@@ -496,6 +496,42 @@ void result;
         }
       }
     };
+    for (const [name, when, expected] of [
+      ["present", { attribute: ["tenant"], op: "exists", value: false }, true],
+      ["negative", { not: { attribute: ["tenant"], op: "eq", value: "blocked" } }, false]
+    ]) {
+      const config = {
+        ...targeted,
+        flags: {
+          enabled: { ...targeted.flags.enabled, rules: [{ id: name, when, variant: "on" }] }
+        }
+      };
+      const file = `predicate-${name}.json`;
+      await writeFile(path.join(consumerDirectory, file), JSON.stringify(config));
+      await writeFile(
+        path.join(consumerDirectory, "predicate-request.json"),
+        JSON.stringify({
+          flagKey: "enabled",
+          expectedType: "boolean",
+          defaultValue: false
+        })
+      );
+      const result = await run(
+        "pnpm",
+        [
+          "exec",
+          "openfeature-local-provider",
+          "evaluate",
+          file,
+          "--request",
+          "predicate-request.json"
+        ],
+        consumerDirectory
+      );
+      const report = JSON.parse(result.stdout);
+      if (report.reason !== (expected ? "TARGETING_MATCH" : "STATIC"))
+        throw new Error("Packed presence/negation CLI failed");
+    }
     await writeFile(
       path.join(consumerDirectory, "flagd-static.json"),
       JSON.stringify({

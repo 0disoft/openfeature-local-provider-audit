@@ -23,6 +23,28 @@ const rule = {
 };
 
 describe("packaged authoring schemas", () => {
+  it.each([
+    { attribute: ["tenant"], op: "exists", value: true },
+    { attribute: ["tenant"], op: "exists", value: false },
+    { not: rule.when },
+    { not: { any: [rule.when, { not: rule.when }] } }
+  ])("accepts presence/negation only in v2 %#", (when) => {
+    const value = snapshot(2, { ...flag(), rules: [{ ...rule, when }] });
+    expect(() => validateFlagSnapshot(value)).not.toThrow();
+    expect(matches(value)).toBe(true);
+    expect(matches({ ...value, schemaVersion: 1 }, 1)).toBe(false);
+  });
+  it.each([
+    { attribute: ["tenant"], op: "exists", value: "false" },
+    { attribute: ["tenant"], op: "exists" },
+    { not: [] },
+    { not: null },
+    { not: rule.when, all: [rule.when] }
+  ])("rejects malformed presence/negation structurally and at runtime %#", (when) => {
+    const value = snapshot(2, { ...flag(), rules: [{ ...rule, when }] });
+    expect(() => validateFlagSnapshot(value)).toThrow();
+    expect(matches(value)).toBe(false);
+  });
   it.each([127, 128, 129, 256, 4096])(
     "accepts runtime-valid targeting variant references of %i characters",
     (length) => {

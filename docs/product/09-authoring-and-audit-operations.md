@@ -43,8 +43,9 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    see `../library/snapshot-diagnosis.md`. It never activates or repairs storage.
 8. Targeting/migration selection completed: `10-targeting-and-migration.md` ranks
    four candidates. Literal startsWith/endsWith delivered in alpha.110; static flagd
-   JSON import delivered in alpha.111, rejecting unsupported semantics. Presence,
-   negation and general/reference conversion remain deliberately deferred.
+   JSON import delivered in alpha.111, rejecting unsupported semantics. Safe presence
+   and guarded negation delivered in alpha.112; general/reference conversion remains
+   deliberately deferred without demonstrated equivalent semantics.
 
 ## Verification boundaries
 
@@ -57,8 +58,8 @@ Operational follow-up status on 2026-10-28 KST:
   four-runtime packed-core conformance and a 17-scenario sequential Node evaluation/audit sample, both pinned
   to source/artifact identity. Historical receipts are preserved. See
   `../testing/core-runtime-acceptance.md` and `../testing/evaluation-performance.md`.
-- Alpha.110 literal conditions were additionally checked locally in the packed
-  Bun/Deno/real Chromium/workerd corpus: 1751 evaluations and three parser failures,
+- Alpha.112 presence/guarded-negation conditions were additionally checked locally in
+  the packed Bun/Deno/real Chromium/workerd corpus: 1787 evaluations and three parser failures,
   identical result hash in all four runtimes. This does not refresh the CPU/latency
   receipts or establish native Linux/macOS acceptance.
 - Active signed snapshot expiry completed in local alpha.108: opt-in provider

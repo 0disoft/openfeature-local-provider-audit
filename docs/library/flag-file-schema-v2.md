@@ -25,6 +25,12 @@ otherwise an own context property. No context normalization or GeoIP lookup occu
 
 - `eq`: strict equality with a string, finite number, boolean, or null.
 - `in`: array of 1..100 such scalars, strict equality without coercion.
+- `exists`: boolean operand; safe own defined data is present, including null/false/0.
+  Missing/undefined is absent; denied access or malformed paths match neither value.
+  See `presence-and-negation.md` for the exact truth table and targeting-key policy.
+- `{ not: condition }`: guarded typed negation. Missing, wrong-type, unsafe and
+  malformed comparisons remain nonmatches; invalidity dominates the entire guarded
+  subtree, including all/any siblings and double negation. See the same contract.
 - `startsWith`, `endsWith`: literal case-sensitive string comparison. Operands are
   1..4096 UTF-16 code units; actual strings retain the 4096-unit limit. No regex,
   trimming, coercion or Unicode normalization occurs. Empty operands reject to avoid
@@ -38,18 +44,20 @@ otherwise an own context property. No context normalization or GeoIP lookup occu
 - `{ all: [condition, ...] }` / `{ any: [condition, ...] }`: non-empty groups of at
   most 20 children. Each rule is limited to 8 levels and 100 condition nodes.
 
-Group dispatch uses only own `all`/`any` fields, matching the validator. Inherited
+Group dispatch uses only own `not`/`all`/`any` fields, matching the validator. Inherited
 arrays/getters are ignored, including fields introduced on `Object.prototype`
 after validation; they cannot turn a leaf into a group or shadow its actual group.
 This prevents false matches from inherited empty `all` arrays and false negatives
 from inherited empty `any` arrays without invoking inherited getters. Each visited
-node uses at most two O(1) own-property checks; rule/group order and short circuit
-behavior are preserved in Node and portable core. This limited dispatch guarantee
-does not provide process-wide protection against arbitrary prototype mutation.
+ordinary node uses at most three O(1) own-property checks; existing rule/group order
+and positive-group short circuit remain in Node and portable core. Guarded groups
+under not inspect siblings to propagate invalidity, as specified above. This dispatch
+guarantee does not provide process-wide protection against arbitrary prototype mutation.
 
 Condition strings and runtime comparison strings are limited to 4,096 characters;
 SemVer strings are at most 256 characters. Missing, accessor, inherited, oversized,
-non-finite, or wrong-type context values do not match. Missing is distinct from null.
+non-finite, or wrong-type context values do not match positive comparisons. The
+explicit exists-false form can select safe absence; missing is distinct from null.
 Cycles and large unrelated context fields are never traversed.
 
 Wide `in` arrays from validated snapshots use a private membership index; smaller

@@ -1,6 +1,66 @@
 // Shared, platform-neutral contract: real runtimes consume identical packed bytes/cases.
 export function runCoreContract(api) {
   const results = [];
+  for (const when of [
+    { attribute: ["tenant"], op: "exists", value: true },
+    { attribute: ["tenant"], op: "exists", value: false },
+    { not: { attribute: ["tenant"], op: "eq", value: "blocked" } },
+    {
+      not: {
+        all: [
+          { attribute: ["tenant"], op: "eq", value: "blocked" },
+          { attribute: ["missing"], op: "eq", value: "x" }
+        ]
+      }
+    }
+  ]) {
+    const snapshot = api.parseJsonFlagSnapshot(
+      JSON.stringify({
+        schemaVersion: 2,
+        flags: {
+          predicate: {
+            type: "boolean",
+            variants: { on: true, off: false },
+            defaultVariant: "off",
+            rules: [{ id: "safe", when, variant: "on" }]
+          }
+        }
+      })
+    );
+    for (const context of [
+      {},
+      { tenant: undefined },
+      { tenant: null },
+      { tenant: "allowed" },
+      { tenant: "blocked" },
+      { tenant: 1 },
+      { tenant: {} },
+      Object.create({ tenant: "allowed" }),
+      Object.defineProperty({}, "tenant", {
+        get() {
+          throw new Error("Getter invoked");
+        }
+      })
+    ]) {
+      const result = api.evaluateFlag(snapshot, {
+        flagKey: "predicate",
+        expectedType: "boolean",
+        defaultValue: false,
+        context
+      });
+      const own = Object.getOwnPropertyDescriptor(context, "tenant");
+      const invalid = own ? !("value" in own) : "tenant" in context;
+      const present = own && own.value !== undefined;
+      const expected =
+        "op" in when
+          ? !invalid && (when.value ? !!present : !present)
+          : "all" in when.not
+            ? false
+            : !invalid && own?.value === "allowed";
+      if (result.value !== expected) throw new Error("Presence/negation contract failed");
+      results.push(result);
+    }
+  }
   for (const op of ["startsWith", "endsWith"]) {
     const snapshot = api.parseJsonFlagSnapshot(
       JSON.stringify({

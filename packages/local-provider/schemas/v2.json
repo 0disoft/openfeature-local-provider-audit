@@ -101,6 +101,16 @@
         {
           "type": "object",
           "properties": {
+            "not": {
+              "$ref": "#/definitions/condition"
+            }
+          },
+          "required": ["not"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
             "all": {
               "type": "array",
               "minItems": 1,
@@ -163,6 +173,32 @@
                   "type": "null"
                 }
               ]
+            }
+          },
+          "required": ["attribute", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attribute": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "\\S",
+                "maxLength": 128,
+                "not": {
+                  "enum": ["__proto__", "prototype", "constructor"]
+                }
+              }
+            },
+            "op": {
+              "const": "exists"
+            },
+            "value": {
+              "type": "boolean"
             }
           },
           "required": ["attribute", "op", "value"],

@@ -21,9 +21,10 @@ excluded. Per-run 20-minute/no-new-unit-after-10-minute limits still apply.
    Implemented in alpha.111; see `../library/import-flagd.md`.
    Default report must be redacted; emitting complete sensitive configuration must
    require an explicit flag. No deployment, automatic update or source modification.
-3. Presence/negation: deferred. Missing own data, null, undefined, unsafe/accessor and
-   wrong-type paths must have explicit truth rules before any complement operator;
-   adding generic not can otherwise turn malformed input into a match.
+3. Presence/negation: delivered in alpha.112. Boolean exists distinguishes safe
+   own defined data (including null) from absence and invalid access. Guarded not
+   propagates invalidity through its entire subtree rather than complementing
+   invalid input into a match. See `../library/presence-and-negation.md`.
 4. Reusable segments/general JsonLogic conversion: deferred. Existing grouping
    serves composed conditions; references would add cycle/expansion semantics and
    foreign operators require proven equivalence. No segment database or arbitrary

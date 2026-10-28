@@ -318,3 +318,7 @@ Alpha.111 adds the Node `import-flagd` CLI for the explicitly supported static J
 subset, with a redacted default report and opt-in complete sensitive output.
 Unsupported semantics reject the whole conversion; no root/core API exports or
 source files change. See `import-flagd.md`.
+
+Alpha.112 extends TargetingCondition with boolean exists and guarded not. Existing
+function signatures/exports, old snapshots and ordinary positive-group behavior remain;
+invalidity cannot become a match through complement. See `presence-and-negation.md`.
