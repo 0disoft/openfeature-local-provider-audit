@@ -8,9 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.123`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.124`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.124 reuses active per-flag hashes after a newly supplied snapshot passes full
+validation and its whole-snapshot hash matches the active hash. For F flags this
+avoids F SHA-256 calls and a temporary F-entry map that unchanged activation would
+discard. Input validation, copying, provenance checks and refresh bookkeeping still
+run; changed snapshots rebuild the map. No API, I/O or historical cache is added.
+See `operational-status.md`.
 
 Alpha.123 streams canonical hashing of library-created frozen env override states,
 preserving digests without allocating a JSON string containing all flag values.

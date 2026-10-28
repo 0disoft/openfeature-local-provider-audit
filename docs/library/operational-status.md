@@ -78,7 +78,12 @@ to N/F; no historical-snapshot cache is added. Provenance is still captured and
 checked against the current hash, unsigned updates clear it, refresh counters/age
 still advance, and prepare/commit/cancel reservations retain their normal lifecycle.
 Equal-content objects, caller-frozen copies and previously active snapshots are
-validated normally. This also covers unsigned refresher `notModified` responses;
+validated normally. When their full snapshot hash matches the active hash, reuse
+the active flag-hash map instead of recomputing and then discarding F flag hashes.
+This saves F SHA-256 calls and the temporary F-entry map; validation, cloning,
+whole-snapshot hashing and override capture still run. A different hash rebuilds
+the flag-hash map, including when reactivating older content. There is no history cache.
+The same-instance path also covers unsigned refresher `notModified` responses;
 signed delivery still performs its verifier/freshness/continuity checks.
 
 `staleAfterMs` must be a positive safe integer. Staleness is computed at read time,

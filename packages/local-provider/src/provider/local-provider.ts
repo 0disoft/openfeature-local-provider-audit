@@ -574,7 +574,10 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
         ? createActiveSnapshotExpiry(captured, this.state)
         : undefined,
       overrides,
-      flagHashes: createFlagHashes(validatedSnapshot),
+      flagHashes:
+        this.state?.snapshotHash === snapshotHash
+          ? this.state.flagHashes
+          : createFlagHashes(validatedSnapshot),
       ...(hasOverrideState(overrides) ? { overrideHash: createOverrideHash(overrides) } : {})
     };
   }

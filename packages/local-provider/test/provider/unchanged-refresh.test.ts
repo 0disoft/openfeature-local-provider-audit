@@ -95,12 +95,12 @@ it("preserves captured overrides, hashes and frozen values on same-instance upda
   await provider.onClose?.();
 });
 
-it("still validates and hashes a caller-frozen equal-content copy", () => {
+it("validates and hashes a caller-frozen equal-content copy before reusing flag hashes", () => {
   const provider = createReloadableLocalProvider({ snapshot: staticSnapshot, env: {} });
   const input = Object.freeze(structuredClone(staticSnapshot));
   vi.mocked(createHash).mockClear();
   provider.updateSnapshot(input);
-  expect(createHash).toHaveBeenCalledTimes(Object.keys(staticSnapshot.flags).length + 1);
+  expect(createHash).toHaveBeenCalledTimes(1);
   const getter = vi.fn(() => 1);
   const invalid = Object.defineProperty(structuredClone(staticSnapshot), "metadata", {
     enumerable: true,
@@ -109,6 +109,40 @@ it("still validates and hashes a caller-frozen equal-content copy", () => {
   expect(() => provider.updateSnapshot(invalid)).toThrow();
   expect(getter).not.toHaveBeenCalled();
   expect(provider.getStatus().lastRefreshFailure).toBe("validation");
+});
+
+it("reuses flag hashes only for accepted equal content and still reports later additions/removals", () => {
+  const initial = {
+    schemaVersion: 1 as const,
+    flags: {
+      removed: { type: "boolean" as const, variants: { v: false }, defaultVariant: "v" },
+      changed: { type: "boolean" as const, variants: { v: false }, defaultVariant: "v" }
+    }
+  };
+  const provider = createReloadableLocalProvider({ snapshot: initial, env: {} });
+  const owned = provider.getSnapshot();
+  const changes = vi.fn();
+  provider.events?.addHandler(ProviderEvents.ConfigurationChanged, changes);
+  vi.mocked(createHash).mockClear();
+  provider.updateSnapshot(structuredClone(initial));
+  expect(createHash).toHaveBeenCalledTimes(1);
+  expect(provider.getSnapshot()).toBe(owned);
+  expect(provider.getStatus().successfulRefreshes).toBe(2);
+  expect(changes).not.toHaveBeenCalled();
+
+  vi.mocked(createHash).mockClear();
+  provider.updateSnapshot({
+    schemaVersion: 1,
+    flags: {
+      added: initial.flags.removed,
+      changed: { ...initial.flags.changed, variants: { v: true } }
+    }
+  });
+  expect(createHash).toHaveBeenCalledTimes(3);
+  expect(changes).toHaveBeenCalledExactlyOnceWith({
+    flagsChanged: ["added", "changed", "removed"]
+  });
+  expect(provider.getSnapshot().flags.changed?.variants.v).toBe(true);
 });
 
 it("restores former content using its cached snapshot hash without skipping activation", () => {
