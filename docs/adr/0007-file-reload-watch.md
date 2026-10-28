@@ -14,6 +14,11 @@ contracts were covered by tests.
 ## Decision
 
 - Add explicit file loading with `loadFlagSnapshotFile(path, options)`.
+- Copy each load's file-URL path to a string and capture format/encoding/byte limit
+  before the first await. Caller mutation of a URL/options object cannot redirect
+  that load or switch its parser. String paths retain native filesystem resolution,
+  including symlink/parent semantics; callers must keep the working directory stable
+  during relative-path loads. Normal atomic file replacement remains supported.
 - Add a reloadable provider with `createReloadableLocalProvider(options)`.
 - Add file watching with `watchFlagSnapshotFile(options)`.
 - Keep evaluation file-I/O free. Reload and watch happen at explicit load boundaries and

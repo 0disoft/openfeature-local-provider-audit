@@ -98,12 +98,13 @@ export async function loadFlagSnapshotFile(
   path: string | URL,
   options: LoadFlagSnapshotFileOptions = {}
 ): Promise<FlagSnapshot> {
-  const text = await readFileWithinLimit(
-    path,
-    options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES,
-    options.encoding ?? "utf8"
-  );
-  return parseSnapshotFileText(text, path, options.format ?? "auto");
+  // Capture caller-owned URL/options without changing native string-path resolution.
+  const filePath = typeof path === "string" ? path : fileURLToPath(path);
+  const maxBytes = options.maxBytes ?? DEFAULT_MAX_SNAPSHOT_FILE_BYTES;
+  const encoding = options.encoding ?? "utf8";
+  const format = options.format ?? "auto";
+  const text = await readFileWithinLimit(filePath, maxBytes, encoding);
+  return parseSnapshotFileText(text, filePath, format);
 }
 
 function parseSnapshotFileText(

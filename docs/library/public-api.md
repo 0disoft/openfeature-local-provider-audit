@@ -242,7 +242,10 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
 - `AuditRedactionOptions` with optional `contextKeys: "names" | "count" | "none"`.
   Omitting `contextKeys` selects `count`; `names` is an explicit metadata-disclosure opt-in.
 - `LoadFlagSnapshotFileOptions` with optional `format`, optional `encoding`, and optional
-  `maxBytes`. File loads fill a shared bounded buffer in reads of at most 64 KiB,
+  `maxBytes`. File loads copy file URLs to strings and capture these settings before
+  the first await; later URL/options mutation does not alter an in-flight request.
+  String paths retain native filesystem resolution; keep the working directory stable
+  during relative-path loads. File loads fill a shared bounded buffer in reads of at most 64 KiB,
   without per-read compacting or final concatenation. One final opened-handle stat
   rejects detected size/nanosecond mtime changes or linked-inode ctime changes with
   `PARSE_ERROR` before decoding. No automatic retry is added; byte-limit enforcement,

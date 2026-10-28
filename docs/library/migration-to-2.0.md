@@ -8,9 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.121`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.122`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.122 copies each file load's URL to a string and captures format/encoding/byte
+limit before the first await. Reusing and mutating a caller-owned URL/options object
+while loading no longer redirects the load or switches the parser. String paths
+retain native filesystem resolution, including symlink/parent semantics; keep the
+working directory stable during relative-path loads. No new API, I/O or retry is added.
 
 Alpha.121 reuses the last successful object env parse per binding within one
 override creation, as well as the most recent successful input across bindings.
