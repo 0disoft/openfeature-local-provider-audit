@@ -75,6 +75,17 @@ grows after stat, capacity doubles up to `maxBytes + 1`, preserving overflow
 checks. Shrinkage decodes only initialized bytes. This shared reader also serves
 CLI input/checkpoint reads; encodings and file/cleanup error precedence remain.
 
+Before decoding, the reader performs one final stat on the same opened handle.
+Changed size or nanosecond mtime rejects with `PARSE_ERROR`; changed nanosecond
+ctime also rejects while the inode remains linked. An unlinked old inode after
+atomic path replacement may still supply its complete unchanged contents. Ordinary
+regular-file symlinks remain supported. No automatic read retry is added; failed
+watch reloads retain the last good snapshot. Stale size observations remain supported
+by the buffer-growth logic, but detected concurrent writes no longer publish data.
+This is a metadata consistency check on trusted storage, not an immutable filesystem
+snapshot or protection against a writer that can conceal changes. Prefer atomic
+replacement; changes after the final check are observed by subsequent reloads.
+
 For observed size S and bytes read N, requested input capacity is O(S + N), with
 geometric growth copying O(N) bytes in total. A truncated file can retain its
 larger initial reserve. This is not a total heap/RSS bound: allocator pooling,

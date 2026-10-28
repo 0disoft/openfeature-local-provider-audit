@@ -7,6 +7,7 @@ import {
   statSync,
   constants,
   type FSWatcher,
+  type BigIntStats,
   type Stats,
   unwatchFile,
   type WatchListener
@@ -304,12 +305,12 @@ export async function readFileWithinLimit(
   const handle = await open(path, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
   let failure: { cause: unknown } | undefined;
   try {
-    const fileStats = await handle.stat();
+    const fileStats = await handle.stat({ bigint: true });
     assertRegularSnapshotFile(fileStats);
-    assertSnapshotSizeWithinLimit(fileStats.size, maxBytes);
+    assertSnapshotSizeWithinLimit(Number(fileStats.size), maxBytes);
 
     // Reserve one probe byte; repeated short reads fill the same bounded buffer.
-    let buffer = Buffer.allocUnsafe(fileStats.size + 1);
+    let buffer = Buffer.allocUnsafe(Number(fileStats.size) + 1);
     let totalBytes = 0;
 
     while (true) {
@@ -325,6 +326,7 @@ export async function readFileWithinLimit(
         null
       );
       if (bytesRead === 0) {
+        assertSnapshotFileUnchanged(fileStats, await handle.stat({ bigint: true }));
         const contents = buffer.subarray(0, totalBytes);
         if ((encoding === "utf8" || encoding === "utf-8") && !isUtf8(contents)) {
           throw new LocalProviderError(
@@ -344,6 +346,20 @@ export async function readFileWithinLimit(
   } finally {
     await cleanupResource(() => handle.close(), failure, "Snapshot file read and close failed.");
   }
+}
+
+function assertSnapshotFileUnchanged(before: BigIntStats, after: BigIntStats): void {
+  // Unlinking an atomically replaced inode can change ctime without changing its bytes.
+  if (
+    before.size === after.size &&
+    before.mtimeNs === after.mtimeNs &&
+    (before.ctimeNs === after.ctimeNs || after.nlink === 0n)
+  )
+    return;
+  throw new LocalProviderError(
+    LOCAL_PROVIDER_ERROR_CODES.PARSE_ERROR,
+    "Flag snapshot file changed during read; retry explicitly."
+  );
 }
 
 function assertRegularSnapshotFile(stats: Pick<Stats, "isFile">): void {

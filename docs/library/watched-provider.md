@@ -43,6 +43,12 @@ Defaults omit ambient environment overrides and context key names. Explicitly op
 in through provider.env, provider.overridesJson or provider.auditRedaction as needed.
 An unavailable/invalid initial file rejects, without manufacturing a bootstrap.
 
+Each read checks the opened file's size and nanosecond mtime/linked-inode ctime
+again before decoding. A detected concurrent write rejects with `PARSE_ERROR` and
+preserves the last good provider snapshot. Retry explicitly or on a subsequent
+notification; the loader does not introduce a retry loop. Prefer atomic replacement
+on trusted storage: this metadata check cannot guarantee an immutable file image.
+
 The helper inherits native watcher startup/read semantics and byte bounds. It adds
 no filesystem timeout or AbortSignal contract; it cannot preempt a blocked native
 filesystem operation. Keep paths on trusted storage. Low-level loader/watcher APIs

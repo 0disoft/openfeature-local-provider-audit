@@ -8,9 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.116`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.117`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.117 rejects local file reads whose opened-handle size or nanosecond modification
+time changes before EOF, or whose change time changes while the inode remains linked.
+This prevents observed mixed-version reads from reaching snapshot validation. Failed
+reloads preserve the last good snapshot; retries remain explicit or notification-driven.
+One final handle stat is added; public signatures and byte limits are unchanged.
+Atomic replacement can still return the complete old inode where the OS permits it.
 
 Alpha.116 indexes the scalar types of validator-owned wide membership operands,
 removing repeated candidate-type scans under guarded negation. Wrong/missing types

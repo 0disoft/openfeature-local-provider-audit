@@ -154,6 +154,11 @@ The factory starts monitoring explicitly, provides reload/status and shares SDK
 shutdown with its watcher cleanup. Existing low-level APIs keep their behavior.
 See `docs/library/watched-provider.md` and the executable node-basic example.
 
+Alpha.117 adds an opened-handle metadata check before local file contents are decoded.
+Detected concurrent writes reject with `PARSE_ERROR` and keep the last good snapshot;
+the reader adds no automatic retry. See `../library/flag-file-schema-v1.md` for the
+nanosecond timestamp checks, atomic replacement behavior and trusted-storage limits.
+
 Alpha.111 adds the Node `import-flagd` CLI for the explicitly supported static JSON
 subset, with a redacted default report and opt-in complete sensitive output.
 Unsupported semantics reject the whole conversion; no root/core API exports or
