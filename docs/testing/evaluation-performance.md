@@ -1,5 +1,26 @@
 # Local evaluation baseline
 
+## Guarded membership component comparison: alpha.116
+
+Local Windows x64 / Node v24.14.0, 2026-10-29 KST: one validated v2 boolean flag
+with 20 ordered `not(in)` rules, each containing 99 distinct string candidates and
+numeric zero last. Context tenant is numeric zero: all rules must reject and keep
+the false default. Setup/parsing is outside timing; 5,000 warmup evaluations,
+then five samples of 30,000 synchronous `evaluateFlag` calls, without I/O.
+
+| Source | Five sample durations (ms) | Median (ms) |
+| --- | --- | ---: |
+| alpha.115 / `4e5a18c` | 4594.78, 4457.36, 4440.18, 4353.20, 4697.92 | 4457.36 |
+| alpha.116 type index | 160.48, 168.42, 142.19, 141.36, 144.01 | 144.01 |
+
+The median for this type-scan-heavy component fixture decreased by 96.8% (30.95x).
+Each evaluation formerly checked 2,000 candidate types; it now does 20 type-set and
+20 value-set lookups. All 150,000 measured evaluations in each run returned false.
+The five scalar type/index boundary regressions include mutable/caller-frozen
+inputs and 15/16/100-candidate parity. This is not a production throughput, general
+workload speedup, p95, RSS, or cross-runtime performance claim. Homogeneous lists
+whose type matches their first candidate did not incur that worst-case type scan.
+
 ## Current local sample: alpha.107
 
 Measured 2026-10-27T19:48:12.734Z (2026-10-28 KST), source commit

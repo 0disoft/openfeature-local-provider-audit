@@ -61,6 +61,48 @@ export function runCoreContract(api) {
       results.push(result);
     }
   }
+  for (const size of [15, 16, 100]) {
+    const values = [...Array.from({ length: size - 3 }, (_, i) => `member-${i}`), 0, false, null];
+    const snapshot = api.parseJsonFlagSnapshot(
+      JSON.stringify({
+        schemaVersion: 2,
+        flags: {
+          guarded: {
+            type: "boolean",
+            variants: { on: true, off: false },
+            defaultVariant: "off",
+            rules: [
+              {
+                id: "guarded",
+                when: { not: { attribute: ["member"], op: "in", value: values } },
+                variant: "on"
+              }
+            ]
+          }
+        }
+      })
+    );
+    for (const [member, expected] of [
+      [0, false],
+      [1, true],
+      [null, false],
+      [false, false],
+      [true, true],
+      ["absent", true],
+      [undefined, false],
+      [NaN, false],
+      [{}, false]
+    ]) {
+      const result = api.evaluateFlag(snapshot, {
+        flagKey: "guarded",
+        expectedType: "boolean",
+        defaultValue: false,
+        context: { member }
+      });
+      if (result.value !== expected) throw new Error("Guarded membership type index failed");
+      results.push(result);
+    }
+  }
   for (const op of ["startsWith", "endsWith"]) {
     const snapshot = api.parseJsonFlagSnapshot(
       JSON.stringify({

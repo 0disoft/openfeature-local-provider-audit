@@ -22,7 +22,11 @@ function operandSemver(condition: TargetingCondition, value: string): SemVer | u
 }
 
 const MIN_INDEXED_MEMBERSHIP_SIZE = 16;
-const membershipIndexes = new WeakMap<readonly ConditionScalar[], ReadonlySet<ConditionScalar>>();
+interface MembershipIndex {
+  readonly values: ReadonlySet<ConditionScalar>;
+  readonly types: ReadonlySet<string>;
+}
+const membershipIndexes = new WeakMap<readonly ConditionScalar[], MembershipIndex>();
 
 // Only validator-owned, immutable copies are indexed; caller arrays never acquire stale caches.
 export function captureConditionValues(
@@ -30,7 +34,10 @@ export function captureConditionValues(
 ): readonly ConditionScalar[] {
   const captured = Object.freeze([...values]);
   if (captured.length >= MIN_INDEXED_MEMBERSHIP_SIZE)
-    membershipIndexes.set(captured, new Set(captured));
+    membershipIndexes.set(captured, {
+      values: new Set(captured),
+      types: new Set(captured.map((value) => typeof value))
+    });
   return captured;
 }
 
@@ -165,10 +172,17 @@ function checkedCondition(
     case "eq":
       if (typeof actual !== typeof condition.value) return undefined;
       break;
-    case "in":
+    case "in": {
+      const indexed =
+        condition.value.length >= MIN_INDEXED_MEMBERSHIP_SIZE
+          ? membershipIndexes.get(condition.value)
+          : undefined;
+      if (indexed !== undefined)
+        return indexed.types.has(typeof actual) ? indexed.values.has(actual) : undefined;
       if (!condition.value.some((candidate) => typeof candidate === typeof actual))
         return undefined;
       break;
+    }
     case "gt":
     case "gte":
     case "lt":
@@ -238,7 +252,7 @@ function matchesLeaf(
           : undefined;
       return indexed === undefined
         ? condition.value.some((candidate) => candidate === actual)
-        : indexed.has(actual as ConditionScalar);
+        : indexed.values.has(actual as ConditionScalar);
     }
     case "gt":
     case "gte":

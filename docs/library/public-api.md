@@ -333,3 +333,7 @@ snapshot format changes. See `reusable-conditions.md`.
 Alpha.114 adds the JSON-only export schemas/authoring-v1.json for offline editing.
 Root/core runtime/type exports and existing runtime JSON schemas remain unchanged;
 structural acceptance never substitutes for compile-segments semantic validation.
+
+Alpha.116 adds only private type indexing for validated wide membership operands
+under guarded negation. Runtime/type exports, hashes, results and public signatures
+are unchanged; see `presence-and-negation.md`.

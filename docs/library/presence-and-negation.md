@@ -53,6 +53,13 @@ hashing, rollout buckets, priority, override/kill-switch precedence, audit redac
 and replay semantics remain unchanged. v1 rejects all rules; old packages reject
 new expressions. Upgrade evaluators and replay tools before delivering these forms.
 
+Alpha.116 extends the private index for validator-owned `in` arrays of 16..100
+candidates with their at-most-four scalar types. Guarded type eligibility and value
+membership use expected constant-time set lookups instead of a per-evaluation type
+scan. The index is constructed once in O(N); small and unvalidated arrays keep live
+linear lookup. Null remains a distinct supported value, wrong types remain invalid,
+and order/duplicates/hash/traces and invalid-dominates-group behavior are unchanged.
+
 These expressions are not authorization or tenant-isolation controls. Reusable
 segment references and foreign JsonLogic conversion remain separate, unsupported
 contracts; the static flagd importer still rejects any targeting expression.

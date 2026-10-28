@@ -8,9 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.115`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.116`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.116 indexes the scalar types of validator-owned wide membership operands,
+removing repeated candidate-type scans under guarded negation. Wrong/missing types
+remain invalid, mutable/caller-frozen arrays remain live, and candidate order,
+duplicates, hashes, rules, exports and public signatures are unchanged.
 
 Alpha.115 starts blocking audit budgets before event creation/sink invocation and
 checks completion against a monotonic deadline, including shutdown flushes. A delayed
