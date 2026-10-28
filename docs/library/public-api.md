@@ -313,3 +313,8 @@ encoded byte splitting and ambiguous group-failure semantics. No new exports.
 
 ChainedFileAuditSinkOptions adds optional onError(error: unknown): void | Promise<void>
 for trusted raw storage diagnostics. Callback failures are isolated; see audit-chain.md.
+
+Alpha.111 adds the Node `import-flagd` CLI for the explicitly supported static JSON
+subset, with a redacted default report and opt-in complete sensitive output.
+Unsupported semantics reject the whole conversion; no root/core API exports or
+source files change. See `import-flagd.md`.

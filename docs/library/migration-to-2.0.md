@@ -8,9 +8,13 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.110`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.111`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.111 adds read-only static `import-flagd` conversion with a redacted default
+report, explicit sensitive output and whole-file rejection on unsupported semantics.
+Root/core exports and existing local snapshots remain unchanged; see `import-flagd.md`.
 
 Alpha.110 adds opt-in v2 literal startsWith/endsWith conditions (case-sensitive,
 nonempty operands, at most 4096 UTF-16 units, no regex/coercion/normalization).

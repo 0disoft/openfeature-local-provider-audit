@@ -18,6 +18,7 @@ excluded. Per-run 20-minute/no-new-unit-after-10-minute limits still apply.
    Reject targeting/shared evaluators, metadata, DISABLED, missing/null defaults,
    unsupported root/flag fields and ambiguous types. No partial conversions and no
    claim to preserve other products' bucketing, audit identity, signatures or metadata.
+   Implemented in alpha.111; see `../library/import-flagd.md`.
    Default report must be redacted; emitting complete sensitive configuration must
    require an explicit flag. No deployment, automatic update or source modification.
 3. Presence/negation: deferred. Missing own data, null, undefined, unsafe/accessor and

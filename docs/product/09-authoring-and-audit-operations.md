@@ -42,8 +42,8 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    bounded read-only `snapshot-diagnose`, with optional public verification settings;
    see `../library/snapshot-diagnosis.md`. It never activates or repairs storage.
 8. Targeting/migration selection completed: `10-targeting-and-migration.md` ranks
-   four candidates. Literal startsWith/endsWith delivered in alpha.110; first import
-   scope is explicit static flagd JSON, rejecting unsupported semantics. Presence,
+   four candidates. Literal startsWith/endsWith delivered in alpha.110; static flagd
+   JSON import delivered in alpha.111, rejecting unsupported semantics. Presence,
    negation and general/reference conversion remain deliberately deferred.
 
 ## Verification boundaries
@@ -53,17 +53,21 @@ Operational follow-up status on 2026-10-28 KST:
 - Registry propagation policy completed in local alpha.107: bounded read-only
   reconciliation, per-attempt/overall deadlines and transient-only retries;
   candidate mismatches never retry or trigger another publish. See `../ops/release.md`.
-- Latest full evidence remains alpha.107 (portable core unchanged through alpha.109):
+- Latest combined runtime/performance receipts remain alpha.107 (portable core unchanged through alpha.109):
   four-runtime packed-core conformance and a 17-scenario sequential Node evaluation/audit sample, both pinned
   to source/artifact identity. Historical receipts are preserved. See
   `../testing/core-runtime-acceptance.md` and `../testing/evaluation-performance.md`.
+- Alpha.110 literal conditions were additionally checked locally in the packed
+  Bun/Deno/real Chromium/workerd corpus: 1751 evaluations and three parser failures,
+  identical result hash in all four runtimes. This does not refresh the CPU/latency
+  receipts or establish native Linux/macOS acceptance.
 - Active signed snapshot expiry completed in local alpha.108: opt-in provider
   defaults at expiresAt, final audit-wait checks and observed-expiry latching;
   existing default/unsigned behavior remains. See `../library/active-snapshot-expiry.md`.
 - Snapshot-recovery journal diagnosis completed in alpha.109, including structure-only
   and public-verification modes, observed-race handling and redacted issue indices.
 - Selected targeting/migration priorities are in `10-targeting-and-migration.md`;
-  literal targeting is delivered, bounded static flagd import follows.
+  literal targeting and bounded static flagd import are delivered.
 
 Use narrow regression checks per unit, then the existing complete checks when runtime
 or public behavior changes. No hosted CI run or independent-user evidence is needed.

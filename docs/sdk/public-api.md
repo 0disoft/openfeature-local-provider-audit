@@ -150,3 +150,8 @@ manually loading a file, constructing a provider and forwarding watcher callback
 The factory starts monitoring explicitly, provides reload/status and shares SDK
 shutdown with its watcher cleanup. Existing low-level APIs keep their behavior.
 See `docs/library/watched-provider.md` and the executable node-basic example.
+
+Alpha.111 adds the Node `import-flagd` CLI for the explicitly supported static JSON
+subset, with a redacted default report and opt-in complete sensitive output.
+Unsupported semantics reject the whole conversion; no root/core API exports or
+source files change. See `../library/import-flagd.md`.

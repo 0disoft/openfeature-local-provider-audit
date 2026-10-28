@@ -496,6 +496,40 @@ void result;
         }
       }
     };
+    await writeFile(
+      path.join(consumerDirectory, "flagd-static.json"),
+      JSON.stringify({
+        flags: {
+          enabled: { state: "ENABLED", variants: { on: true, off: false }, defaultVariant: "off" }
+        }
+      })
+    );
+    const importedPlan = await run(
+      "pnpm",
+      ["exec", "openfeature-local-provider", "import-flagd", "flagd-static.json"],
+      consumerDirectory
+    );
+    if (JSON.parse(importedPlan.stdout).flagCount !== 1)
+      throw new Error("Packed flagd plan failed");
+    const imported = await run(
+      "pnpm",
+      [
+        "exec",
+        "openfeature-local-provider",
+        "import-flagd",
+        "flagd-static.json",
+        "--emit-snapshot"
+      ],
+      consumerDirectory
+    );
+    await writeFile(path.join(consumerDirectory, "imported.json"), imported.stdout);
+    const checkedImport = await run(
+      "pnpm",
+      ["exec", "openfeature-local-provider", "validate", "imported.json", "--json"],
+      consumerDirectory
+    );
+    if (JSON.parse(checkedImport.stdout).ok !== true)
+      throw new Error("Packed flagd output failed validation");
     const stopped = {
       schemaVersion: 2,
       flags: { enabled: { ...targeted.flags.enabled, disabledVariant: "off" } }
