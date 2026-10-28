@@ -10,6 +10,8 @@ The package ships standalone Draft-07 JSON Schemas through these subpaths:
 
 - `@0disoft/openfeature-local-provider/schemas/v1.json`
 - `@0disoft/openfeature-local-provider/schemas/v2.json`
+- `@0disoft/openfeature-local-provider/schemas/authoring-v1.json` (separate source
+  envelope for compile-segments, not a runtime snapshot)
 
 Associate the appropriate installed JSON file with your snapshot in the editor's
 JSON/YAML schema settings. All references are internal, so validation needs no
@@ -91,3 +93,7 @@ For an explicitly shared policy across rules, `compile-segments` accepts a separ
 authoring document and emits ordinary validated v2. It rejects cycles and bounded
 expansion overflow before activation; see `reusable-conditions.md` and ADR0016.
 Runtime schemas and loaders continue to reject unresolved authoring documents.
+
+The authoring-v1 schema is generated from the existing v2 definitions with one
+reference-node arm and an explicit envelope. It is tested with both runtime schemas
+in the same strict Ajv registry. It does not replace compiler cycle/expansion checks.

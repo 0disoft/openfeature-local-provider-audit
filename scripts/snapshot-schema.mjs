@@ -180,10 +180,48 @@ function schema(version) {
   };
 }
 
+function authoringSchema() {
+  const runtime = schema(2);
+  const snapshot = { ...runtime };
+  // Internal refs resolve against this authoring document, not a second schema ID.
+  for (const key of ["$schema", "$id", "title", "description", "definitions"]) delete snapshot[key];
+  return {
+    $schema: runtime.$schema,
+    $id: "urn:openfeature-local-provider:authoring:v1",
+    title: "OpenFeature Local Provider reusable-condition authoring v1",
+    description:
+      "Structure only; compile-segments enforces cycles, reference existence, expanded depth/nodes and runtime semantics. Never load this envelope as a runtime snapshot.",
+    ...object({
+      authoringVersion: { const: 1 },
+      segments: {
+        type: "object",
+        maxProperties: 64,
+        propertyNames: { ...nonblank, maxLength: 128 },
+        additionalProperties: ref("condition")
+      },
+      snapshot: ref("snapshot")
+    }),
+    definitions: {
+      ...runtime.definitions,
+      condition: {
+        ...runtime.definitions.condition,
+        oneOf: [
+          ...runtime.definitions.condition.oneOf,
+          object({ segment: { ...nonblank, maxLength: 128 } })
+        ]
+      },
+      snapshot
+    }
+  };
+}
+
 if (mode === "--write") await mkdir(schemaDirectory, { recursive: true });
-for (const version of [1, 2]) {
-  const destination = new URL(`v${version}.json`, schemaDirectory);
-  const expected = schema(version);
+for (const [name, expected] of [
+  ["v1", schema(1)],
+  ["v2", schema(2)],
+  ["authoring-v1", authoringSchema()]
+]) {
+  const destination = new URL(`${name}.json`, schemaDirectory);
   if (mode === "--write") await writeFile(destination, `${JSON.stringify(expected, null, 2)}\n`);
   else if (!isDeepStrictEqual(JSON.parse(await readFile(destination, "utf8")), expected)) {
     throw new Error(
@@ -191,4 +229,6 @@ for (const version of [1, 2]) {
     );
   }
 }
-console.log(`Snapshot schemas ${mode === "--write" ? "generated" : "verified"} (v1, v2).`);
+console.log(
+  `Snapshot schemas ${mode === "--write" ? "generated" : "verified"} (v1, v2, authoring-v1).`
+);

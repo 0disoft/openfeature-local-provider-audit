@@ -1,6 +1,6 @@
 {
   "name": "@0disoft/openfeature-local-provider",
-  "version": "2.0.0-alpha.113",
+  "version": "2.0.0-alpha.114",
   "description": "Local OpenFeature provider for JSON/YAML flag snapshots, CLI validation, file reload/watch, typed evaluation, environment overrides, bucketing, replay fixtures, redacted audit events, and lockable rotating file audit sinks.",
   "license": "Apache-2.0",
   "repository": {
@@ -37,7 +37,8 @@
       }
     },
     "./schemas/v1.json": "./schemas/v1.json",
-    "./schemas/v2.json": "./schemas/v2.json"
+    "./schemas/v2.json": "./schemas/v2.json",
+    "./schemas/authoring-v1.json": "./schemas/authoring-v1.json"
   },
   "files": [
     "bin",

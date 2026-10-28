@@ -29,7 +29,9 @@ excluded. Per-run 20-minute/no-new-unit-after-10-minute limits still apply.
    ADR0016, with explicit authoring input, cycle/unused-definition checks and budgets
    counting every reference hop/occurrence. Current v1 examples do not demonstrate
    production duplication; no runtime registry or adoption claim is added. See
-   `../library/reusable-conditions.md`. Runtime references and general foreign
+   `../library/reusable-conditions.md`. Alpha.114 adds the generated, packaged offline
+   authoring-v1 editor schema; compilation still owns semantic limits.
+   Runtime references and general foreign
    JsonLogic remain deferred pending actual need and proven equivalence.
 
 The official flagd [definition reference](https://flagd.dev/reference/flag-definitions/)

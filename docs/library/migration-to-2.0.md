@@ -8,9 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.113`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.114`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.114 exports offline `schemas/authoring-v1.json` for reusable-condition source
+editing, generated from the same v2 condition definitions. It checks structure only;
+compilation remains required for reference/cycle/expanded-budget semantics. Existing
+v1/v2 runtime schemas and runtime exports remain unchanged.
 
 Alpha.113 adds the offline `compile-segments` authoring CLI. References expand under
 cycle/depth/per-rule/global budgets into ordinary v2; runtime formats/exports and

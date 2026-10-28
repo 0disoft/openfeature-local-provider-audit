@@ -56,4 +56,4 @@ evaluation output for existing consumers.
 
 ADR0016 accepts offline-only reusable-condition authoring compilation as a post-MVP
 helper. It does not add runtime segment storage/references, change snapshot wire
-formats or accept a general expression language. See reusable-conditions.md.
+formats or accept a general expression language. See `../library/reusable-conditions.md`.

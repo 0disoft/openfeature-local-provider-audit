@@ -69,3 +69,18 @@ negation, override priority, audit privacy and replay semantics. Definition name
 and unused definitions are not part of the runtime artifact/hash/provenance. Keep
 the authoring source separately if its origin/history matters. The local flagd
 importer still rejects all targeting; no foreign JsonLogic equivalence is inferred.
+
+## Editor schema and existing type generation
+
+Alpha.114 exports `@0disoft/openfeature-local-provider/schemas/authoring-v1.json`.
+Associate the installed file externally in the editor; do not add $schema to this
+envelope. All refs are local. Structure includes reference-node syntax, definition
+count/name bounds and existing v2 leaves/actions. It deliberately cannot prove
+reference existence, cycles, expanded depth/node/total budgets, or semantic variant
+references. Always compile, then validate/sign the expanded snapshot. Runtime v1/v2
+schemas continue to reject the authoring envelope and unresolved reference nodes.
+After successful compilation, existing generate-types accepts the expanded output;
+no new TypeScript interface or runtime dependency is introduced.
+
+JSON Schema string length counts code points; the compiler additionally enforces
+UTF16-unit name/path/operand limits. Editor acceptance alone is not a safety verdict.

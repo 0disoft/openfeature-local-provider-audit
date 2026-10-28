@@ -258,6 +258,11 @@ for (const version of [1, 2]) {
   const schema = JSON.parse(await readFile(new URL(import.meta.resolve("${PACKAGE_NAME}/schemas/v" + version + ".json")), "utf8"));
   if (schema.properties.schemaVersion.const !== version) throw new Error("Packaged schema version mismatch");
 }
+const authoringSchema = JSON.parse(await readFile(new URL(import.meta.resolve("${PACKAGE_NAME}/schemas/authoring-v1.json")), "utf8"));
+if (authoringSchema.properties.authoringVersion.const !== 1) throw new Error("Packaged authoring schema missing");
+const { createRequire } = await import("node:module");
+if (createRequire(import.meta.url)("${PACKAGE_NAME}/schemas/authoring-v1.json").$id !== authoringSchema.$id)
+  throw new Error("Authoring schema ESM/CJS resolution mismatch");
 `
     : ""
 }
@@ -531,6 +536,13 @@ void result;
       consumerDirectory
     );
     await writeFile(path.join(consumerDirectory, "compiled.json"), compiled.stdout);
+    const compiledTypes = await run(
+      "pnpm",
+      ["exec", "openfeature-local-provider", "generate-types", "compiled.json"],
+      consumerDirectory
+    );
+    if (!compiledTypes.stdout.includes('readonly "enabled": boolean;'))
+      throw new Error("Compiled snapshot type generation failed");
     const compiledValidation = await run(
       "pnpm",
       ["exec", "openfeature-local-provider", "validate", "compiled.json", "--json"],

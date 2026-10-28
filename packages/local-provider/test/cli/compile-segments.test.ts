@@ -129,8 +129,19 @@ it("reuses one predicate across two rules, with inline-equivalent hashes and dec
       }
     }).passed
   ).toBe(true);
-  const changed = await run(input({ pilot: { ...leaf, value: "changed" } }), ["--emit-snapshot"]);
-  expect(createSnapshotHash(parseJsonFlagSnapshot(changed.stdout))).not.toBe(
+  const changed = await run(
+    { ...source, segments: { ...source.segments, pilot: { ...leaf, value: "changed" } } },
+    ["--emit-snapshot"]
+  );
+  const updated = parseJsonFlagSnapshot(changed.stdout);
+  expect(createSnapshotHash(updated)).not.toBe(createSnapshotHash(compiled));
+  expect(evaluateFlag(updated, request).value).toBe(false);
+  expect(evaluateFlag(updated, { ...request, flagKey: "excluded" }).value).toBe(true);
+  const unused = await run(
+    { ...source, segments: { ...source.segments, unused: { ...leaf, value: "unused" } } },
+    ["--emit-snapshot"]
+  );
+  expect(createSnapshotHash(parseJsonFlagSnapshot(unused.stdout))).toBe(
     createSnapshotHash(compiled)
   );
 });

@@ -163,3 +163,7 @@ invalidity cannot become a match through complement. See `../library/presence-an
 Alpha.113 adds only the Node compile-segments authoring CLI. It emits validated
 inline v2 under reference/cycle/expansion budgets; no root/core exports or runtime
 snapshot format changes. See `../library/reusable-conditions.md`.
+
+Alpha.114 adds the JSON-only export schemas/authoring-v1.json for offline editing.
+Root/core runtime/type exports and existing runtime JSON schemas remain unchanged;
+structural acceptance never substitutes for compile-segments semantic validation.

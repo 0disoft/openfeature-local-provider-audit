@@ -1,0 +1,610 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:openfeature-local-provider:authoring:v1",
+  "title": "OpenFeature Local Provider reusable-condition authoring v1",
+  "description": "Structure only; compile-segments enforces cycles, reference existence, expanded depth/nodes and runtime semantics. Never load this envelope as a runtime snapshot.",
+  "type": "object",
+  "properties": {
+    "authoringVersion": {
+      "const": 1
+    },
+    "segments": {
+      "type": "object",
+      "maxProperties": 64,
+      "propertyNames": {
+        "type": "string",
+        "pattern": "\\S",
+        "maxLength": 128
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/condition"
+      }
+    },
+    "snapshot": {
+      "$ref": "#/definitions/snapshot"
+    }
+  },
+  "required": ["authoringVersion", "segments", "snapshot"],
+  "additionalProperties": false,
+  "definitions": {
+    "json": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/json"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/json"
+          }
+        }
+      ]
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "rollout": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "properties": {
+          "variant": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "percentage": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 100,
+            "description": "Runtime also checks three decimal places and total percentage <= 100."
+          },
+          "seed": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
+        "required": ["variant", "percentage"],
+        "additionalProperties": false
+      }
+    },
+    "condition": {
+      "description": "Runtime also limits condition depth to 8 and nodes per rule to 100.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "not": {
+              "$ref": "#/definitions/condition"
+            }
+          },
+          "required": ["not"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "all": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 20,
+              "items": {
+                "$ref": "#/definitions/condition"
+              }
+            }
+          },
+          "required": ["all"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "any": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 20,
+              "items": {
+                "$ref": "#/definitions/condition"
+              }
+            }
+          },
+          "required": ["any"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attribute": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "\\S",
+                "maxLength": 128,
+                "not": {
+                  "enum": ["__proto__", "prototype", "constructor"]
+                }
+              }
+            },
+            "op": {
+              "const": "eq"
+            },
+            "value": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 4096
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": ["attribute", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attribute": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "\\S",
+                "maxLength": 128,
+                "not": {
+                  "enum": ["__proto__", "prototype", "constructor"]
+                }
+              }
+            },
+            "op": {
+              "const": "exists"
+            },
+            "value": {
+              "type": "boolean"
+            }
+          },
+          "required": ["attribute", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attribute": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "\\S",
+                "maxLength": 128,
+                "not": {
+                  "enum": ["__proto__", "prototype", "constructor"]
+                }
+              }
+            },
+            "op": {
+              "enum": ["startsWith", "endsWith"]
+            },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            }
+          },
+          "required": ["attribute", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attribute": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "\\S",
+                "maxLength": 128,
+                "not": {
+                  "enum": ["__proto__", "prototype", "constructor"]
+                }
+              }
+            },
+            "op": {
+              "const": "in"
+            },
+            "value": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 100,
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "maxLength": 4096
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          },
+          "required": ["attribute", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attribute": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "\\S",
+                "maxLength": 128,
+                "not": {
+                  "enum": ["__proto__", "prototype", "constructor"]
+                }
+              }
+            },
+            "op": {
+              "enum": ["gt", "gte", "lt", "lte"]
+            },
+            "value": {
+              "type": "number"
+            }
+          },
+          "required": ["attribute", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "attribute": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 8,
+              "items": {
+                "type": "string",
+                "pattern": "\\S",
+                "maxLength": 128,
+                "not": {
+                  "enum": ["__proto__", "prototype", "constructor"]
+                }
+              }
+            },
+            "op": {
+              "enum": ["semverEq", "semverGt", "semverGte", "semverLt", "semverLte"]
+            },
+            "value": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Runtime requires strict SemVer."
+            }
+          },
+          "required": ["attribute", "op", "value"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "segment": {
+              "type": "string",
+              "pattern": "\\S",
+              "maxLength": 128
+            }
+          },
+          "required": ["segment"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "rule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "\\S",
+          "maxLength": 128
+        },
+        "when": {
+          "$ref": "#/definitions/condition"
+        },
+        "variant": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "rollout": {
+          "$ref": "#/definitions/rollout"
+        }
+      },
+      "required": ["id", "when"],
+      "additionalProperties": false,
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "variant": {}
+          },
+          "required": ["variant"],
+          "not": {
+            "type": "object",
+            "properties": {
+              "rollout": {}
+            },
+            "required": ["rollout"]
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "rollout": {}
+          },
+          "required": ["rollout"],
+          "not": {
+            "type": "object",
+            "properties": {
+              "variant": {}
+            },
+            "required": ["variant"]
+          }
+        }
+      ]
+    },
+    "schedule": {
+      "type": "object",
+      "properties": {
+        "variant": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "seed": {
+          "type": "string",
+          "pattern": "\\S",
+          "maxLength": 128
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "properties": {
+              "at": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "percentage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 100
+              }
+            },
+            "required": ["at", "percentage"],
+            "additionalProperties": false
+          },
+          "description": "Runtime checks increasing timestamps, nondecreasing percentages and three decimal places."
+        }
+      },
+      "required": ["variant", "stages"],
+      "additionalProperties": false
+    },
+    "flag": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "enum": ["boolean", "string", "number", "object"]
+        },
+        "variants": {
+          "type": "object",
+          "minProperties": 1,
+          "propertyNames": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        },
+        "defaultVariant": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "rollout": {
+          "$ref": "#/definitions/rollout"
+        },
+        "envVar": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        },
+        "rules": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/definitions/rule"
+          }
+        },
+        "disabledVariant": {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        "schedule": {
+          "$ref": "#/definitions/schedule"
+        }
+      },
+      "required": ["type", "variants", "defaultVariant"],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "boolean"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "string"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "number"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "object"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "variants": {
+                "type": "object",
+                "additionalProperties": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": {
+                        "$ref": "#/definitions/json"
+                      }
+                    },
+                    {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/definitions/json"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ],
+      "not": {
+        "type": "object",
+        "properties": {
+          "rollout": {},
+          "schedule": {}
+        },
+        "required": ["rollout", "schedule"]
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 2
+        },
+        "flags": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "pattern": "\\S"
+          },
+          "additionalProperties": {
+            "$ref": "#/definitions/flag"
+          }
+        },
+        "metadata": {
+          "$ref": "#/definitions/metadata"
+        }
+      },
+      "required": ["schemaVersion", "flags"],
+      "additionalProperties": false
+    }
+  }
+}
