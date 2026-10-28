@@ -38,6 +38,12 @@ N-node JSON trees, parsing runs at most B times instead of F, and tree validatio
 and storage fall from O(F*N) to O(B*N + F), including the flag entries. Env reads,
 input string comparisons and later per-flag override-hash serialization remain.
 
+Hashing this module's frozen state streams canonical record entries rather than
+building one JSON string containing all flag values. Consecutive equal values reuse
+one serialization within that hash call; the retained serialized value is bounded by
+the largest individual value. Digests and integer-index key ordering are unchanged.
+See `audit-event-v1.md`; arbitrary caller-created states retain their original hashing.
+
 ## Priority
 
 1. Explicit JSON override map.

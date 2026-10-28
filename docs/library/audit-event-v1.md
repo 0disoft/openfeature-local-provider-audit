@@ -47,6 +47,16 @@ raw user context by default.
   Unsigned provider updates clear it even when the snapshot hash is unchanged.
   Direct caller metadata is not signature proof; see `signed-snapshots.md`.
 - `overrideHash` is SHA-256 over stable JSON for explicit override input when provided.
+
+  Library-created frozen override states feed the same canonical JSON into SHA-256
+  incrementally: errors, optional globalError, and flag values in the original JSON key
+  order. No aggregate JSON string is allocated. Only the most recently serialized value
+  is reused during that hash call, bounding retained serialization to one value plus
+  the record keys. Numeric-index keys, escaping and digests retain their prior semantics.
+  Each individual value must still fit the JavaScript string limit. Arbitrary caller
+  objects, including caller-frozen states and replay override inputs, keep the original
+  traversal; caller freezing alone never grants ownership or a persistent hash cache.
+
 - Stable JSON orders object keys with locale-independent code unit comparison.
 - Provider-created audit events use hashes cached on provider state so evaluation does
   not re-hash the full snapshot for every audit write.

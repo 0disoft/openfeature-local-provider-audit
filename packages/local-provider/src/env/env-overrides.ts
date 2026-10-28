@@ -10,6 +10,12 @@ import type {
 import { flagValueMatchesType, isFlagValue } from "../evaluator/type-guards.js";
 
 const DEFAULT_MAX_OVERRIDES_JSON_BYTES = 10 * 1024 * 1024;
+const capturedOverrideStates = new WeakSet<EnvOverrideState>();
+
+// Caller freezing alone does not establish the shape or ownership of an override state.
+export function isCapturedEnvOverrides(value: object): value is EnvOverrideState {
+  return capturedOverrideStates.has(value as EnvOverrideState);
+}
 
 type ParseEnvValueResult =
   | {
@@ -74,6 +80,7 @@ function freezeOverrides(state: EnvOverrideState): EnvOverrideState {
       if (child !== null && typeof child === "object") pending.push(child);
     Object.freeze(value);
   }
+  capturedOverrideStates.add(state);
   return state;
 }
 

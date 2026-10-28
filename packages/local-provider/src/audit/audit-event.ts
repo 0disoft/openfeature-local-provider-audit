@@ -1,4 +1,5 @@
 import { isValidatedSnapshot } from "../flags/snapshot-ownership.js";
+import { isCapturedEnvOverrides } from "../env/env-overrides.js";
 import { captureSnapshotProvenance } from "../flags/snapshot-provenance.js";
 import { captureAuditPseudonym } from "./pseudonym.js";
 import { captureScheduleEvaluation } from "../evaluator/schedule.js";
@@ -12,6 +13,7 @@ import type {
   EnvOverrideState,
   EvaluationContext,
   FlagSnapshot,
+  FlagValue,
   JsonValue,
   ReplayOverrideInput,
   RedactedAuditContext
@@ -74,7 +76,40 @@ export function createSnapshotHash(snapshot: FlagSnapshot): string {
 }
 
 export function createOverrideHash(overrides: EnvOverrideState | ReplayOverrideInput): string {
-  return sha256Hex(stableStringify(overrides));
+  if (!isCapturedEnvOverrides(overrides)) return sha256Hex(stableStringify(overrides));
+  const hash = createHash("sha256");
+  let previous: FlagValue | undefined;
+  let serialized: string | undefined;
+  function record(entries: Readonly<Record<string, FlagValue>>): void {
+    hash.update("{");
+    let separator = "";
+    // JSON emits integer-index keys first, even after lexicographic insertion.
+    const keys = Object.keys(
+      Object.fromEntries(
+        Object.keys(entries)
+          .sort(compareCodeUnits)
+          .map((key) => [key, 0])
+      )
+    );
+    for (const key of keys) {
+      const value = entries[key];
+      if (serialized === undefined || value !== previous) {
+        serialized = stableStringify(value);
+        previous = value;
+      }
+      if (serialized === undefined) continue;
+      hash.update(separator).update(JSON.stringify(key)).update(":").update(serialized);
+      separator = ",";
+    }
+    hash.update("}");
+  }
+  hash.update('{"errors":');
+  record(overrides.errors);
+  if (overrides.globalError !== undefined)
+    hash.update(',"globalError":').update(JSON.stringify(overrides.globalError));
+  hash.update(',"values":');
+  record(overrides.values);
+  return hash.update("}").digest("hex");
 }
 
 export function serializeAuditEvent(event: AuditEvent): string {

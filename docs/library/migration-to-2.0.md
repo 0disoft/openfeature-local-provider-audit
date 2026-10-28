@@ -8,9 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.122`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.123`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.123 streams canonical hashing of library-created frozen env override states,
+preserving digests without allocating a JSON string containing all flag values.
+Large shared overrides no longer fail provider initialization solely because their
+aggregate serialized state exceeds JavaScript's string limit. Each individual value
+must still fit that limit. Caller-owned states and replay input keep the original
+traversal; no API, I/O or persistent hash cache is added. See `audit-event-v1.md`.
 
 Alpha.122 copies each file load's URL to a string and captures format/encoding/byte
 limit before the first await. Reusing and mutating a caller-owned URL/options object
