@@ -58,6 +58,10 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+Read-only `snapshot-diagnose <journal>` reports bounded recovery-journal structure
+and optional public-key authentication/activation policy observations. It adds no
+root/core exports and never mutates storage or promotes history. See `snapshot-diagnosis.md`.
+
 `exportChainedAuditEvidence`, `ExportAuditEvidenceOptions`, `AuditEvidenceFile` and
 `AuditEvidenceExport` add bounded consistent local copies of retained chained
 audit evidence. Capture uses the writer lock; copy verification and caller-owned

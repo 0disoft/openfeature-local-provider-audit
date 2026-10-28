@@ -14,12 +14,11 @@ import type {
 } from "../public-types.js";
 import { sourceInteger } from "./source-policy.js";
 import { createHistoricalSnapshotVerifier, createSnapshotVerifier } from "./signed-snapshot.js";
-import { boundedSnapshotJournal } from "./snapshot-journal.js";
-
-interface Journal {
-  readonly schemaVersion: 1;
-  readonly artifacts: readonly string[];
-}
+import {
+  boundedSnapshotJournal,
+  parseSnapshotJournal,
+  type SnapshotJournal as Journal
+} from "./snapshot-journal.js";
 
 export function createFileSnapshotStore(options: FileSnapshotStoreOptions): SignedSnapshotStore {
   const path = resolve(
@@ -75,22 +74,9 @@ export function createFileSnapshotStore(options: FileSnapshotStoreOptions): Sign
           total += bytesRead;
           if (total > maxBytes) throw unavailable();
         }
-        const journal: unknown = JSON.parse(
+        return parseSnapshotJournal(
           new TextDecoder("utf-8", { fatal: true }).decode(buffer.subarray(0, total))
         );
-        if (journal === null || typeof journal !== "object" || Array.isArray(journal))
-          throw unavailable();
-        const record = journal as Record<string, unknown>;
-        if (
-          Object.keys(record).length !== 2 ||
-          record.schemaVersion !== 1 ||
-          !Array.isArray(record.artifacts) ||
-          record.artifacts.length < 1 ||
-          record.artifacts.length > 32 ||
-          !record.artifacts.every((artifact) => typeof artifact === "string" && artifact.length > 0)
-        )
-          throw unavailable();
-        return record as unknown as Journal;
       },
       () => handle.close(),
       "Snapshot journal read and close failed."

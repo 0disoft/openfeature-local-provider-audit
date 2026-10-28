@@ -1,5 +1,10 @@
 # Signed snapshot storage and restart recovery
 
+Read-only `snapshot-diagnose` observes journal structure, locks, interrupted-writer
+files and optional public-key verification without invoking recovery or modifying
+storage. An expired authenticated floor remains distinct from activation eligibility;
+see `snapshot-diagnosis.md` for bounds, status/exit codes and observation limits.
+
 Status: standalone store alpha.10; integrated durable refresh implemented locally in alpha.11.
 
 `createFileSnapshotStore({ path, verification, maxHistory?, maxBytes?,

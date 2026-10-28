@@ -1,6 +1,28 @@
 const PREFIX = '{"schemaVersion":1,"artifacts":[';
 const SUFFIX = "]}\n";
 
+export interface SnapshotJournal {
+  readonly schemaVersion: 1;
+  readonly artifacts: readonly string[];
+}
+
+export function parseSnapshotJournal(text: string): SnapshotJournal {
+  const value: unknown = JSON.parse(text);
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    throw new TypeError("Invalid snapshot recovery journal.");
+  const record = value as Record<string, unknown>;
+  if (
+    Object.keys(record).length !== 2 ||
+    record.schemaVersion !== 1 ||
+    !Array.isArray(record.artifacts) ||
+    record.artifacts.length < 1 ||
+    record.artifacts.length > 32 ||
+    !record.artifacts.every((artifact) => typeof artifact === "string" && artifact.length > 0)
+  )
+    throw new TypeError("Invalid snapshot recovery journal.");
+  return record as unknown as SnapshotJournal;
+}
+
 // Retain the newest contiguous prefix; never skip a large older entry to fill gaps.
 export function boundedSnapshotJournal(artifacts: readonly string[], maxBytes: number): string {
   const parts: string[] = [];

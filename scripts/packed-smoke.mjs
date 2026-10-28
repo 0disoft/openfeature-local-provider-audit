@@ -816,6 +816,18 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
         recoveredSnapshot?.current?.snapshot.schemaVersion !== jsonSnapshot.schemaVersion || recoveredSnapshot.history.length !== 1) {
       throw new Error(moduleKind + " signed recovery contract failed");
     }
+    const recoveryVerification = auditPath + ".verification.json";
+    const recoveryFs = require("node:fs/promises");
+    await recoveryFs.writeFile(recoveryVerification, JSON.stringify({ audience: "packed", trustedKeys: {
+      packed: signingKeys.publicKey.export({ format: "pem", type: "spki" })
+    } }));
+    const recoveryBinary = require("node:path").join(process.cwd(), "node_modules", "@0disoft/openfeature-local-provider", "bin", "openfeature-local-provider.js");
+    const recoveryBefore = await recoveryFs.readFile(auditPath + ".snapshots");
+    const diagnosedRecovery = JSON.parse(require("node:child_process").execFileSync(process.execPath,
+      [recoveryBinary, "snapshot-diagnose", auditPath + ".snapshots", "--verification", recoveryVerification], { encoding: "utf8" }));
+    if (diagnosedRecovery.status !== "valid" || !diagnosedRecovery.headAuthenticated ||
+        !diagnosedRecovery.activationEligible || !recoveryBefore.equals(await recoveryFs.readFile(auditPath + ".snapshots")))
+      throw new Error(moduleKind + " read-only recovery diagnosis failed");
     let managedFetches = 0;
     const managed = await api.createManagedLocalProvider({
       source: { async fetch() { managedFetches++; return { status: "content", content: Buffer.from(signed) }; } },

@@ -38,8 +38,9 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    completed in local alpha.106: bounded exact local copies under the writer lock,
    then streamed verification, matched checkpoints and a completion inventory;
    caller-owned delivery follows lock release. See `../library/audit-evidence.md`.
-   Snapshot-recovery journal inspection is
-   a separate future diagnostic surface, not implied by the chained audit command.
+   Snapshot-recovery journal inspection is completed separately in alpha.109 through
+   bounded read-only `snapshot-diagnose`, with optional public verification settings;
+   see `../library/snapshot-diagnosis.md`. It never activates or repairs storage.
 8. Targeting and migration: deferred until the preceding units are complete and
    concrete required expressions/formats are selected. Extend bounded operators or
    references deliberately; preserve v1 behavior, bucketing, replay and cycle limits.
@@ -52,15 +53,17 @@ Operational follow-up status on 2026-10-28 KST:
 - Registry propagation policy completed in local alpha.107: bounded read-only
   reconciliation, per-attempt/overall deadlines and transient-only retries;
   candidate mismatches never retry or trigger another publish. See `../ops/release.md`.
-- Latest full evidence remains alpha.107 (portable core unchanged in alpha.108):
+- Latest full evidence remains alpha.107 (portable core unchanged through alpha.109):
   four-runtime packed-core conformance and a 17-scenario sequential Node evaluation/audit sample, both pinned
   to source/artifact identity. Historical receipts are preserved. See
   `../testing/core-runtime-acceptance.md` and `../testing/evaluation-performance.md`.
 - Active signed snapshot expiry completed in local alpha.108: opt-in provider
   defaults at expiresAt, final audit-wait checks and observed-expiry latching;
   existing default/unsigned behavior remains. See `../library/active-snapshot-expiry.md`.
-- Next: snapshot-recovery journal diagnostics as a separate bounded operator unit;
-  then select concrete targeting/migration semantics before implementing them.
+- Snapshot-recovery journal diagnosis completed in alpha.109, including structure-only
+  and public-verification modes, observed-race handling and redacted issue indices.
+- Next: select concrete targeting/migration semantics, preserve existing v1/replay
+  boundaries and report unsupported conversions rather than infer equivalence.
 
 Use narrow regression checks per unit, then the existing complete checks when runtime
 or public behavior changes. No hosted CI run or independent-user evidence is needed.

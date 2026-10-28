@@ -22,6 +22,11 @@ keeping application code on the standard OpenFeature evaluation API.
 
 ## Required Decisions
 
+`snapshot-diagnose` is a separate read-only operator CLI, outside SDK resolution.
+Structure-only, authenticated historical origin and fresh activation eligibility
+are distinct observations; none activates a provider or proves the latest durable
+floor. See `docs/library/snapshot-diagnosis.md`. No SDK API is added.
+
 `exportChainedAuditEvidence` is an explicit Node operator action, separate from SDK
 resolution and producer flushing. It captures retained committed files/checkpoints
 under the writer lock, then validates the copy before publishing a completion marker.

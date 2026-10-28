@@ -8,9 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.108`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.109`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.109 adds the bounded read-only `snapshot-diagnose` CLI. Structure-only
+observations make no signature claim; optional public verification settings check
+the historical head/floor, retained history order and fresh activation policy.
+Observed locks/replacement withhold verdicts. No recovery, cleanup, state activation
+or root/core exports are added; see `snapshot-diagnosis.md`.
 
 Alpha.108 adds opt-in `snapshotExpiryPolicy: "returnDefault"` to Node providers.
 At active signed expiry or invalid trusted time, typed calls return their original
