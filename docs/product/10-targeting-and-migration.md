@@ -25,10 +25,12 @@ excluded. Per-run 20-minute/no-new-unit-after-10-minute limits still apply.
    own defined data (including null) from absence and invalid access. Guarded not
    propagates invalidity through its entire subtree rather than complementing
    invalid input into a match. See `../library/presence-and-negation.md`.
-4. Reusable segments/general JsonLogic conversion: deferred. Existing grouping
-   serves composed conditions; references would add cycle/expansion semantics and
-   foreign operators require proven equivalence. No segment database or arbitrary
-   expression execution is authorized by this selection.
+4. Reusable conditions: offline-only compilation delivered in alpha.113 under
+   ADR0016, with explicit authoring input, cycle/unused-definition checks and budgets
+   counting every reference hop/occurrence. Current v1 examples do not demonstrate
+   production duplication; no runtime registry or adoption claim is added. See
+   `../library/reusable-conditions.md`. Runtime references and general foreign
+   JsonLogic remain deferred pending actual need and proven equivalence.
 
 The official flagd [definition reference](https://flagd.dev/reference/flag-definitions/)
 requires state and homogeneous variants; disabled and absent/null-default behavior

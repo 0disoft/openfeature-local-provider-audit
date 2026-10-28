@@ -84,3 +84,10 @@ object shapes are not a guarantee about overrides. Caller defaults on resolution
 errors can further widen result types. Empty snapshots produce no valid flag keys.
 Regenerate whenever flag keys or declared types change. This provides compile-time
 authoring support; it does not alter SDK signatures or replace runtime validation.
+
+## Reusable conditions
+
+For an explicitly shared policy across rules, `compile-segments` accepts a separate
+authoring document and emits ordinary validated v2. It rejects cycles and bounded
+expansion overflow before activation; see `reusable-conditions.md` and ADR0016.
+Runtime schemas and loaders continue to reject unresolved authoring documents.

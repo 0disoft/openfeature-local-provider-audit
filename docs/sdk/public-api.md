@@ -159,3 +159,7 @@ source files change. See `../library/import-flagd.md`.
 Alpha.112 extends TargetingCondition with boolean exists and guarded not. Existing
 function signatures/exports, old snapshots and ordinary positive-group behavior remain;
 invalidity cannot become a match through complement. See `../library/presence-and-negation.md`.
+
+Alpha.113 adds only the Node compile-segments authoring CLI. It emits validated
+inline v2 under reference/cycle/expansion budgets; no root/core exports or runtime
+snapshot format changes. See `../library/reusable-conditions.md`.

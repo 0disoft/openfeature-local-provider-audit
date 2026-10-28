@@ -53,3 +53,7 @@ evaluation output for existing consumers.
 - A deferred feature enters implementation without an ADR.
 - A local-provider path starts requiring network, database, or hosted service availability.
 - A convenience feature weakens audit redaction, replay determinism, or default fallback behavior.
+
+ADR0016 accepts offline-only reusable-condition authoring compilation as a post-MVP
+helper. It does not add runtime segment storage/references, change snapshot wire
+formats or accept a general expression language. See reusable-conditions.md.

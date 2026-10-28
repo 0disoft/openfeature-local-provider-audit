@@ -496,6 +496,48 @@ void result;
         }
       }
     };
+    await writeFile(
+      path.join(consumerDirectory, "authoring.json"),
+      JSON.stringify({
+        authoringVersion: 1,
+        segments: { pilot: targeted.flags.enabled.rules[0].when },
+        snapshot: {
+          ...targeted,
+          flags: {
+            enabled: {
+              ...targeted.flags.enabled,
+              rules: [{ id: "pilot", when: { segment: "pilot" }, variant: "on" }]
+            }
+          }
+        }
+      })
+    );
+    const segmentPlan = await run(
+      "pnpm",
+      ["exec", "openfeature-local-provider", "compile-segments", "authoring.json"],
+      consumerDirectory
+    );
+    if (JSON.parse(segmentPlan.stdout).segmentCount !== 1)
+      throw new Error("Packed segment plan failed");
+    const compiled = await run(
+      "pnpm",
+      [
+        "exec",
+        "openfeature-local-provider",
+        "compile-segments",
+        "authoring.json",
+        "--emit-snapshot"
+      ],
+      consumerDirectory
+    );
+    await writeFile(path.join(consumerDirectory, "compiled.json"), compiled.stdout);
+    const compiledValidation = await run(
+      "pnpm",
+      ["exec", "openfeature-local-provider", "validate", "compiled.json", "--json"],
+      consumerDirectory
+    );
+    if (JSON.parse(compiledValidation.stdout).ok !== true)
+      throw new Error("Packed compiled snapshot failed");
     for (const [name, when, expected] of [
       ["present", { attribute: ["tenant"], op: "exists", value: false }, true],
       ["negative", { not: { attribute: ["tenant"], op: "eq", value: "blocked" } }, false]

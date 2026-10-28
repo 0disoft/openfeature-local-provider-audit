@@ -45,7 +45,9 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    four candidates. Literal startsWith/endsWith delivered in alpha.110; static flagd
    JSON import delivered in alpha.111, rejecting unsupported semantics. Safe presence
    and guarded negation delivered in alpha.112; general/reference conversion remains
-   deliberately deferred without demonstrated equivalent semantics.
+   deliberately deferred without demonstrated equivalent semantics. ADR0016 adds
+   offline-only reusable-condition compilation in alpha.113; runtime formats stay
+   unchanged, and every reference counts against expansion/depth/cycle budgets.
 
 ## Verification boundaries
 

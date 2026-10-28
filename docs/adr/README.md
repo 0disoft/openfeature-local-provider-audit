@@ -40,3 +40,5 @@ which behavior becomes part of the public compatibility contract.
 - Package metadata drifts from the accepted package, license, runtime, or peer dependency policy.
 - The change weakens validation or skips required evidence.
 - The change relies on generated, cache, or build output as source truth.
+
+- [ADR0016: Offline condition reuse](0016-offline-condition-reuse.md)

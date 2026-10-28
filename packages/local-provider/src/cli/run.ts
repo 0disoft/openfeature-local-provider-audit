@@ -5,6 +5,7 @@ import { AUDIT_CHAIN_HELP, runAuditVerification } from "./audit-verification.js"
 import { AUDIT_DIAGNOSIS_HELP, runAuditDiagnosis } from "./audit-diagnosis.js";
 import { GENERATE_TYPES_HELP, runTypeGeneration } from "./generate-types.js";
 import { IMPORT_FLAGD_HELP, runFlagdImport } from "./import-flagd.js";
+import { COMPILE_SEGMENTS_HELP, runSegmentCompilation } from "./compile-segments.js";
 import { INSPECTION_HELP, runInspection } from "./inspection.js";
 import { SNAPSHOT_DIAGNOSIS_HELP, runSnapshotDiagnosis } from "./snapshot-diagnosis.js";
 
@@ -36,6 +37,7 @@ export async function runCli(args: readonly string[], io: CliIo): Promise<number
 
   if (command === "generate-types") return runTypeGeneration(rest, io);
   if (command === "import-flagd") return runFlagdImport(rest, io);
+  if (command === "compile-segments") return runSegmentCompilation(rest, io);
 
   if (command === "audit-verify") return runAuditVerification(rest, io);
   if (command === "audit-diagnose") return runAuditDiagnosis(rest, io);
@@ -185,6 +187,7 @@ function helpText(): string {
   openfeature-local-provider --help
 
 Commands:
+  compile-segments  Expand bounded reusable conditions into a validated v2 snapshot.
   import-flagd  Convert the supported static subset of flagd JSON without writing files.
   generate-types  Generate TypeScript flag keys and declared value types.
   audit-verify  Verify chained audit JSON Lines and optional trusted checkpoints.
@@ -197,6 +200,7 @@ Commands:
 
 ${GENERATE_TYPES_HELP}
 ${IMPORT_FLAGD_HELP}
+${COMPILE_SEGMENTS_HELP}
 ${INSPECTION_HELP}
 ${AUDIT_CHAIN_HELP}
 ${AUDIT_DIAGNOSIS_HELP}
