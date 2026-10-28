@@ -8,9 +8,18 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.120`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.121`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.121 reuses the last successful object env parse per binding within one
+override creation, as well as the most recent successful input across bindings.
+Interleaving unchanged env variables no longer reparses and retains one tree per
+flag. The cache keeps at most one successful entry per encountered binding plus
+one recent entry, not a history of values; all entries are local to that creation.
+Bindings are still read in flag order; changed values, failures, type-specific
+errors, explicit JSON priority, frozen outputs and override hashes retain their
+contracts. Subsequent creations parse fresh. See `env-overrides.md`.
 
 Alpha.120 removes the YAML parser's pairwise duplicate-key scan. The existing
 pre-materialization JSON-key guard remains the sole mapping-key uniqueness boundary,

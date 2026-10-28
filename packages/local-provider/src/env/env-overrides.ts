@@ -21,9 +21,14 @@ type ParseEnvValueResult =
       readonly error: string;
     };
 
+interface ObjectOverrideEntry {
+  readonly input: string;
+  readonly result: ParseEnvValueResult;
+}
+
 interface ObjectOverrideCache {
-  input?: string;
-  result?: ParseEnvValueResult;
+  last?: ObjectOverrideEntry;
+  readonly bindings: Map<string, ObjectOverrideEntry>;
 }
 
 export function createEnvOverrides(
@@ -78,7 +83,7 @@ function applyPerFlagEnvOverrides(
   values: Record<string, FlagValue>,
   errors: Record<string, string>
 ): void {
-  const objectCache: ObjectOverrideCache = {};
+  const objectCache: ObjectOverrideCache = { bindings: new Map() };
   for (const [flagKey, flag] of Object.entries(snapshot.flags)) {
     const envVar = getOwn(flag, "envVar");
     if (envVar === undefined) {
@@ -90,7 +95,7 @@ function applyPerFlagEnvOverrides(
       continue;
     }
 
-    const parsed = parseEnvValue(rawValue, flag.type, objectCache);
+    const parsed = parseEnvValue(rawValue, flag.type, objectCache, envVar);
     if (!parsed.ok) {
       defineRecordEntry(errors, flagKey, parsed.error);
       continue;
@@ -137,7 +142,8 @@ function assertPositiveInteger(value: number, name: string): void {
 function parseEnvValue(
   value: string,
   flagType: FlagType,
-  objectCache: ObjectOverrideCache
+  objectCache: ObjectOverrideCache,
+  binding: string
 ): ParseEnvValueResult {
   switch (flagType) {
     case "boolean":
@@ -161,12 +167,14 @@ function parseEnvValue(
         : envValueError("Number env override must be finite.");
     }
     case "object": {
-      if (
-        typeof value === "string" &&
-        objectCache.input === value &&
-        objectCache.result !== undefined
-      ) {
-        return objectCache.result;
+      if (typeof value === "string") {
+        const cached =
+          objectCache.last?.input === value ? objectCache.last : objectCache.bindings.get(binding);
+        if (cached?.input === value) {
+          objectCache.last = cached;
+          objectCache.bindings.set(binding, cached);
+          return cached.result;
+        }
       }
       let parsed: unknown;
       try {
@@ -178,10 +186,11 @@ function parseEnvValue(
         return envValueError("Object env override must parse to a JSON object or array.");
       }
       const result = parsedEnvValue(parsed);
-      // Only one successful string input is retained, and only for this creation.
+      // Keep only the last successful input per binding, within this creation.
       if (typeof value === "string") {
-        objectCache.input = value;
-        objectCache.result = result;
+        const entry = { input: value, result };
+        objectCache.last = entry;
+        objectCache.bindings.set(binding, entry);
       }
       return result;
     }

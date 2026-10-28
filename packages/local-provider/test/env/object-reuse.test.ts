@@ -1,4 +1,4 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { createOverrideHash } from "../../src/audit/audit-event.js";
 import { createEnvOverrides } from "../../src/env/env-overrides.js";
 import type { FlagSnapshot, FlagType, FlagValue } from "../../src/public-types.js";
@@ -46,6 +46,63 @@ it.each([{ value: { nested: [1, 2] } }, { value: [1, { nested: true }] }])(
     expect(state.values["flag-0"]).toEqual(value);
   }
 );
+
+it("reuses interleaved bindings without parsing and retaining a tree per flag", () => {
+  const input = snapshot(Array(16).fill("object"));
+  for (const [index, flag] of Object.values(input.flags).entries())
+    Object.assign(flag, { envVar: `GROUP_${index % 4}` });
+  const env = Object.fromEntries(
+    Array.from({ length: 4 }, (_, i) => [`GROUP_${i}`, JSON.stringify({ group: i, nested: [i] })])
+  );
+  const parse = vi.spyOn(JSON, "parse");
+  let state: ReturnType<typeof createEnvOverrides>;
+  try {
+    state = createEnvOverrides(input, { env });
+    expect(parse).toHaveBeenCalledTimes(4);
+  } finally {
+    parse.mockRestore();
+  }
+  expect(new Set(Object.values(state.values)).size).toBe(4);
+  for (let i = 0; i < 16; i++) {
+    expect(state.values[`flag-${i}`]).toEqual({ group: i % 4, nested: [i % 4] });
+    expect(Object.isFrozen(state.values[`flag-${i}`])).toBe(true);
+  }
+  expect(createOverrideHash(state)).toBe(
+    createOverrideHash({
+      values: Object.fromEntries(
+        Array.from({ length: 16 }, (_, i) => [`flag-${i}`, { group: i % 4, nested: [i % 4] }])
+      ),
+      errors: {}
+    })
+  );
+});
+
+it("updates binding history on a recent-input hit instead of reviving its older value", () => {
+  const input = snapshot(Array(5).fill("object"));
+  for (const [index, flag] of Object.values(input.flags).entries())
+    Object.assign(flag, { envVar: index % 2 === 0 ? "A" : "B" });
+  const sequence = [
+    '{"version":1}',
+    '{"version":2}',
+    '{"version":2}',
+    '{"version":3}',
+    '{"version":1}'
+  ];
+  let reads = 0;
+  const env = {
+    get A() {
+      return sequence[reads++];
+    },
+    get B() {
+      return sequence[reads++];
+    }
+  };
+  const state = createEnvOverrides(input, { env });
+  expect(reads).toBe(5);
+  expect(state.values["flag-2"]).toBe(state.values["flag-1"]);
+  expect(state.values["flag-4"]).toEqual({ version: 1 });
+  expect(state.values["flag-4"]).not.toBe(state.values["flag-0"]);
+});
 
 it("reads each env binding in order and keeps one successful parse across failures", () => {
   const sequence = ['{"version":1}', "{", '{"version":1}', '{"version":2}', '{"version":1}'];

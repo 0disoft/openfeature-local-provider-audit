@@ -25,15 +25,18 @@ The contract must avoid ambiguous automatic environment variable mapping.
   a returned object before modifying it; consumers cannot mutate later evaluations
   or invalidate the provider's cached override hash through a returned reference.
 
-Within one `createEnvOverrides` call, identical object-valued env text can reuse
-the last successful object parse. Flags may therefore share deeply frozen object
-or array references. Each env binding is still read in flag order; stateful getters,
-type-specific errors, and explicit JSON-map precedence retain their behavior.
-Only one successful input/result is retained, and separate calls always parse fresh
-values. Invalid inputs are not cached. For F flags using the same N-node JSON tree,
-JSON parsing and tree validation run once instead of F times, and returned tree
-storage falls from O(F*N) to O(N), plus O(F) flag entries. Env binding reads, input
-string comparisons, and later per-flag override-hash serialization are not eliminated.
+Within one `createEnvOverrides` call, object-valued env text can reuse the last
+successful parse for that env binding, or the most recently successful input across
+bindings. Interleaving different bindings no longer evicts each other's successful
+parse. Flags may therefore share deeply frozen object or array references. Each
+binding is still read in flag order; changed values, stateful getters, type-specific
+errors and explicit JSON-map precedence retain their behavior.
+Only the last successful entry per encountered binding plus one recent entry is
+retained, not a history of all values. Separate calls always parse fresh values;
+invalid inputs are not cached. For F flags interleaving B unchanged bindings with
+N-node JSON trees, parsing runs at most B times instead of F, and tree validation
+and storage fall from O(F*N) to O(B*N + F), including the flag entries. Env reads,
+input string comparisons and later per-flag override-hash serialization remain.
 
 ## Priority
 
