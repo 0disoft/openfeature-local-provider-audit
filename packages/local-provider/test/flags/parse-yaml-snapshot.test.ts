@@ -101,6 +101,39 @@ flags: {}
     throw new Error("Expected parseYamlFlagSnapshot to throw.");
   });
 
+  it.each([1, 2])(
+    "preserves a wide v%s mapping and rejects a duplicate at its tail",
+    (schemaVersion) => {
+      const entries = Array.from({ length: 1024 }, (_, i) => [`key-${i}`, i] as const);
+      const yaml = `schemaVersion: ${schemaVersion}\nflags:\n  config:\n    type: object\n    defaultVariant: live\n    variants:\n      live:\n${entries.map(([key, value]) => `        ${key}: ${value}\n`).join("")}`;
+      const expected = parseJsonFlagSnapshot(
+        JSON.stringify({
+          schemaVersion,
+          flags: {
+            config: {
+              type: "object",
+              defaultVariant: "live",
+              variants: { live: Object.fromEntries(entries) }
+            }
+          }
+        })
+      );
+      expect(JSON.stringify(parseYamlFlagSnapshot(yaml))).toBe(JSON.stringify(expected));
+      expect(() => parseYamlFlagSnapshot(`${yaml}        key-0: -1\n`)).toThrowError(
+        expect.objectContaining({ code: "PARSE_ERROR" })
+      );
+    }
+  );
+
+  it.each([
+    "{ schemaVersion: 1, flags: { sample: { type: boolean, variants: { live: true, live: false }, defaultVariant: live } } }",
+    "{ schemaVersion: 1, flags: { sample: { type: object, variants: { live: [{ key: 1, key: 2 }] }, defaultVariant: live } } }"
+  ])("rejects duplicate flow-map keys at variant and array-element boundaries", (yaml) => {
+    expect(() => parseYamlFlagSnapshot(yaml)).toThrowError(
+      expect.objectContaining({ code: "PARSE_ERROR" })
+    );
+  });
+
   it.each([
     ["1", '"1"'],
     ["true", '"true"'],

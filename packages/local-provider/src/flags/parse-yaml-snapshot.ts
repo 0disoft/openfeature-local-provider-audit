@@ -9,7 +9,8 @@ export function parseYamlFlagSnapshot(yaml: string): FlagSnapshot {
     const document = parseDocument(yaml, {
       merge: false,
       prettyErrors: false,
-      uniqueKeys: true
+      // The JSON-key guard below rejects duplicates without the parser's quadratic scan.
+      uniqueKeys: false
     });
 
     if (document.errors.length > 0) {

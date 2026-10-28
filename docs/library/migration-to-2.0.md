@@ -8,9 +8,17 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.119`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.120`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.120 removes the YAML parser's pairwise duplicate-key scan. The existing
+pre-materialization JSON-key guard remains the sole mapping-key uniqueness boundary,
+using per-mapping Sets and document-order anchor lookup. Both block and flow maps,
+including nested array elements, still reject duplicate/colliding keys as `PARSE_ERROR`.
+Unambiguous contents, scalar/alias semantics, public signatures and errors are unchanged.
+The removed scan compared N(N-1)/2 key pairs for a mapping with N unique keys;
+this is a key-uniqueness optimization, not a whole-parser complexity guarantee.
 
 Alpha.119 rejects YAML mapping keys that collide after JSON object-key conversion,
 including scalar aliases, before any entry can be overwritten. For example, `1`

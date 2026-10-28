@@ -35,6 +35,11 @@ configuration in YAML, especially for hand-edited development and test fixtures.
   Reject collection keys and scalar keys that materialize objects; callers must
   quote the intended string property name. The guard visits the unexpanded syntax
   tree once and never follows value aliases or includes key contents in errors.
+- Keep parser-native pairwise uniqueness disabled: the pre-materialization guard
+  owns duplicate rejection for every JSON mapping, including block/flow syntax
+  and maps nested inside sequences. This avoids N(N-1)/2 comparisons in a wide
+  mapping while retaining generic `PARSE_ERROR` behavior and average constant-time
+  Set lookup per key. Parser syntax errors remain checked before that guard.
 - YAML is an additive public API export.
 - Snapshot capture additionally enforces the shared 100 MiB expanded JSON-encoded
   UTF-8 budget before clone/hash expansion. Large scalar aliases can exceed this
