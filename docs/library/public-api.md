@@ -118,6 +118,9 @@ opts into age reporting. See `operational-status.md` for counter and privacy sem
 The audit policy adds `AuditFailurePolicy`, optional
 `LocalProviderOptions.auditFailurePolicy` / `auditTimeoutMs` / `auditShutdownTimeoutMs`, optional
 `AuditSink.writeConfirmed` and `ProviderAuditStatus.timedOutWrites`.
+Blocking write and shutdown budgets are checked against a monotonic clock before
+accepting completion; completion at the deadline expires even if timers are delayed.
+Synchronous work is not preempted and underlying writes are not cancelled.
 See `audit-failure-policy.md` for the default-preserving opt-in contract.
 Optional metrics add `createOpenTelemetryMetrics`, `OpenTelemetryMeter`,
 `ProviderMetrics`, `ProviderMetricsSession`, `ProviderEvaluationMetric` and

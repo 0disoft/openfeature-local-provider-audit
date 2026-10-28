@@ -97,22 +97,28 @@ OpenFeature `after` hooks may still fail and replace a successful response. Use 
 `finally` hooks for SDK-level observation and correlate details when metadata survives;
 applications own business-action records. Neither integration proves that an action ran.
 
-`auditTimeoutMs` bounds asynchronous waiting and must be an integer from 1 to
+`auditTimeoutMs` bounds audit confirmation acceptance and asynchronous waiting, and must be an integer from 1 to
 2,147,483,647. It requires a sink and blocking mode. Enabled blocking sinks default to 1,000 ms for both failure policies. Set an explicit
 positive auditTimeoutMs to allow a longer or shorter finite wait. Best-effort blocking
 retains the candidate result when its deadline expires; returnDefault returns the
 safe caller default. Non-blocking mode and providers without a sink add no wait timer. Timers are cleared on every wait
 outcome. This does not preempt synchronous code or cancel the underlying write.
+The monotonic budget starts before event creation and sink invocation. Completion
+at or after the deadline expires even if the timer callback has not run because
+the event loop was blocked. Synchronous work can still delay the response beyond
+the budget; it cannot produce a successful confirmation after that budget.
 
 Status `timedOutWrites` counts timed-out waits separately. Pending writes stay
 pending until the actual promise settles, and later resolution/failure updates
-their counters once. A timeout is not a completed or rejected write. A permanently
+their counters once. A timeout is not itself a completed or rejected write. A write
+that resolves after its deadline may count as both resolved and timed out. A permanently
 stalled custom sink remains pending; callers own its resource bounds and lifecycle.
 `onClose` uses a separate `auditShutdownTimeoutMs` limit: 5,000 ms by default,
 configurable from 1 to 2,147,483,647 with an audit sink. Event handlers and metrics
 are detached before waiting, even if flush never settles. Repeated close calls
 share the same result and invoke flush once. A deadline rejects with
 `AUDIT_SINK_ERROR`; pending I/O is not cancelled, and a late failure remains
-observed. The sink stays caller-owned and may be shared. Stop intake before closing;
+observed. Flush completion also checks a monotonic deadline, including equality,
+so a delayed timer cannot report an expired flush as successful. The sink stays caller-owned and may be shared. Stop intake before closing;
 a shared sink's flush may include other providers' writes. Custom sinks still own
 actual I/O cancellation and resource cleanup.

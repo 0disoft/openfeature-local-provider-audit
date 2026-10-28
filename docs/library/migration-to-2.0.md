@@ -8,9 +8,15 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.114`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.115`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.115 starts blocking audit budgets before event creation/sink invocation and
+checks completion against a monotonic deadline, including shutdown flushes. A delayed
+timer cannot turn an expired wait into a confirmation or successful shutdown. Exact
+deadline equality expires; synchronous work and underlying I/O remain uninterruptible.
+Public signatures, event payloads and non-blocking writes remain unchanged.
 
 Alpha.114 exports offline `schemas/authoring-v1.json` for reusable-condition source
 editing, generated from the same v2 condition definitions. It checks structure only;

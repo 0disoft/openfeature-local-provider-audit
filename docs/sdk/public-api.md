@@ -62,6 +62,9 @@ default events remain uncorrelated. See `docs/library/audit-pseudonyms.md`.
 - SDK audit lifecycle: short-lived examples may call `auditSink.flush?.()` before exit
   when using non-blocking audit writes. Provider `onClose` uses a separate
   `auditShutdownTimeoutMs` deadline (default 5,000 ms); timeout rejects without cancelling I/O.
+  Blocking writes and shutdown flushes also check elapsed monotonic time when they
+  complete; reaching the deadline expires even before a delayed timer callback runs.
+  This bounds acceptance, not execution time of synchronous sink code.
 - SDK audit file examples may configure `maxBytes` and `maxFiles` for local rotation.
 - SDK audit file examples may configure `lock` for shared local audit files.
 - SDK integration examples may combine strict context-key redaction, bounded audit

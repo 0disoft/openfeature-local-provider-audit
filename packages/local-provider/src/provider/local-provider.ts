@@ -361,13 +361,15 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
         : undefined;
     let timedOut = false;
     let auditDefaultApplied = false;
-    const auditWrite = this.writeAuditEvent(request, result, state, logger, attempt);
-
     if (this.auditPolicy.writeMode === "blocking") {
-      const confirmed = await waitForAudit(auditWrite, this.auditPolicy.timeoutMs, () => {
-        timedOut = true;
-        this.operational.auditTimedOut();
-      });
+      const confirmed = await waitForAudit(
+        () => this.writeAuditEvent(request, result, state, logger, attempt),
+        this.auditPolicy.timeoutMs,
+        () => {
+          timedOut = true;
+          this.operational.auditTimedOut();
+        }
+      );
       if (!confirmed && this.auditPolicy.failurePolicy === "returnDefault") {
         auditDefaultApplied = true;
         result = {
@@ -380,6 +382,8 @@ class LocalFeatureProvider implements ReloadableLocalProvider {
           flagMetadata: {}
         };
       }
+    } else {
+      void this.writeAuditEvent(request, result, state, logger, attempt);
     }
 
     // Recheck the captured artifact after audit waiting/synchronous sink work.

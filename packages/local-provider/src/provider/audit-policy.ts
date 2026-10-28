@@ -67,41 +67,45 @@ export async function flushAuditSink(
 ): Promise<void> {
   const flush = sink?.flush;
   if (flush === undefined) return;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () =>
-        reject(
-          new LocalProviderError(
-            "AUDIT_SINK_ERROR",
-            "Audit shutdown flush timed out; pending writes may still complete."
-          )
-        ),
-      timeoutMs
-    );
-  });
   try {
-    await Promise.race([Promise.resolve().then(() => flush.call(sink)), timeout]);
-  } finally {
-    clearTimeout(timer);
+    await withinAuditDeadline(() => flush.call(sink), timeoutMs);
+  } catch (error) {
+    if (!(error instanceof AuditDeadlineError)) throw error;
+    throw new LocalProviderError(
+      "AUDIT_SINK_ERROR",
+      "Audit shutdown flush timed out; pending writes may still complete."
+    );
   }
 }
 
 export async function waitForAudit(
-  write: Promise<boolean>,
+  write: () => Promise<boolean>,
   timeoutMs: number | undefined,
   onTimeout: () => void
 ): Promise<boolean> {
-  if (timeoutMs === undefined) return write;
+  if (timeoutMs === undefined) return write();
+  try {
+    return await withinAuditDeadline(write, timeoutMs);
+  } catch (error) {
+    if (!(error instanceof AuditDeadlineError)) throw error;
+    onTimeout();
+    return false;
+  }
+}
+
+class AuditDeadlineError extends Error {}
+
+async function withinAuditDeadline<T>(operation: () => Promise<T>, timeoutMs: number): Promise<T> {
+  // Start before invoking the sink; timer callbacks can run after promise continuations.
+  const deadline = performance.now() + timeoutMs;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<boolean>((resolve) => {
-    timer = setTimeout(() => {
-      onTimeout();
-      resolve(false);
-    }, timeoutMs);
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new AuditDeadlineError()), timeoutMs);
   });
   try {
-    return await Promise.race([write, timeout]);
+    const result = await Promise.race([operation(), timeout]);
+    if (performance.now() >= deadline) throw new AuditDeadlineError();
+    return result;
   } finally {
     clearTimeout(timer);
   }
