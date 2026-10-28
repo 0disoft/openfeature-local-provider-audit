@@ -63,6 +63,11 @@ function condition(value: unknown, budget: { nodes: number }, depth: number): Ta
   const path = attribute.slice() as string[];
   const operand = value.value;
   switch (value.op) {
+    case "startsWith":
+    case "endsWith":
+      if (typeof operand !== "string" || operand.length < 1 || operand.length > 4096)
+        fail("string comparison requires 1..4096 UTF-16 code units");
+      return { attribute: path, op: value.op, value: operand };
     case "eq":
       if (!scalar(operand)) fail("eq requires a bounded scalar");
       return { attribute: path, op: "eq", value: operand };

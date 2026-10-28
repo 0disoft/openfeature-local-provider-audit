@@ -97,6 +97,8 @@ describe("packaged authoring schemas", () => {
     "lt",
     "lte",
     "semverEq",
+    "startsWith",
+    "endsWith",
     "semverGt",
     "semverGte",
     "semverLt",
@@ -120,9 +122,11 @@ describe("packaged authoring schemas", () => {
                         ? null
                         : op === "in"
                           ? [true, 3, "KR", null]
-                          : op.startsWith("semver")
-                            ? "1.2.3-alpha.1+build"
-                            : 1
+                          : op === "startsWith" || op === "endsWith"
+                            ? "tenant-"
+                            : op.startsWith("semver")
+                              ? "1.2.3-alpha.1+build"
+                              : 1
                   }
                 ]
               }

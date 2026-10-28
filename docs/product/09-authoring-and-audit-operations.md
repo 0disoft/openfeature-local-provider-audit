@@ -41,10 +41,10 @@ Preserve unrelated changes and resume unfinished work before selecting another u
    Snapshot-recovery journal inspection is completed separately in alpha.109 through
    bounded read-only `snapshot-diagnose`, with optional public verification settings;
    see `../library/snapshot-diagnosis.md`. It never activates or repairs storage.
-8. Targeting and migration: deferred until the preceding units are complete and
-   concrete required expressions/formats are selected. Extend bounded operators or
-   references deliberately; preserve v1 behavior, bucketing, replay and cycle limits.
-   Configuration conversion must report unsupported semantics rather than guess.
+8. Targeting/migration selection completed: `10-targeting-and-migration.md` ranks
+   four candidates. Literal startsWith/endsWith delivered in alpha.110; first import
+   scope is explicit static flagd JSON, rejecting unsupported semantics. Presence,
+   negation and general/reference conversion remain deliberately deferred.
 
 ## Verification boundaries
 
@@ -62,8 +62,8 @@ Operational follow-up status on 2026-10-28 KST:
   existing default/unsigned behavior remains. See `../library/active-snapshot-expiry.md`.
 - Snapshot-recovery journal diagnosis completed in alpha.109, including structure-only
   and public-verification modes, observed-race handling and redacted issue indices.
-- Next: select concrete targeting/migration semantics, preserve existing v1/replay
-  boundaries and report unsupported conversions rather than infer equivalence.
+- Selected targeting/migration priorities are in `10-targeting-and-migration.md`;
+  literal targeting is delivered, bounded static flagd import follows.
 
 Use narrow regression checks per unit, then the existing complete checks when runtime
 or public behavior changes. No hosted CI run or independent-user evidence is needed.

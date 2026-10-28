@@ -25,6 +25,12 @@ otherwise an own context property. No context normalization or GeoIP lookup occu
 
 - `eq`: strict equality with a string, finite number, boolean, or null.
 - `in`: array of 1..100 such scalars, strict equality without coercion.
+- `startsWith`, `endsWith`: literal case-sensitive string comparison. Operands are
+  1..4096 UTF-16 code units; actual strings retain the 4096-unit limit. No regex,
+  trimming, coercion or Unicode normalization occurs. Empty operands reject to avoid
+  accidental match-all rules. Missing/getter/inherited/wrong-type values never match.
+  Work is O(P) for operand length P, with no context cache or I/O. Upgrade older
+  evaluators before delivering these operators; schema v1 still rejects all rules.
 - `gt`, `gte`, `lt`, `lte`: finite numeric operands only.
 - `semverEq`, `semverGt`, `semverGte`, `semverLt`, `semverLte`: strict valid semantic
   version strings, including prerelease precedence; build metadata does not affect

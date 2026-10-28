@@ -95,6 +95,14 @@ export function matchesCondition(
   switch (condition.op) {
     case "eq":
       return actual === condition.value;
+    case "startsWith":
+    case "endsWith":
+      return (
+        typeof actual === "string" &&
+        (condition.op === "startsWith"
+          ? actual.startsWith(condition.value)
+          : actual.endsWith(condition.value))
+      );
     case "in": {
       const indexed =
         condition.value.length >= MIN_INDEXED_MEMBERSHIP_SIZE

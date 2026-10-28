@@ -103,6 +103,11 @@ type TargetingCondition =
       readonly attribute: readonly string[];
       readonly op: "semverEq" | "semverGt" | "semverGte" | "semverLt" | "semverLte";
       readonly value: string;
+    }
+  | {
+      readonly attribute: readonly string[];
+      readonly op: "startsWith" | "endsWith";
+      readonly value: string;
     };
 type TargetingRule = {
   readonly id: string;

@@ -82,6 +82,11 @@ function schema(version) {
         object({ attribute, op: { const: "eq" }, value: scalarOperand }),
         object({
           attribute,
+          op: { enum: ["startsWith", "endsWith"] },
+          value: { type: "string", minLength: 1, maxLength: 4096 }
+        }),
+        object({
+          attribute,
           op: { const: "in" },
           value: { type: "array", minItems: 1, maxItems: 100, items: scalarOperand }
         }),

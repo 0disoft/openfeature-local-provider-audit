@@ -1,6 +1,36 @@
 // Shared, platform-neutral contract: real runtimes consume identical packed bytes/cases.
 export function runCoreContract(api) {
   const results = [];
+  for (const op of ["startsWith", "endsWith"]) {
+    const snapshot = api.parseJsonFlagSnapshot(
+      JSON.stringify({
+        schemaVersion: 2,
+        flags: {
+          text: {
+            type: "boolean",
+            variants: { on: true, off: false },
+            defaultVariant: "off",
+            rules: [
+              { id: "literal", when: { attribute: ["tenant"], op, value: "😀" }, variant: "on" }
+            ]
+          }
+        }
+      })
+    );
+    for (const actual of ["😀tenant", "tenant😀", "😀", "", null, 1, "x".repeat(4097)]) {
+      const result = api.evaluateFlag(snapshot, {
+        flagKey: "text",
+        expectedType: "boolean",
+        defaultValue: false,
+        context: { tenant: actual }
+      });
+      const expected =
+        typeof actual === "string" &&
+        (op === "startsWith" ? actual.startsWith("😀") : actual.endsWith("😀"));
+      if (result.value !== expected) throw new Error("Literal string targeting failed.");
+      results.push(result);
+    }
+  }
   for (const seed of [undefined, "seed", "한국어😀", "\ud800"]) {
     const rollout = [
       { variant: "on", percentage: 37.123, ...(seed === undefined ? {} : { seed }) }

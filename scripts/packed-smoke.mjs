@@ -624,6 +624,14 @@ module.exports = async function exerciseRuntimeContract(api, ProviderEvents, mod
     const snapshot = api.parseJsonFlagSnapshot(JSON.stringify({ schemaVersion: 2, flags: { targeted: { type: "boolean", defaultVariant: "off", variants: { on: true, off: false }, rules: [{ id: "pilot", when: { attribute: ["appVersion"], op: "semverGte", value: "2.0.0" }, variant: "on" }] } } }));
     const request = { flagKey: "targeted", expectedType: "boolean", defaultValue: false, context: { appVersion: "2.1.0", private: "must-not-appear" } };
     const actual = api.evaluateFlag(snapshot, request);
+    for (const op of ["startsWith", "endsWith"]) {
+      const literalSnapshot = api.parseJsonFlagSnapshot(JSON.stringify({ schemaVersion: 2, flags: { text: {
+        type: "boolean", variants: { on: true, off: false }, defaultVariant: "off",
+        rules: [{ id: "literal", when: { attribute: ["tenant"], op, value: "😀" }, variant: "on" }]
+      } } }));
+      if (!api.evaluateFlag(literalSnapshot, { flagKey: "text", expectedType: "boolean", defaultValue: false, context: { tenant: "😀" } }).value)
+        throw new Error(moduleKind + " literal string targeting failed");
+    }
     const explanation = api.explainEvaluation(snapshot, request);
     if (actual.value !== true || actual.ruleId !== "pilot" || explanation.ruleId !== "pilot" || JSON.stringify(explanation).includes("must-not-appear")) throw new Error(moduleKind + " v2 targeting/explanation failed");
     const replay = api.replayEvaluationFixture({ schemaVersion: 1, name: "targeting", snapshot, request, expected: { value: true, variant: "on", ruleId: "pilot", reason: "TARGETING_MATCH", source: "file" } });

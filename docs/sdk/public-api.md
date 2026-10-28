@@ -22,6 +22,10 @@ keeping application code on the standard OpenFeature evaluation API.
 
 ## Required Decisions
 
+V2 startsWith/endsWith rules use bounded literal strings and the existing provider,
+explanation, replay and audit paths; no raw comparison values enter diagnostics.
+Older package versions reject these operators; deploy compatible evaluators first.
+
 `snapshot-diagnose` is a separate read-only operator CLI, outside SDK resolution.
 Structure-only, authenticated historical origin and fresh activation eligibility
 are distinct observations; none activates a provider or proves the latest durable

@@ -58,6 +58,10 @@ Implementation must not expose internal modules only because examples need conve
 
 ## Implemented Export Surface
 
+TargetingCondition expands with v2 literal startsWith/endsWith in root and core
+types, evaluation, explanations and replay. No runtime export is added. Existing
+snapshots/hashes stay unchanged; see schema v2 and the 2.0 migration guide.
+
 Read-only `snapshot-diagnose <journal>` reports bounded recovery-journal structure
 and optional public-key authentication/activation policy observations. It adds no
 root/core exports and never mutates storage or promotes history. See `snapshot-diagnosis.md`.

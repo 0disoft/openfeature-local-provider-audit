@@ -8,9 +8,14 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.109`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.110`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.110 adds opt-in v2 literal startsWith/endsWith conditions (case-sensitive,
+nonempty operands, at most 4096 UTF-16 units, no regex/coercion/normalization).
+Old snapshots retain their hashes and behavior; older packages reject the new
+operators. Upgrade evaluators/replay tools before delivering them. See schema v2.
 
 Alpha.109 adds the bounded read-only `snapshot-diagnose` CLI. Structure-only
 observations make no signature claim; optional public verification settings check
