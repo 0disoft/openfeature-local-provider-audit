@@ -116,6 +116,11 @@ floor even when using safe bootstrap contents. See `docs/library/snapshot-recove
 optional `store` persists before atomic provider activation and keeps evaluations on
 the previous state during I/O. Custom providers need the transaction capability.
 
+YAML parsing (including file loading/watching) rejects mapping keys that collide
+after JSON conversion, such as `1` and `"1"`, as `PARSE_ERROR`. Scalar aliases and
+unambiguous scalar-key conversion are preserved. Collection/object-valued keys must
+be replaced with explicitly quoted string property names. See ADR 0006.
+
 The executable GitOps SDK composition lives in `examples/node-basic/src/gitops.ts`.
 It signs validated local JSON/YAML, recovers a trusted journal with explicit
 first-start authorization, composes signed durable HTTPS refresh and creates

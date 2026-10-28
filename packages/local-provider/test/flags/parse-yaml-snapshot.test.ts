@@ -101,6 +101,90 @@ flags: {}
     throw new Error("Expected parseYamlFlagSnapshot to throw.");
   });
 
+  it.each([
+    ["1", '"1"'],
+    ["true", '"true"'],
+    ["false", '"false"'],
+    ["0x10", '"16"'],
+    ["1.0", '"1"'],
+    ["null", '""'],
+    ["&key 1", "*key"]
+  ])("rejects object-key collisions between %s and %s before values are lost", (left, right) => {
+    const yaml = `schemaVersion: 1\nflags:\n  critical:\n    type: object\n    variants:\n      on:\n        ${left} : true\n        ${right} : false\n    defaultVariant: on\n`;
+    expect(() => parseYamlFlagSnapshot(yaml)).toThrowError(
+      expect.objectContaining({ code: "PARSE_ERROR" })
+    );
+  });
+
+  it.each([1, 2])("rejects colliding flag names in schema v%s", (version) => {
+    const flag = "{ type: boolean, variants: { on: true }, defaultVariant: on }";
+    expect(() =>
+      parseYamlFlagSnapshot(`schemaVersion: ${version}\nflags:\n  1: ${flag}\n  "1": ${flag}\n`)
+    ).toThrowError(expect.objectContaining({ code: "PARSE_ERROR" }));
+  });
+
+  it("rejects colliding variants instead of silently reversing the default flag value", () => {
+    expect(() =>
+      parseYamlFlagSnapshot(
+        `schemaVersion: 1\nflags:\n  critical:\n    type: boolean\n    variants:\n      1: true\n      "1": false\n    defaultVariant: "1"\n`
+      )
+    ).toThrowError(expect.objectContaining({ code: "PARSE_ERROR" }));
+  });
+
+  it("checks aliases from earlier values and keeps mappings independent", () => {
+    const yaml = `schemaVersion: 1\nflags:\n  sample:\n    type: object\n    variants:\n      on:\n        first: &key 1\n        nested:\n          *key : first\n          "1": second\n    defaultVariant: on\n`;
+    expect(() => parseYamlFlagSnapshot(yaml)).toThrowError(
+      expect.objectContaining({ code: "PARSE_ERROR" })
+    );
+    expect(
+      parseYamlFlagSnapshot(yaml.replace('          "1": second', '          "2": second')).flags
+        .sample
+    ).toBeDefined();
+  });
+
+  it("preserves unambiguous scalar keys, scalar aliases and anchor redefinition", () => {
+    // Anchors are values here; each alias must retain the latest preceding anchor.
+    const snapshot = parseYamlFlagSnapshot(
+      `schemaVersion: 1\nflags:\n  sample:\n    type: object\n    variants:\n      on:\n        number: &key 1\n        *key : one\n        boolean: &key true\n        *key : yes\n        2.0: two\n        null: empty\n        text: &value hello\n        copy: *value\n    defaultVariant: on\n`
+    );
+    expect(snapshot).toEqual(
+      parseJsonFlagSnapshot(
+        JSON.stringify({
+          schemaVersion: 1,
+          flags: {
+            sample: {
+              type: "object",
+              variants: {
+                on: {
+                  number: 1,
+                  "1": "one",
+                  boolean: true,
+                  true: "yes",
+                  "2": "two",
+                  "": "empty",
+                  text: "hello",
+                  copy: "hello"
+                }
+              },
+              defaultVariant: "on"
+            }
+          }
+        })
+      )
+    );
+  });
+
+  it.each(["[a, b]", "{ a: b }"])(
+    "rejects collection keys %s instead of implicitly stringifying them",
+    (key) => {
+      expect(() =>
+        parseYamlFlagSnapshot(
+          `schemaVersion: 1\nflags:\n  sample:\n    type: object\n    variants:\n      on:\n        ? ${key}\n        : secret\n    defaultVariant: on\n`
+        )
+      ).toThrowError(expect.objectContaining({ code: "PARSE_ERROR" }));
+    }
+  );
+
   it("normalizes YAML alias exhaustion to PARSE_ERROR", () => {
     const aliases = Array.from({ length: 101 }, () => "  - *base").join("\n");
 

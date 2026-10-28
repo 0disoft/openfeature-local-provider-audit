@@ -28,6 +28,13 @@ configuration in YAML, especially for hand-edited development and test fixtures.
 ## Compatibility Impact
 
 - Existing JSON input and evaluation output do not change.
+- Before JSON materialization, reject keys that collide under JSON object-key
+  conversion as `PARSE_ERROR`, including scalar aliases. Numeric `1` and string
+  `"1"` must not silently overwrite each other. Preserve unambiguous scalar-key
+  conversion and resolve aliases in document order, including redefined anchors.
+  Reject collection keys and scalar keys that materialize objects; callers must
+  quote the intended string property name. The guard visits the unexpanded syntax
+  tree once and never follows value aliases or includes key contents in errors.
 - YAML is an additive public API export.
 - Snapshot capture additionally enforces the shared 100 MiB expanded JSON-encoded
   UTF-8 budget before clone/hash expansion. Large scalar aliases can exceed this

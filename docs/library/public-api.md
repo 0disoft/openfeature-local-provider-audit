@@ -222,7 +222,10 @@ runtime exports. Baseline updates are explicit release-review actions; CI never 
 - `createLocalProvider(options)`.
 - `createReloadableLocalProvider(options)`.
 - `parseJsonFlagSnapshot(json)`.
-- `parseYamlFlagSnapshot(yaml)`.
+- `parseYamlFlagSnapshot(yaml)`: rejects parser errors, object-key collisions after
+  scalar/alias conversion, and collection/object-valued keys as `PARSE_ERROR` before
+  JSON materialization. Unambiguous scalar-key conversion is preserved; quote the
+  intended property name for collection keys. See ADR 0006 and the 2.0 migration guide.
 - `loadFlagSnapshotFile(path, options)`.
 - `watchFlagSnapshotFile(options)`.
 - `evaluateFlag(snapshot, request)`.
