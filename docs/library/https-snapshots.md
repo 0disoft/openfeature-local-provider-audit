@@ -65,7 +65,14 @@ and HTTP 408/429/500/502/503/504. Backoff uses full jitter from zero to the expo
 5,000 ms; server Retry-After is not used. The shared monotonic `totalTimeoutMs`
 budget caps reads and backoff; each attempt receives at most the remaining time.
 The default budget is the previous maximum envelope (15,300 ms with default
-settings). Event-loop scheduling can delay timer delivery. Validation, storage
+settings). Event-loop scheduling can delay timer delivery, so successful content
+and 304 completions are checked against the earlier of the per-attempt and total
+monotonic deadlines before acceptance. Exact equality expires. An over-budget
+completion is a retryable timeout under the existing attempt/backoff limits;
+each retry gets a fresh per-attempt deadline, never a fresh total budget.
+Cancellation retains precedence. This prevents late acceptance but cannot preempt
+synchronous work or guarantee that control returns at the configured millisecond.
+Validation, storage
 and activation never run inside the read retry helper. Abort
 cancels active I/O or backoff, clears timers/listeners and never retries deliberately
 cancelled work. TLS trust/hostname errors, redirects, oversized/encoded content and

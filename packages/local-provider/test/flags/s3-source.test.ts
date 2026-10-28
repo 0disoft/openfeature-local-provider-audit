@@ -64,6 +64,32 @@ function sdk() {
   });
 }
 
+it.each([200, 304])(
+  "rejects a late S3 %s completion before a delayed timeout callback runs",
+  async (status) => {
+    let now = 0;
+    vi.spyOn(performance, "now").mockImplementation(() => now);
+    const destroy = vi.fn();
+    const getObject = vi.fn(async () => {
+      now += 6;
+      return {
+        $metadata: { httpStatusCode: status },
+        Body: {
+          destroy,
+          async *[Symbol.asyncIterator]() {
+            yield Buffer.from("{}");
+          }
+        }
+      };
+    });
+    await expect(
+      source({ getObject }, { timeoutMs: 5, totalTimeoutMs: 1000 }).fetch({ etag: '"old"' })
+    ).rejects.toThrow("timed out");
+    expect(getObject).toHaveBeenCalledOnce();
+    expect(destroy).toHaveBeenCalledOnce();
+  }
+);
+
 it("uses the actual AWS SDK protocol and conditional exception without credentials", async () => {
   const client = sdk();
   const requests: IncomingMessage[] = [];

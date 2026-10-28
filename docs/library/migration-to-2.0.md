@@ -8,9 +8,16 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.117`. Published prereleases use npm `next`; this is not a
+currently `2.0.0-alpha.118`. Published prereleases use npm `next`; this is not a
 stable 2.0 release. See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Alpha.118 checks HTTPS/S3 read completion against both the per-attempt and total
+monotonic deadlines, including exact equality. A delayed timer cannot approve a
+late content or conditional-not-modified response. Each retry gets a fresh attempt
+budget within the original total deadline; existing attempt/backoff bounds and
+cancellation precedence remain. Synchronous work still cannot be preempted.
+Public signatures and error codes are unchanged; persistence and activation do not retry.
 
 Alpha.117 rejects local file reads whose opened-handle size or nanosecond modification
 time changes before EOF, or whose change time changes while the inode remains linked.

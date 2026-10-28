@@ -29,6 +29,15 @@ is capped to the remaining budget. Configure underlying SDK maxAttempts: 1 so
 adapter bounds count actual SDK attempts; caller middleware/credential providers
 must honor cancellation and not create additional unbounded work.
 
+Successful content and notModified completions must arrive before both the attempt
+and total monotonic deadlines, even when event-loop blocking delays timer delivery.
+Exact deadline equality expires. Over-budget completions follow the existing timeout
+retry policy with a fresh attempt budget inside the original total budget; caller
+cancellation takes precedence. Body/iterator cleanup is attempted before policy retries;
+asynchronous cleanup remains best effort.
+This rejects late results without preempting synchronous SDK/middleware/body work or
+promising that a blocked event loop returns control at the requested millisecond.
+
 The deadline covers credential/transport wait and body consumption. Cancellation
 interrupts waiting/backoff and closes available streams. Late bodies after timeout
 are closed too. A custom client that ignores abort may continue its own work;

@@ -99,6 +99,11 @@ AWS SDK v3 client for S3/R2. Credentials, HTTPS endpoint and client shutdown rem
 caller concerns; no SDK runtime dependency is introduced. See
 `docs/library/s3-snapshots.md` for attempt/byte limits and cancellation boundaries.
 
+Alpha.118 checks HTTPS/S3 content and notModified completion against both monotonic
+attempt and total deadlines before accepting it, including exact equality. Delayed
+timer callbacks cannot approve late responses. Existing cancellation and bounded
+read retries remain; synchronous SDK work cannot be preempted. No public types change.
+
 Optional signed refresh authenticates audience/sequence/lifetime and snapshot
 before provider application, including 304 freshness checks. Provider status and
 each audit event capture exact artifact provenance atomically; unsigned updates

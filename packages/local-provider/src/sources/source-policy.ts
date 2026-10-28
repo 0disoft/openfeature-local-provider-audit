@@ -69,12 +69,15 @@ export async function readWithPolicy<T>(
   const deadline = clock.now() + policy.totalTimeoutMs;
   for (let attempt = 0; ; attempt++) {
     if (signal?.aborted) throw operation.cancelled();
-    const remaining = deadline - clock.now();
+    const started = clock.now();
+    const remaining = deadline - started;
     if (remaining <= 0) throw operation.timedOut();
+    const attemptDeadline = Math.min(deadline, started + policy.timeoutMs);
     try {
       const result = await operation.read(Math.min(policy.timeoutMs, Math.ceil(remaining)));
       if (signal?.aborted) throw operation.cancelled();
-      if (clock.now() >= deadline) throw operation.timedOut();
+      // Timers may run late: completion must satisfy both attempt and total budgets.
+      if (clock.now() >= attemptDeadline) throw operation.timedOut();
       return result;
     } catch (error) {
       if (signal?.aborted) throw operation.cancelled();
