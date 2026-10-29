@@ -73,21 +73,29 @@ Owner: 0disoft
 
 ## Stable And Historical Candidate Evidence
 
+- Current channels verified on 2026-10-29: `latest=1.0.0`, `next=2.0.0-alpha.124`.
+  [Release run 40840754532](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40840754532)
+  and [exact-version consumer run 40841612127](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40841612127)
+  succeeded at `d4d15ba9b89dd2f67890f90fcb0e193d0df89bf3`. npm and GitHub tarballs
+  are 587,864 bytes with SHA-256
+  `a34bb72b5099926d32f44b8101266461550c8a775e9312e072d0e70b56d7c374`.
+  Platform/compiler details and the recovered propagation timeout are recorded in
+  [registry-consumer-evidence.md](../testing/registry-consumer-evidence.md).
 - `v1.0.0-rc.2` includes the insertion-order-independent replay object comparison fix.
   Release run
   [29712977031](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29712977031)
   completed successfully on 2026-07-20.
-- npm `latest` resolves to stable `1.0.0`; npm `next` remains `1.0.0-rc.2`.
+- At stable publication, npm `latest` resolved to `1.0.0` and `next` remained `1.0.0-rc.2`.
 - npm and GitHub Release tarballs are both 98,580 bytes with SHA-256
   `fbc56fe6b5501d0e690a30b22cf413444a3268c05d67d3ad271f1570d8e7a4d0`.
-- Latest verified hosted registry-consumer run
+- Historical hosted registry-consumer run
   [38544144608](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/38544144608)
   passed all six `latest`/`next` jobs on 2026-10-14 UTC at main commit
   `607ec27fc4c310307fc98ff21ea841e7dc46be2c`. Ubuntu and Windows ran Node `v24.21.0`;
   macOS 15 ran `v24.20.0`. Channels resolved to stable `1.0.0` and historical `1.0.0-rc.2`.
 - Latest verified OpenFeature peer compatibility run
-  [39225365436](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/39225365436)
-  passed on 2026-10-19 UTC at the same main SHA on Linux/Node `v24.21.0`.
+  [40295078077](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40295078077)
+  passed on 2026-10-26 UTC at the same historical main SHA on Linux/Node `v24.21.0`.
 - Run [29648435330](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29648435330)
   is historical rc.1 evidence from 2026-07-18; the later rc.2 hosted result is complete.
   Detailed channels and tool versions are in

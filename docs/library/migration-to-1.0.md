@@ -162,6 +162,11 @@ compatibility note rather than a silent downgrade recommendation.
 
 ## Evidence status
 
+- Current published channels verified on 2026-10-29: `latest=1.0.0`,
+  `next=2.0.0-alpha.124`. The alpha release and three-platform exact-version consumer
+  run succeeded at `d4d15ba9b89dd2f67890f90fcb0e193d0df89bf3`; see
+  [registry-consumer-evidence.md](../testing/registry-consumer-evidence.md) for run IDs,
+  artifact identity and tool versions. The records below describe the 1.0 migration.
 - Historical pre-1.0 migration baseline: repository package version `0.16.0`.
 - Stable source: repository package version `1.0.0`, prepared from the verified
   `1.0.0-rc.2` candidate contract.
@@ -179,14 +184,14 @@ compatibility note rather than a silent downgrade recommendation.
 - Stable registry installation: npm `latest` resolved to `1.0.0` and the full normal-registry
   consumer smoke passed.
 
-- Latest verified hosted registry run
+- Historical pre-1.0 hosted registry run
   [38544144608](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/38544144608)
   passed on 2026-10-14 UTC at main commit `607ec27fc4c310307fc98ff21ea841e7dc46be2c`.
   All six Ubuntu/Windows/macOS Node 24 jobs passed with `latest=1.0.0` and
   `next=1.0.0-rc.2`. The candidate is superseded; stable `1.0.0` remains current.
 - Latest verified peer compatibility run
-  [39225365436](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/39225365436)
-  passed on 2026-10-19 UTC at the same main commit. Detailed platform/tool versions
+  [40295078077](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40295078077)
+  passed on 2026-10-26 UTC at the same historical main commit. Detailed platform/tool versions
   and historical rc.1 evidence are in the registry-consumer evidence page.
 - The TypeScript 7 toolchain migration preserves package-root types and runtime behavior;
   see [ADR 0012](../adr/0012-typescript-7-toolchain.md). New hosted matrix results are

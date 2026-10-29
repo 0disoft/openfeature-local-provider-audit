@@ -7,6 +7,40 @@ This page records the published stable release and the last published candidate.
 workflow verifies registry bytes and channels after publication; this record is updated only
 from those public results.
 
+## Current Published Candidate And Hosted Evidence (2026-10-29)
+
+- Verified npm channels: `latest=1.0.0`, `next=2.0.0-alpha.124`.
+- Candidate main commit: `d4d15ba9b89dd2f67890f90fcb0e193d0df89bf3`.
+- [Release run 40840754532](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40840754532)
+  completed successfully and created the prerelease
+  [v2.0.0-alpha.124](https://github.com/0disoft/openfeature-local-provider-audit/releases/tag/v2.0.0-alpha.124).
+  npm initially reported processing; the three-minute verification window expired with
+  HTTP 404. Read-only reconciliation subsequently matched the tested candidate. The
+  resumed workflow skipped `npm publish`, verified registry bytes and created the release.
+- npm and GitHub tarballs are both 587,864 bytes, with SHA-256
+  `a34bb72b5099926d32f44b8101266461550c8a775e9312e072d0e70b56d7c374`.
+- [Registry consumer run 40841612127](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40841612127)
+  installed exact `2.0.0-alpha.124` from npm on all three platforms. Every job printed
+  `registry-consumer-smoke-passed`, the digest above, OpenFeature server SDK `1.22.0`,
+  full-library TypeScript `5.9.3` and consumer-surface TypeScript `7.0.2`.
+
+| Runner | Platform | Node.js | Requested package |
+| --- | --- | --- | --- |
+| ubuntu-latest | linux-x64 | v24.22.1 | 2.0.0-alpha.124 |
+| windows-latest | win32-x64 | v24.22.1 | 2.0.0-alpha.124 |
+| macos-15 | darwin-arm64 | v24.20.0 | 2.0.0-alpha.124 |
+
+[Main CI run 40840754460](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40840754460)
+passed all six Node 22/24 and Linux/Windows/macOS lanes at the candidate commit,
+including TypeScript 7 declaration builds and packed consumers. The initial
+[registry run 40840754456](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40840754456)
+passed all three `latest=1.0.0` lanes but failed its three `next` lanes because its
+plan captured the older `2.0.0-alpha.103` before publication. It is not a successful
+six-lane run; the exact-version run above supplies the new candidate evidence.
+
+This evidence identifies the published candidate, not later checkout builds with
+updated development dependencies. The stable and pre-1.0 records below remain historical.
+
 ## Stable Release
 
 - Package: `@0disoft/openfeature-local-provider@1.0.0`.
@@ -25,11 +59,11 @@ from those public results.
   `@openfeature/server-sdk@1.22.0`, strict TypeScript `5.9.3`, and consumer-surface
   TypeScript `6.0.3`.
 
-## Last Published Candidate (Historical)
+## Historical Pre-1.0 Candidate
 
 - Package: `@0disoft/openfeature-local-provider@1.0.0-rc.2`.
 - At candidate publication: npm channel `next`; npm `latest` still resolved to `0.16.0`.
-- Current verified tags on 2026-10-21: `latest=1.0.0`, `next=1.0.0-rc.2`; the
+- Historical verified tags on 2026-10-21: `latest=1.0.0`, `next=1.0.0-rc.2`; the
   candidate is superseded by stable and is not an active next-release series.
 - GitHub Release: `v1.0.0-rc.2`, marked as a prerelease.
 - Release workflow run: [29712977031](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29712977031),
@@ -61,7 +95,7 @@ registry. It did not use a workspace link, checkout `dist`, or a local tarball.
   priority, replay, watcher reload, configuration-change events, audit redaction, audit
   sink flush, and shutdown.
 
-## Latest Verified Hosted Registry Matrix
+## Historical Pre-1.0 Hosted Registry Matrix
 
 - Workflow run: [38544144608](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/38544144608).
 - Tested main commit: `607ec27fc4c310307fc98ff21ea841e7dc46be2c`.
@@ -85,9 +119,9 @@ historical candidate coverage, not evidence of an active candidate series.
 
 ## Latest Verified OpenFeature Peer Compatibility
 
-- Workflow run: [39225365436](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/39225365436).
+- Workflow run: [40295078077](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40295078077).
 - Tested main commit: `607ec27fc4c310307fc98ff21ea841e7dc46be2c`.
-- Date/result: 2026-10-19 UTC; the Linux latest-compatible-peer job succeeded on
+- Date/result: 2026-10-26 UTC; the Linux latest-compatible-peer job succeeded on
   Node.js `v24.21.0`, using `OPENFEATURE_SERVER_SDK_VERSION=peer` and packed smoke.
 - The log records TypeScript `5.9.3` full-library and `6.0.3` consumer-surface checks.
   The harness did not print the exact peer version resolved inside its temporary
