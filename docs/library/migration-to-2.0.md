@@ -26,6 +26,14 @@ read-only diagnostics and consistent evidence export, and offline authoring tool
 The versioned development history below records how these changes were implemented;
 its earlier version identifiers are historical, not the current installation channel.
 
+## 2.1 Review Output
+
+The checkout adds `compare --output markdown` for human-readable change review;
+see `local-inspection.md`. This is an additive CLI option, so the version advances
+to 2.1.0. Existing JSON output, provider evaluation, audit wire formats and exit-code
+precedence are unchanged. No migration of configuration or audit data is needed.
+Checkout availability does not imply npm publication; see the registry evidence.
+
 ## Development History
 
 Alpha.124 reuses active per-flag hashes after a newly supplied snapshot passes full

@@ -41,8 +41,9 @@ openfeature-local-provider simulate flags.json --requests requests.json
 openfeature-local-provider compare before.json after.json --requests requests.json
 ```
 
-`evaluate` and `explain` are aliases for the same redacted explanation. Output is JSON
-(optional `--json` is accepted). `--format auto|json|yaml` controls both snapshot files;
+`evaluate` and `explain` are aliases for the same redacted explanation. Output defaults
+to JSON (optional `--json` is accepted). Compare additionally supports Markdown review
+output as described below. `--format auto|json|yaml` controls both snapshot files;
 request files are always JSON. No stdin, network access, implicit process environment,
 file writes, watcher or background service is involved. Files are limited to 10 MiB
 each using the bounded loader. Request input is limited to 32 nesting levels and
@@ -99,6 +100,35 @@ Exit codes: 0 means all requested evaluations succeeded (differences do not caus
 failure), 1 means input/load failure or at least one evaluation error, and 2 means
 invalid CLI usage. Error evaluations still produce summaries; malformed input emits no
 partial report. Existing `validate` behavior and exit codes remain unchanged.
+
+## Human-readable review report (2.1)
+
+```sh
+openfeature-local-provider compare before.json after.json --requests synthetic-requests.json --output markdown
+```
+
+The opt-in report shows snapshot validation, complete aggregate counts, content hashes,
+change-policy status, per-sampled-flag changes, and before/after reason, variant and
+selected rule counts. No extra evaluation or network call is performed. JSON output
+and all exit codes remain unchanged, including error precedence over policy rejection.
+`--output json` is explicit JSON; mixing `--json` with `--output markdown`, duplicate
+`--output`, unsupported formats, and using `--output` on other commands exit 2.
+`--format` still selects snapshot input parsing and is independent of presentation.
+
+Reports describe the supplied corpus only. They are not a structural configuration diff,
+a list of every affected condition, or an estimate of production impact. Removed sampled
+flags appear as evaluation errors. Conditions not exercised by a request are not evaluated.
+The report deliberately excludes context, subject IDs, condition operands, evaluated
+values, raw configuration and paths. Flag/variant/rule identifiers and small-cohort counts
+can still be sensitive; use synthetic fixtures and restrict report access.
+
+Each table shows at most 100 rows in first-encounter order, with explicit omitted-row
+counts; aggregate totals still include every request. Identifier display is limited to
+160 UTF-16 code units per cell with an ellipsis, so long or similar truncated names need
+the full JSON report for identification. The renderer escapes Markdown/HTML, mentions,
+table delimiters and control/bidirectional characters in every displayed identifier.
+Malformed later input emits no partial report. No file is written by the command;
+redirect stdout to a report file or CI step summary in caller-owned tooling.
 
 For repeated object-valued decisions, comparison remembers structural equality per
 before/after object pair within that single synchronous comparison. Only booleans

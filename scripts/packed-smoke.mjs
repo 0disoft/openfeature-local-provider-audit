@@ -657,6 +657,30 @@ void result;
       )
         throw new Error(`Packed ${command} contract failed`);
     }
+    const [major, minor] = installTarget.version.split(".").map(Number);
+    if (major > 2 || (major === 2 && minor >= 1)) {
+      const { stdout } = await run(
+        "pnpm",
+        [
+          "exec",
+          "openfeature-local-provider",
+          "compare",
+          "targeted.json",
+          "stopped.json",
+          "--requests",
+          "requests.json",
+          "--output",
+          "markdown"
+        ],
+        consumerDirectory
+      );
+      if (
+        !stdout.startsWith("# Flag configuration comparison\n") ||
+        !stdout.includes("| Changed values | 2 / 2 |") ||
+        stdout.includes("must-not-appear")
+      )
+        throw new Error("Packed Markdown comparison contract failed");
+    }
   }
 
   if (installTarget.source === "registry") {

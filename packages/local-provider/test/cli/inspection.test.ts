@@ -52,13 +52,100 @@ async function exercise(
       expect(await readFile(join(directory, file), "utf8")).toBe(value);
     expect(output + error).not.toContain("private@example.test");
     expect(output + error).not.toContain("private-id");
-    return { code, output, error, data: output ? JSON.parse(output) : undefined };
+    return {
+      code,
+      output,
+      error,
+      data: output && !args.includes("markdown") ? JSON.parse(output) : undefined
+    };
   } finally {
     await rm(directory, { recursive: true, force: true });
   }
 }
 
 describe("offline inspection CLI", () => {
+  it("renders redacted review tables with the same counts and policy exit status as JSON", async () => {
+    const args = [
+      "compare",
+      "before.json",
+      "after.json",
+      "--requests",
+      "request.json",
+      "--max-changed-values-percent",
+      "0"
+    ];
+    const requests = [request, { ...request, context: { tenant: "other" } }];
+    const json = await exercise(args, requests);
+    const markdown = await exercise([...args, "--output", "markdown"], requests);
+    expect(markdown.code).toBe(json.code);
+    expect(markdown.code).toBe(3);
+    expect(markdown.output).toContain("Snapshot validation: passed for both inputs.");
+    expect(markdown.output).toContain("Change policy: FAILED.");
+    expect(markdown.output).toContain("| Changed values | 1 / 2 |");
+    expect(markdown.output).toContain("| Changed decisions | 2 / 2 |");
+    expect(markdown.output).toContain("| <code>enabled</code> | 2 | 1 | 2 |");
+    expect(markdown.output).toContain("TARGETING&#95;MATCH");
+    expect(markdown.output).toContain("DISABLED");
+    expect(markdown.output).not.toContain("tenant");
+    expect(markdown.error).toBe("");
+    expect((await exercise([...args, "--output", "json"], requests)).output).toBe(json.output);
+  });
+
+  it("retains error precedence and emits no partial Markdown for malformed later requests", async () => {
+    const args = [
+      "compare",
+      "before.json",
+      "after.json",
+      "--requests",
+      "request.json",
+      "--output",
+      "markdown",
+      "--max-changed-values-percent",
+      "0",
+      "--diagnostics"
+    ];
+    const errors = await exercise(args, [request, { ...request, flagKey: "missing" }]);
+    expect(errors.code).toBe(1);
+    expect(errors.output).toContain("Evaluations: errors found.");
+    expect(errors.output).toContain("Change policy: FAILED.");
+    const malformed = await exercise(args, [request, { ...request, expectedType: "invalid" }]);
+    expect(malformed.code).toBe(1);
+    expect(malformed.output).toBe("");
+    expect(malformed.error).toContain('"requestIndex":1');
+  });
+
+  it.each([
+    ["--output", "html"],
+    ["--output"],
+    ["--output", "markdown", "--json"],
+    ["--json", "--output", "markdown"],
+    ["--output", "markdown", "--output", "json"]
+  ])("rejects invalid or conflicting comparison presentation: %j", async (...options) => {
+    const result = await exercise([
+      "compare",
+      "before.json",
+      "after.json",
+      "--requests",
+      "request.json",
+      ...options
+    ]);
+    expect(result.code).toBe(2);
+    expect(result.output).toBe("");
+  });
+
+  it.each(["evaluate", "simulate"])("does not silently change %s output", async (command) => {
+    const result = await exercise([
+      command,
+      "before.json",
+      command === "evaluate" ? "--request" : "--requests",
+      "request.json",
+      "--output",
+      "markdown"
+    ]);
+    expect(result.code).toBe(2);
+    expect(result.output).toBe("");
+  });
+
   it.each(["simulate", "compare"])(
     "emits no partial %s report when a later request is malformed after an evaluation error",
     async (command) => {

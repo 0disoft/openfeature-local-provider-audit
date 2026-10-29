@@ -4,6 +4,21 @@ Local OpenFeature provider for JSON/YAML flag snapshots, typed evaluation, expli
 CLI validation, environment overrides, deterministic rollout bucketing, replay fixtures,
 and redacted audit logs.
 
+## Review a configuration change
+
+With version 2.1 or a built checkout, compare the same synthetic requests against
+two snapshots and emit a human-readable report:
+
+```sh
+openfeature-local-provider compare before.json after.json --requests synthetic-requests.json --output markdown
+```
+
+The report shows aggregate changes, selected rules and evaluation errors without
+raw values or user context. It checks the supplied corpus, not production traffic.
+Default output stays JSON; Markdown output retains the existing exit codes and
+change limits. Names may still be sensitive. See the repository's
+`docs/library/local-inspection.md` for report limits and deployment availability.
+
 ## Managed local file monitoring
 
 `createWatchedLocalProvider({ path })` starts the existing JSON/YAML watcher and
