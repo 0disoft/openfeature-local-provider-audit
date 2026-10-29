@@ -1,132 +1,114 @@
 # OpenFeature Local Provider
 
-Local OpenFeature provider for JSON/YAML flag snapshots, explicit environment overrides,
-deterministic percentage rollout, replay fixtures, and redacted audit logs.
+Feature flags inside your application, with no evaluation-time network requests.
+Keep configuration under your control and record decisions without raw user identifiers
+or evaluated values by default. One npm package; no flag server or sidecar to operate.
+
+Built for Node.js/TypeScript teams that need local operation, reproducible rollouts,
+and privacy-conscious audit trails. Use it in restricted-network services, internal
+tools, or applications where configuration and audit storage stay in your environment.
+
+| Your requirement | Included capability |
+| --- | --- |
+| Evaluate during a network outage | In-process JSON/YAML snapshots; retain last-good settings on invalid reload |
+| Review a rollout before applying it | Conditional targeting, deterministic percentages, explicit schedules, offline simulation |
+| Investigate a decision without logging the user's payload | Redacted explanations and audit events; opt-in HMAC correlation and chained storage |
+| Control how configuration arrives | Local file watching or signed HTTPS/S3 delivery with durable recovery |
+
+## Start With A Local File
 
 ```sh
 npm install @0disoft/openfeature-local-provider @openfeature/server-sdk
 ```
 
-```ts
-import { OpenFeature } from "@openfeature/server-sdk";
-import { createLocalProvider, parseJsonFlagSnapshot } from "@0disoft/openfeature-local-provider";
+Save this as `flags.json`:
 
-const snapshot = parseJsonFlagSnapshot(
-  JSON.stringify({
-    schemaVersion: 1,
-    flags: {
-      "checkout.enabled": {
-        type: "boolean",
-        defaultVariant: "on",
-        variants: {
-          on: true,
-          off: false
-        }
-      }
+```json
+{
+  "schemaVersion": 1,
+  "flags": {
+    "checkout.enabled": {
+      "type": "boolean",
+      "defaultVariant": "off",
+      "variants": { "on": true, "off": false }
     }
-  })
-);
-
-await OpenFeature.setProviderAndWait(createLocalProvider({ snapshot }));
-
-const client = OpenFeature.getClient();
-const enabled = await client.getBooleanValue("checkout.enabled", false);
+  }
+}
 ```
 
-## What It Owns
+Register the provider in your Node.js application:
 
-- JSON and YAML flag snapshot parsing with schema v1 validation.
-- Opt-in schema v2 conditional targeting, conditional percentage rollout and emergency
-  variant selection.
-- Redacted evaluation explanations and local simulation/comparison CLI commands.
-- Local CLI validation for JSON/YAML flag snapshots.
-- Offline JSON Schema and CLI flag-key/value type generation ([authoring](docs/library/authoring.md)).
-- Typed OpenFeature evaluation for boolean, string, number, and object values.
-- Explicit per-flag environment overrides.
-- Deterministic percentage rollout with replayable bucketing.
-- Redacted audit event generation and optional JSON Lines file sinks.
-- Replay fixtures for compatibility-sensitive evaluation behavior.
-- Opt-in projected-volume consistency polling for local snapshot watchers.
-- OpenFeature configuration-change events with deterministic changed-flag keys.
-- Optional operational status, audit failure policy and caller-owned OpenTelemetry metrics.
-- Caller-triggered HTTPS signed snapshot delivery, durable recovery and GitOps recipes.
-- Optional chained audit storage, rotation and trusted-checkpoint verification.
+```ts
+import { OpenFeature } from "@openfeature/server-sdk";
+import { createWatchedLocalProvider } from "@0disoft/openfeature-local-provider";
 
-These operations/integrity additions are included in 2.0; see
-the [P2 delivery record](docs/product/07-operations-and-integrity.md) and
-[local acceptance evidence](docs/testing/p2-acceptance.md).
+const runtime = await createWatchedLocalProvider({ path: "./flags.json" });
+await OpenFeature.setProviderAndWait(runtime.provider);
+const client = OpenFeature.getClient();
+const enabled = await client.getBooleanValue("checkout.enabled", false);
 
-## What It Does Not Own
+// After stopping application request intake, await shutdown:
+await OpenFeature.close(); // stops the owned watcher and flushes provider audit writes
+```
 
-- Hosted flag management.
-- Remote control planes, streaming updates, dashboards, or approval workflows.
-- User segment databases or experiment analytics.
-- Browser, Bun, Deno, HTTP API, database, Kubernetes, or Terraform runtime support.
+Change `defaultVariant` to `on` and replace the file to update subsequent evaluations
+without redeploying application code. Invalid replacements keep the last-good snapshot.
+This minimal example does not enable audit persistence; choose a sink below to record events.
 
-## Choosing This Provider
+## Choose Your Integration
 
-Use it for Node.js applications that want caller-owned configuration, deterministic
-local evaluation, and audit records that omit raw user identifiers and values by
-default. Evaluation performs no network requests. The caller still owns access
-control, secure configuration delivery, audit retention, and shutdown/flush handling.
-Snapshot hashes identify content; they do not authenticate its author or encrypt
-low-entropy configuration. File locks are advisory, and audit failures do not reject
-feature evaluation by default.
+- **A local configuration file:** [watched provider](docs/library/watched-provider.md),
+  with reload diagnostics and optional consistency polling for projected volumes.
+- **Signed configuration and restart recovery:** [managed provider](docs/library/managed-provider.md)
+  and the [GitOps recipe](docs/library/gitops-snapshots.md), including explicit refresh,
+  sequential polling and rollback.
+- **Audit records:** [JSON Lines sinks and bounded queues](docs/library/audit-event-v1.md),
+  [chained storage and verification](docs/library/audit-chain.md),
+  [opt-in HMAC pseudonyms](docs/library/audit-pseudonyms.md), and
+  [operational status](docs/library/operational-status.md).
+- **Review configuration changes:** [inspection CLI](docs/library/local-inspection.md),
+  [offline schemas and type generation](docs/library/authoring.md), and
+  [reusable conditions](docs/library/reusable-conditions.md).
+- **Evaluation without Node APIs:** the separate [`/core` entry](docs/library/compatibility.md)
+  and [complete runnable example](docs/sdk/adoption-guide.md).
 
-Local evaluation also exists in other providers, including flagd. See the
-[maintenance and targeting delivery plan](docs/product/06-maintenance-and-targeting.md)
-for current gaps and local issue/PR disposition. Independent external adoption has
-not yet been established; published consumer evidence identifies same-maintainer use.
+## Operational Fit
 
-Version 2.0 is available through the install command above, which selects npm `latest`.
-Read the checkout's exact version from the [package metadata](packages/local-provider/package.json).
-Existing v1 snapshots remain supported; exhaustive TypeScript reason/schema switches
-need the review described in the [migration guide](docs/library/migration-to-2.0.md).
-Use `@^1` to retain the 1.x contract. See [v2 targeting](docs/library/flag-file-schema-v2.md),
-[inspection CLI](docs/library/local-inspection.md), and
-[migration](docs/library/migration-to-2.0.md).
+The package root supports Node.js 22 and 24. OpenFeature is a peer dependency;
+the package is Apache-2.0 licensed. The optional `/core` entry has separately scoped
+Chromium, Bun, Deno and workerd runtime evidence.
 
-The [GitOps recipe](docs/library/gitops-snapshots.md) composes signing, durable
-HTTPS refresh, restart recovery and rollback. Run its local HTTPS/OpenFeature proof
-with `corepack pnpm run smoke:gitops`; it performs no external publication.
+Your application owns configuration authorization, storage permissions, retention
+and process shutdown. Managed provider close operations already stop owned resources
+and perform bounded audit flush; timeouts do not guarantee outstanding I/O has stopped.
+See [runtime recipes](docs/ops/runtime-recipes.md) and the
+[privacy and redaction contract](docs/security/privacy-and-redaction.md) for deployment choices.
 
-P3 includes [opt-in HMAC audit pseudonyms](docs/library/audit-pseudonyms.md).
-Default events stay uncorrelated. The [P3 plan](docs/product/08-privacy-and-portability.md)
-records completed local object storage, runtime portability and reproducible usage
-material. Independent adoption evidence is excluded from P3 acceptance by the
-owner's 2026-10-22 decision and remains unverified. The checkout
-also supports [scheduled local rollout](docs/library/scheduled-rollout.md) with
-explicit offline time and caller-owned provider clocks, without background timers.
+Choose a managed platform when you need a hosted dashboard, approvals, user database
+or experiment analytics. This package supplies local evaluation and operational tools.
+Audit integrity is checked against trusted checkpoints; it is not a compliance certification
+or a guarantee that application-defined identifiers contain no sensitive information.
+See the [threat model](docs/security/threat-model.md).
 
-## Runtime And Package Policy
+## Compatibility And Evidence
 
-- Package: `@0disoft/openfeature-local-provider`.
-- License: Apache-2.0.
-- Runtime: server-side Node.js 22 LTS and Node.js 24 LTS.
-- OpenFeature SDK: `@openfeature/server-sdk` is a peer dependency.
-- Package manager: pnpm workspace.
-- Public releases: tag-triggered GitHub Actions workflow with npm trusted publishing
-  and provenance.
+Installations use npm `latest`. Read the exact checkout version from the
+[package metadata](packages/local-provider/package.json). Existing schema v1 snapshots
+remain supported; review exhaustive reason/schema switches when upgrading from v1.
+See the [2.0 migration guide](docs/library/migration-to-2.0.md); use `@^1` to retain
+the previous major's API contract.
+
+- [Published package and multi-platform consumer checks](docs/testing/registry-consumer-evidence.md)
+- [Repeatable evaluation and audit benchmarks](docs/testing/evaluation-performance.md)
+- [Runtime compatibility matrix](docs/library/compatibility.md)
+- [Maintenance scope and delivery record](docs/product/06-maintenance-and-targeting.md)
+
+Benchmark reports state their workload, runtime and hardware boundary. They are measurements,
+not production latency guarantees. Adoption provenance is recorded with the evidence.
 
 ## Repository Map
 
-- [packages/local-provider](packages/local-provider): published package source.
-- [examples/node-basic](examples/node-basic): runnable Node/OpenFeature example.
-- [docs/library/public-api.md](docs/library/public-api.md): public API contract.
-- [docs/library](docs/library): flag schema, env override, bucketing, audit, replay,
-  semver, and compatibility contracts.
-- [docs/security](docs/security): privacy, redaction, and threat model.
-- [docs/ops](docs/ops): CI, release, rollback, and npm publishing policy.
-- [docs/ops/runtime-recipes.md](docs/ops/runtime-recipes.md): snapshot replacement, shutdown,
-  audit backpressure, and multi-process runtime guidance.
-- [VALIDATION.md](VALIDATION.md): stable validation commands.
-
-The opt-in `/core` JSON/evaluation subpath has actual local runtime evidence on
-Chromium, Bun, Deno and workerd. See [the scoped compatibility matrix](docs/library/compatibility.md)
-and [the repeatable runtime smoke](docs/testing/core-runtime-acceptance.md).
-Root provider/file/audit APIs remain Node 22/24 only.
-
-For a complete runnable example and registry-versus-local installation steps, see
-[the adoption guide](docs/sdk/adoption-guide.md) and
-[core-basic](examples/core-basic/README.md). Local examples and performance/runtime
-receipts are maintainer evidence; independent external adoption remains unverified.
+- [Package source and API examples](packages/local-provider)
+- [Runnable Node/OpenFeature example](examples/node-basic)
+- [Public API contract](docs/library/public-api.md) and [library documentation](docs/library)
+- [Security](docs/security), [operations and release](docs/ops), [validation commands](VALIDATION.md)
