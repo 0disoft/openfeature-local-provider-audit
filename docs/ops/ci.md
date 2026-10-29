@@ -125,7 +125,7 @@ range and restore their lockfile together, then rerun typecheck and coverage.
 
 ## pnpm 12 Upgrade
 
-The project pins `pnpm@12.14.0`; see the
+The project pins `pnpm@12.16.1`; see the
 [pnpm 12 release notes](https://github.com/pnpm/pnpm/releases/tag/v12.0.0).
 pnpm 12 validates workspace setting names and records
 its package-manager resolution alongside application dependencies in the lockfile.
@@ -133,6 +133,18 @@ The workspace uses supported settings and public-registry dependencies; no hoste
 dependency transport migration is needed. Commit all pnpm-generated lockfile documents
 together. Frozen installs, package scripts, tarball packing, and temporary-consumer
 installs must pass before accepting this major.
+
+Biome 2.6 adds Markdown and YAML formatting. Keep those formatters explicitly
+disabled so a tooling update does not rewrite hand-authored docs or pnpm-owned
+lockfiles; the existing JavaScript, TypeScript and JSON format checks remain enabled.
+The reviewed dependency refresh uses tsdown 0.23.3 with stable TypeScript 7.0.2:
+tsdown 0.23.2 pulled a declaration plugin requiring the TypeScript 7.1 beta API.
+Keep `typescript-api` on TypeScript 6 for the AST-based API checker.
+
+The OpenTelemetry test SDK moves to 3.x together with API 1.10; SDK 2.x declares
+API <1.10 and cannot be paired with that update. Neither SDK is a runtime dependency.
+The existing metric collection and redaction tests cover this pairing. Its Node
+22.15+ development requirement is below the declaration builder's Node 22.18+ floor.
 
 CI continues to enable Corepack and use the repository pin. On a Windows machine where
 an older global pnpm launcher fails to bootstrap the new native executable, use

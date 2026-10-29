@@ -266,7 +266,7 @@ async function checkRequiredFiles() {
 
 function checkRootPackage(rootPackage) {
   expectEqual(rootPackage.private, true, "root package.json private");
-  expectEqual(rootPackage.packageManager, "pnpm@12.14.0", "root package manager");
+  expectEqual(rootPackage.packageManager, "pnpm@12.16.1", "root package manager");
   expectEqual(rootPackage.engines?.node, ">=22 <25", "root Node engine range");
   expectScript(rootPackage, "release-readiness", "node scripts/release-readiness.mjs");
   expectScript(rootPackage, "packed-smoke", "node scripts/packed-smoke.mjs");
