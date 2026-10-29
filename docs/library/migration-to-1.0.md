@@ -190,8 +190,8 @@ compatibility note rather than a silent downgrade recommendation.
   All six Ubuntu/Windows/macOS Node 24 jobs passed with `latest=1.0.0` and
   `next=1.0.0-rc.2`. The candidate is superseded; stable `1.0.0` remains current.
 - Latest verified peer compatibility run
-  [40295078077](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40295078077)
-  passed on 2026-10-26 UTC at the same historical main commit. Detailed platform/tool versions
+  [40843867176](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40843867176)
+  passed on 2026-10-29 UTC at `0c9b26a242ef9f0ee8ae02570da3981f6f04f37d`. Detailed platform/tool versions
   and historical rc.1 evidence are in the registry-consumer evidence page.
 - The TypeScript 7 toolchain migration preserves package-root types and runtime behavior;
   see [ADR 0012](../adr/0012-typescript-7-toolchain.md). New hosted matrix results are

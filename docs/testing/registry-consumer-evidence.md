@@ -119,15 +119,18 @@ historical candidate coverage, not evidence of an active candidate series.
 
 ## Latest Verified OpenFeature Peer Compatibility
 
-- Workflow run: [40295078077](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40295078077).
-- Tested main commit: `607ec27fc4c310307fc98ff21ea841e7dc46be2c`.
-- Date/result: 2026-10-26 UTC; the Linux latest-compatible-peer job succeeded on
-  Node.js `v24.21.0`, using `OPENFEATURE_SERVER_SDK_VERSION=peer` and packed smoke.
-- The log records TypeScript `5.9.3` full-library and `6.0.3` consumer-surface checks.
+- Workflow run: [40843867176](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40843867176).
+- Tested main commit: `0c9b26a242ef9f0ee8ae02570da3981f6f04f37d`.
+- Date/result: 2026-10-29 UTC; the Linux latest-compatible-peer job succeeded on
+  Node.js `v24.22.1`, using `OPENFEATURE_SERVER_SDK_VERSION=peer` and packed smoke.
+- The log records TypeScript `5.9.3` full-library and `7.0.2` consumer-surface checks.
   The harness did not print the exact peer version resolved inside its temporary
   consumer, so this record does not infer one from the repository lockfile.
-- This verifies the previous main toolchain. New local commits and the Node 26
-  Linux canary still require hosted execution after an explicitly requested push.
+- The same run's Node 26 Linux canary passed on `v26.12.1`, including both compiler
+  consumers and the latest compatible peer. Both jobs tested a fresh 587,152-byte
+  checkout tarball after the development dependency refresh, not the published
+  587,864-byte candidate above. This is experimental Node 26 evidence; official
+  engine support remains Node 22/24.
 
 ## Historical rc.1 Hosted Registry Matrix
 

@@ -94,8 +94,9 @@ Owner: 0disoft
   `607ec27fc4c310307fc98ff21ea841e7dc46be2c`. Ubuntu and Windows ran Node `v24.21.0`;
   macOS 15 ran `v24.20.0`. Channels resolved to stable `1.0.0` and historical `1.0.0-rc.2`.
 - Latest verified OpenFeature peer compatibility run
-  [40295078077](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40295078077)
-  passed on 2026-10-26 UTC at the same historical main SHA on Linux/Node `v24.21.0`.
+  [40843867176](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40843867176)
+  passed on 2026-10-29 UTC at `0c9b26a242ef9f0ee8ae02570da3981f6f04f37d` on
+  Linux/Node `v24.22.1`; the same run's experimental Node `v26.12.1` job passed.
 - Run [29648435330](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/29648435330)
   is historical rc.1 evidence from 2026-07-18; the later rc.2 hosted result is complete.
   Detailed channels and tool versions are in
