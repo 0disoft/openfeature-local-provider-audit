@@ -3,11 +3,37 @@
 Status: Published stable, historical candidate, and verified hosted evidence
 Owner: 0disoft
 
-This page records the published stable release and the last published candidate. The release
+This page records the current published release and the last published candidate as
+historical publication evidence. The release
 workflow verifies registry bytes and channels after publication; this record is updated only
 from those public results.
 
-## Current Published Candidate And Hosted Evidence (2026-10-29)
+## Current Published Release And Hosted Evidence (2026-10-29)
+
+- Package: `@0disoft/openfeature-local-provider@2.0.0`, published through npm `latest`.
+- Source/tag commit: `4a7628a75ac9f774de46296d745cf00e86f3140b` on main; tag `v2.0.0`.
+- [Release run 40846556502](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40846556502)
+  passed validation, npm publication, registry byte/channel verification, and GitHub publication.
+- [GitHub Release v2.0.0](https://github.com/0disoft/openfeature-local-provider-audit/releases/tag/v2.0.0)
+  is non-draft and selected as GitHub `Latest`. The public latest-release endpoint and
+  npm dist-tag were verified after publication.
+- The tested artifact, npm tarball, and downloaded GitHub asset are all 587,111 bytes,
+  SHA-256 `34609e8feaf1ea71dc4ca8de6ab94ad654606fe22c3c218369d24ed1ec48222a`.
+  npm supplies provenance attestations for the published package.
+- [Main CI run 40846556603](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40846556603)
+  passed all six Node 22/24 lanes across Linux, Windows, and macOS.
+- [Registry consumer run 40846909742](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/40846909742)
+  installed exact `2.0.0` from npm on Linux, Windows, and macOS. All three lanes reported
+  `registry-consumer-smoke-passed`, full-library TypeScript `5.9.3`, and consumer-surface
+  TypeScript `7.0.2`. This validates the published package rather than a workspace link.
+- Local checks on Windows/Node 24.14.0 passed format, lint, the full `check`, the Node
+  example, packed consumers, and the Bun/workerd core corpus. Provider tests reported
+  1,340 passed and 11 platform-conditional skips. Lint retained four existing warnings
+  and two informational findings; no runtime implementation or workflow changed here.
+  Deno/Chromium and the OpenSSL-dependent GitOps smoke were not repeated for this
+  metadata/documentation release; their earlier receipts keep their original scope.
+
+## Historical Published Candidate And Hosted Evidence (2026-10-29)
 
 - Verified npm channels: `latest=1.0.0`, `next=2.0.0-alpha.124`.
 - Candidate main commit: `d4d15ba9b89dd2f67890f90fcb0e193d0df89bf3`.
@@ -41,7 +67,7 @@ six-lane run; the exact-version run above supplies the new candidate evidence.
 This evidence identifies the published candidate, not later checkout builds with
 updated development dependencies. The stable and pre-1.0 records below remain historical.
 
-## Stable Release
+## Historical 1.0 Release
 
 - Package: `@0disoft/openfeature-local-provider@1.0.0`.
 - npm channel: `latest`; npm `next` remained `1.0.0-rc.2`.
