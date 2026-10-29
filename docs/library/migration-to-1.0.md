@@ -3,10 +3,11 @@
 Status: Stable guidance
 Owner: 0disoft
 
-Current repository package version: `2.0.0-alpha.124`.
+Current repository package version: `2.0.0`.
 
-This remains the historical 1.0 migration guide. The 2.0 prerelease line is covered by `migration-to-2.0.md`. Published
-prereleases use npm `next`; stable installations continue to use `latest`.
+This remains the historical 1.0 migration guide. The 2.0 release is covered by
+`migration-to-2.0.md`. Current installations use npm `latest`; pin `@^1` when
+retaining the 1.x contract.
 Target release: `1.0.0`.
 
 Stable `1.0.0` is published on npm `latest` and as a non-prerelease GitHub Release. It was

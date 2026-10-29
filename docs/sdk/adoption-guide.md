@@ -7,22 +7,22 @@ adoption remains unverified.
 | Need | Entry / next step |
 | --- | --- |
 | OpenFeature registration, files/env, audit, signed refresh/recovery | Node 22/24 package root; start with node-basic and the GitOps recipe |
-| In-process JSON flag evaluation with explicit context/time | `/core`; run the self-contained core-basic preview |
+| In-process JSON flag evaluation with explicit context/time | `/core`; run the self-contained core-basic example |
 | Conditional object delivery | Caller-owned AWS SDK S3/R2 client and the bounded S3 source; no evaluation-time fetch |
-| Current published stable behavior | npm v1; it does not include v2 targeting/schedule/core APIs |
+| Targeting, schedules, managed delivery and core evaluation | npm `@^2`; retain `@^1` for the previous API contract |
 
-The exact local v2 prerelease version is declared in the
+The exact repository version is declared in the
 [package metadata](../../packages/local-provider/package.json). From the repository
 root, print it with `node -p "require('./packages/local-provider/package.json').version"`.
 The build/pack commands below operate on that version; no registry tag is needed.
 
 Historical registry evidence: a read-only check on 2026-10-22 KST found
 latest=1.0.0 and next=1.0.0-rc.2. These are dated observations, not a current registry
-query. Do not assume installing @next installs this preview. No package, branch,
-tag or workflow was published for this work. Older runtime evidence keeps its
+query. Version 2.0 is installed through npm `latest`; the older channels do not
+describe the current release. Older runtime evidence keeps its
 original tested version; it does not establish current-checkout runtime coverage.
 
-## Run a complete preview
+## Run a complete example
 
 From this checkout after installing the declared pnpm/Node toolchain:
 
@@ -37,15 +37,20 @@ consumer source, with no placeholder credentials, undefined variables, timers or
 network calls. It uses explicit fixed times and 200 stable non-personal example
 keys. The observed aggregate stages are 0, 51 and 200 enabled subjects. A percentage
 is cohort eligibility, not an exact small-population count. It also proves internal
-preview wins before a scheduled stage, and emergency disable wins over targeting
+tenant targeting wins before a scheduled stage, and emergency disable wins over targeting
 and explicit overrides. It prints counts/reasons without subjects or contexts.
 The contract command copies this unchanged source into a temporary consumer
 installed from the actual tarball and executes it there, without a workspace link.
 
-To try v2 in another application, build and pack the provider, install the exact
-local .tgz path printed by pnpm plus the existing OpenFeature peer, and copy the
-same index.mjs beside that application's package manifest. Run node index.mjs.
-For example, after selecting the real path printed by your pack command:
+To use 2.0 in another application, install the package and its OpenFeature peer:
+
+```sh
+npm install @0disoft/openfeature-local-provider@^2 @openfeature/server-sdk@^1
+```
+
+To test unpublished checkout changes instead, build and pack the provider, install
+the exact local .tgz path printed by pnpm, and copy the same index.mjs beside that
+application's package manifest. Run node index.mjs. For example:
 
 ```sh
 pnpm run build
@@ -55,7 +60,7 @@ npm install "<actual-tarball-path>" @openfeature/server-sdk@^1
 node index.mjs
 ```
 
-For current stable v1, use npm install @0disoft/openfeature-local-provider@^1
+To retain v1, use npm install @0disoft/openfeature-local-provider@^1
 @openfeature/server-sdk@^1 and the [Node quick start](../../packages/local-provider/README.md).
 The portable example requires v2. Runtime/TypeScript/peer declarations are in the
 [compatibility matrix](../library/compatibility.md); whole-package Node engines
@@ -111,7 +116,7 @@ stable v1 cross-repository evidence stays valid for its original release gate.
 The owner excluded P3 independent-use evidence and recording on 2026-10-22; no
 external report or consent collection is required to finish P3. This change does
 not establish real adoption, authorize outreach/publication, or change the v1
-normal-registry release gate. A local preview is not a public npm release.
+normal-registry release gate. Local checkout results do not establish published artifact identity.
 See [current status](../testing/p3-adoption-status.md).
 
 

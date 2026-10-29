@@ -1,4 +1,4 @@
-# Migration to 2.0 (development prerelease)
+# Migration to 2.0
 
 Schema v1 remains supported. Its overrides, hashes, bucket algorithm, default return,
 redaction and watcher behavior are preserved. Do not change existing snapshots merely
@@ -8,9 +8,25 @@ to upgrade the package. Schema v2 explicitly enables the new contract in
 The public snapshot version expands from `1` to `1 | 2`; reason unions include
 `TARGETING_MATCH` and `DISABLED`. Exhaustive TypeScript switches and assignments to
 the literal version `1` need review. This is deliberately a new major version,
-currently `2.0.0-alpha.124`. Published prereleases use npm `next`; this is not a
-stable 2.0 release. See `docs/ops/release.md` for publication gates.
+released as `2.0.0` through npm `latest` and GitHub Releases.
+See `docs/ops/release.md` for publication gates.
 Keep a default branch in reason handlers or handle the new reasons explicitly.
+
+Install with `npm install @0disoft/openfeature-local-provider@^2 @openfeature/server-sdk`.
+Consumers retaining the 1.x type surface can pin `@^1`; do not downgrade persisted
+v2 snapshots or signed recovery state without reviewing their format contracts.
+The Node package root supports Node 22/24, and OpenFeature remains a peer dependency.
+No hosted service or evaluation-time network request is introduced.
+
+## Changes Included In 2.0.0
+
+The release includes schema v2 targeting and schedules, managed file watching and
+signed delivery, durable recovery, privacy-preserving chained audit storage,
+read-only diagnostics and consistent evidence export, and offline authoring tools.
+The versioned development history below records how these changes were implemented;
+its earlier version identifiers are historical, not the current installation channel.
+
+## Development History
 
 Alpha.124 reuses active per-flag hashes after a newly supplied snapshot passes full
 validation and its whole-snapshot hash matches the active hash. For F flags this

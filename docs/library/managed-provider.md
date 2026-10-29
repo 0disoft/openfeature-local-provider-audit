@@ -1,6 +1,6 @@
 # Managed signed snapshot provider
 
-Status: local v2 prerelease; no public release is implied.
+Status: included in 2.0; Node package root only.
 
 `createManagedLocalProvider` is the Node package-root composition for signed HTTPS,
 S3/R2 or custom `SnapshotSource` delivery. It connects verification, authenticated

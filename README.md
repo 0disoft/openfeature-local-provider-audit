@@ -37,7 +37,7 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 
 - JSON and YAML flag snapshot parsing with schema v1 validation.
 - Opt-in schema v2 conditional targeting, conditional percentage rollout and emergency
-  variant selection (2.0 development prerelease).
+  variant selection.
 - Redacted evaluation explanations and local simulation/comparison CLI commands.
 - Local CLI validation for JSON/YAML flag snapshots.
 - Offline JSON Schema and CLI flag-key/value type generation ([authoring](docs/library/authoring.md)).
@@ -52,7 +52,7 @@ const enabled = await client.getBooleanValue("checkout.enabled", false);
 - Caller-triggered HTTPS signed snapshot delivery, durable recovery and GitOps recipes.
 - Optional chained audit storage, rotation and trusted-checkpoint verification.
 
-These operations/integrity additions belong to the 2.0 prerelease line; see
+These operations/integrity additions are included in 2.0; see
 the [P2 delivery record](docs/product/07-operations-and-integrity.md) and
 [local acceptance evidence](docs/testing/p2-acceptance.md).
 
@@ -78,10 +78,11 @@ Local evaluation also exists in other providers, including flagd. See the
 for current gaps and local issue/PR disposition. Independent external adoption has
 not yet been established; published consumer evidence identifies same-maintainer use.
 
-This checkout stages a v2 development prerelease. Read its exact version from the
-[package metadata](packages/local-provider/package.json). Published prereleases
-are available through `npm install @0disoft/openfeature-local-provider@next @openfeature/server-sdk`. The stable install command above
-selects `latest`; unpublished checkout changes require a local build. See [v2 targeting](docs/library/flag-file-schema-v2.md),
+Version 2.0 is available through the install command above, which selects npm `latest`.
+Read the checkout's exact version from the [package metadata](packages/local-provider/package.json).
+Existing v1 snapshots remain supported; exhaustive TypeScript reason/schema switches
+need the review described in the [migration guide](docs/library/migration-to-2.0.md).
+Use `@^1` to retain the 1.x contract. See [v2 targeting](docs/library/flag-file-schema-v2.md),
 [inspection CLI](docs/library/local-inspection.md), and
 [migration](docs/library/migration-to-2.0.md).
 
@@ -125,7 +126,7 @@ Chromium, Bun, Deno and workerd. See [the scoped compatibility matrix](docs/libr
 and [the repeatable runtime smoke](docs/testing/core-runtime-acceptance.md).
 Root provider/file/audit APIs remain Node 22/24 only.
 
-For a complete runnable preview and stable-versus-local installation steps, see
+For a complete runnable example and registry-versus-local installation steps, see
 [the adoption guide](docs/sdk/adoption-guide.md) and
 [core-basic](examples/core-basic/README.md). Local examples and performance/runtime
 receipts are maintainer evidence; independent external adoption remains unverified.

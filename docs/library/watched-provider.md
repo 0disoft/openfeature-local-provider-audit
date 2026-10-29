@@ -1,6 +1,6 @@
 # Watched local file provider
 
-Status: local v2 prerelease; Node package root only.
+Status: included in 2.0; Node package root only.
 
 `createWatchedLocalProvider` connects the existing JSON/YAML file watcher to an
 owned reloadable provider. The factory explicitly starts watching, reads/validates
