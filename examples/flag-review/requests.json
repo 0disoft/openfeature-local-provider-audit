@@ -1,0 +1,26 @@
+[
+  {
+    "flagKey": "checkout.enabled",
+    "expectedType": "boolean",
+    "defaultValue": false,
+    "context": { "tenant": "public" }
+  },
+  {
+    "flagKey": "checkout.enabled",
+    "expectedType": "boolean",
+    "defaultValue": false,
+    "context": { "tenant": "internal" }
+  },
+  {
+    "flagKey": "checkout.enabled",
+    "expectedType": "boolean",
+    "defaultValue": false,
+    "context": { "tenant": "pilot" }
+  },
+  {
+    "flagKey": "checkout.enabled",
+    "expectedType": "boolean",
+    "defaultValue": false,
+    "context": { "tenant": "pilot" }
+  }
+]

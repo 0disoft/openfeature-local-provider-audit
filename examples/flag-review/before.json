@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 2,
+  "flags": {
+    "checkout.enabled": {
+      "type": "boolean",
+      "defaultVariant": "off",
+      "variants": { "on": true, "off": false },
+      "rules": [
+        {
+          "id": "internal",
+          "when": { "attribute": ["tenant"], "op": "eq", "value": "internal" },
+          "variant": "on"
+        }
+      ]
+    }
+  }
+}

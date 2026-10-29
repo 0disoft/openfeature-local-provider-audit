@@ -1,0 +1,85 @@
+# Consumer template, intentionally inactive here. Requires published CLI >=2.1.0.
+# Copy into your repository's .github/workflows/ only after reviewing the recipe.
+name: review flag change
+
+on:
+  pull_request:
+    paths:
+      - flags.json
+      - flag-review/requests.json
+      - .github/workflows/flag-review.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flag-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Read baseline and trusted synthetic corpus
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: baseline
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /flags.json
+            /flag-review/requests.json
+
+      - name: Read candidate configuration
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.sha }}
+          path: candidate
+          persist-credentials: false
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /flags.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+          package-manager-cache: false
+
+      - name: Install review tool outside PR checkout
+        shell: bash
+        run: |
+          npm install --prefix "$RUNNER_TEMP/flag-review-tool" --ignore-scripts --no-audit --no-fund \
+            '@0disoft/openfeature-local-provider@^2.1.0' '@openfeature/server-sdk@^1'
+
+      - name: Compare and summarize
+        shell: bash
+        run: |
+          report="$RUNNER_TEMP/flag-review.md"
+          set +e
+          node "$RUNNER_TEMP/flag-review-tool/node_modules/@0disoft/openfeature-local-provider/bin/openfeature-local-provider.js" \
+            compare baseline/flags.json candidate/flags.json \
+            --requests baseline/flag-review/requests.json --output markdown \
+            --max-changed-values-percent 50 > "$report"
+          review_status=$?
+          set -e
+          if [ -s "$report" ] && [ "$(wc -c < "$report")" -le 1000000 ]; then
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          elif [ -s "$report" ]; then
+            printf '%s\n' 'Report exceeds the inline summary budget; download the flag-review artifact.' >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' 'No comparison report was produced. Check tool installation, input validity and safe diagnostics in the job log.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit "$review_status"
+
+      - name: Preserve comparison report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: flag-review
+          path: ${{ runner.temp }}/flag-review.md
+          if-no-files-found: ignore
+          retention-days: 3
