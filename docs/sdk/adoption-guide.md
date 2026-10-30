@@ -10,6 +10,7 @@ adoption remains unverified.
 | In-process JSON flag evaluation with explicit context/time | `/core`; run the self-contained core-basic example |
 | Conditional object delivery | Caller-owned AWS SDK S3/R2 client and the bounded S3 source; no evaluation-time fetch |
 | Targeting, schedules, managed delivery and core evaluation | npm `@^2`; retain `@^1` for the previous API contract |
+| One provider per application and framework shutdown | [Node adapter and NestJS/Next.js recipes](framework-lifecycle.md); executable lifecycle smoke |
 
 The exact repository version is declared in the
 [package metadata](../../packages/local-provider/package.json). From the repository

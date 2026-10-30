@@ -86,7 +86,8 @@ and [secure use](https://docs.github.com/en/actions/reference/security/secure-us
 ## Next adoption improvements
 
 Keep the local library boundary. The static read-only comparison view is implemented
-in this checkout; framework lifecycle recipes are a separate integration concern. Do not introduce global signal
+in this checkout; [framework lifecycle recipes](../sdk/framework-lifecycle.md) include
+a shared startup/close adapter with an executable Node proof. Do not introduce global signal
 handlers by default: managed providers already coordinate close and bounded audit
 flush, while the application must first stop accepting requests. Flush timeouts cannot
 promise that every write is durable or that stalled I/O has been cancelled.

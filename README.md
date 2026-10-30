@@ -59,6 +59,8 @@ This minimal example does not enable audit persistence; choose a sink below to r
 
 - **A local configuration file:** [watched provider](docs/library/watched-provider.md),
   with reload diagnostics and optional consistency polling for projected volumes.
+- **A framework application:** [shared runtime and NestJS/Next.js lifecycle recipes](docs/sdk/framework-lifecycle.md),
+  including concurrent startup and owned shutdown without process-wide SDK close.
 - **Signed configuration and restart recovery:** [managed provider](docs/library/managed-provider.md)
   and the [GitOps recipe](docs/library/gitops-snapshots.md), including explicit refresh,
   sequential polling and rollback.

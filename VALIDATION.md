@@ -68,6 +68,12 @@ Unconfigured runner commands must fail, not pass with a fake success.
   `REVIEW_BROWSER_BINARY` selects another local Chromium executable. No download,
   web server or hosted CI job is added. Screenshots/report are ignored under
   `output/playwright/`; temporary inputs and the browser are closed in finally.
+- Application lifecycle smoke (targeted, optional): `pnpm run smoke:lifecycle`;
+  builds then executes the existing private Node example with the shared owner,
+  actual file watcher/audit and named OpenFeature domains. Covers concurrent startup,
+  retry, shutdown racing startup, close failures and 32 flushed redacted records.
+  No server, signal handler, framework dependency or hosted workflow is started.
+  NestJS/Next.js snippets are integration guidance, not full framework runtime proof.
 - docs: `pnpm run release-readiness`
 - check: `pnpm run check`
 

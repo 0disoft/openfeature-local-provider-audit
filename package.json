@@ -41,6 +41,7 @@
     "smoke:core-runtimes": "pnpm run build && node scripts/core-runtime-smoke.mjs",
     "smoke:core-example": "pnpm run build && pnpm --filter openfeature-local-provider-core-example run start",
     "smoke:review-html": "pnpm run build && node scripts/review-html-smoke.mjs",
+    "smoke:lifecycle": "pnpm run build && pnpm --filter openfeature-local-provider-node-basic-example run smoke:lifecycle",
     "schemas:generate": "node scripts/snapshot-schema.mjs --write && biome format --write packages/local-provider/schemas",
     "schemas:check": "node scripts/snapshot-schema.mjs --check",
     "benchmark:explanation": "pnpm run build && node scripts/explanation-benchmark.mjs"

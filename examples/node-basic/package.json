@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx src/index.ts",
-    "smoke:gitops": "tsx src/gitops-smoke.ts"
+    "smoke:gitops": "tsx src/gitops-smoke.ts",
+    "smoke:lifecycle": "tsx src/lifecycle-smoke.ts"
   },
   "dependencies": {
     "@0disoft/openfeature-local-provider": "workspace:*",
