@@ -74,6 +74,10 @@ operation. CPU verification and caller-owned delivery do not hold the capture lo
 `AbortSignal` interrupts process-queue admission and file-lock retry sleeps. A
 queued export can reject before an earlier writer finishes; its cancelled entry
 never starts capture later, and subsequent writers still wait for earlier work.
+Cancelled pending entries are unlinked in O(1), releasing their operation closures
+even when the active writer remains blocked. Queue storage and later drain work
+depend on live pending entries, not accumulated past cancellations. This does not
+add a global queue cap or cancel an active filesystem operation.
 Once admitted, cancellation waits for that operation's cleanup before rejecting.
 Lock waiting otherwise retains `lockTimeoutMs` (default 5,000 ms; zero allows one
 immediate attempt). Cancellation during lock initialization closes the acquired

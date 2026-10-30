@@ -1,5 +1,6 @@
 import { withAuditCleanup } from "./cleanup.js";
 import { createQueuedAuditSink } from "./queued-sink.js";
+import { serializeProcessWrite } from "./process-write-queue.js";
 import { randomUUID } from "node:crypto";
 import { constants, type BigIntStats } from "node:fs";
 import { lstat, mkdir, open, opendir, readFile, rename, rm, stat } from "node:fs/promises";
@@ -21,7 +22,8 @@ const AUDIT_OPEN_FLAGS =
   constants.O_WRONLY |
   (constants.O_NOFOLLOW ?? 0) |
   (constants.O_NONBLOCK ?? 0);
-const processWriteQueues = new Map<string, Promise<void>>();
+
+export { serializeProcessWrite } from "./process-write-queue.js";
 
 export function createFileAuditSink(options: FileAuditSinkOptions): AuditSink {
   const inputPath = options.path;
@@ -134,44 +136,6 @@ async function assertPathIsRegularFile(path: string): Promise<void> {
       throw error;
     }
   }
-}
-
-export async function serializeProcessWrite(
-  path: string,
-  operation: () => Promise<void>,
-  signal?: AbortSignal
-): Promise<void> {
-  signal?.throwIfAborted();
-  // Windows case aliases must share rotation/append ownership. Keep the actual
-  // I/O path unchanged; case-sensitive Windows directories only serialize more.
-  const queueKey = process.platform === "win32" ? path.toLowerCase() : path;
-  const previous = processWriteQueues.get(queueKey) ?? Promise.resolve();
-  await new Promise<void>((resolve, reject) => {
-    const cancelWaiting = () => reject(signal?.reason);
-    const run = () => {
-      // Once admitted, operation-specific cancellation must finish its cleanup.
-      signal?.removeEventListener("abort", cancelWaiting);
-      signal?.throwIfAborted();
-      return operation();
-    };
-    const finish = () => {
-      if (processWriteQueues.get(queueKey) === tail) processWriteQueues.delete(queueKey);
-    };
-    // The queue tail follows actual work even if its caller cancelled waiting.
-    // A cancelled entry still checks its signal before ever invoking operation.
-    const tail = previous.then(run, run).then(
-      () => {
-        finish();
-        resolve();
-      },
-      (error: unknown) => {
-        finish();
-        reject(error);
-      }
-    );
-    processWriteQueues.set(queueKey, tail);
-    signal?.addEventListener("abort", cancelWaiting, { once: true });
-  });
 }
 
 interface RotationOptions {

@@ -33,6 +33,14 @@ Detailed compatibility contracts live in:
 - Deprecation and migration policy: compatibility notes must include replay fixture expectations.
 - Dependency compatibility: `@openfeature/server-sdk` remains a peer dependency.
 
+## 2.2.2 Cancelled Audit Queue Retention
+
+- Cancelled pending exports are detached from the process queue in O(1). A stalled
+  writer no longer retains those operation closures or revisits them on recovery.
+  FIFO order and admitted-operation cleanup ownership are preserved.
+- Public signatures, audit formats, dependencies and runtime support are unchanged.
+  This does not introduce a queue cap or a new active-operation timeout.
+
 ## 2.2.1 Audit Evidence Cancellation
 
 - The existing optional export `signal` now cancels process-queue admission and
