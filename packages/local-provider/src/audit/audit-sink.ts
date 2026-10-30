@@ -217,18 +217,27 @@ export function createLockOptions(
 
 export async function withFileLock(
   lock: LockOptions,
-  operation: () => Promise<void>
+  operation: () => Promise<void>,
+  signal?: AbortSignal
 ): Promise<void> {
-  const release = await acquireFileLock(lock);
+  const release = await acquireFileLock(lock, undefined, signal);
 
-  await withAuditCleanup(operation, release, "Audit operation and lock release failed.");
+  await withAuditCleanup(
+    async () => {
+      signal?.throwIfAborted();
+      await operation();
+    },
+    release,
+    "Audit operation and lock release failed."
+  );
 }
 
 type LockRecordWriter = (handle: FileHandle, contents: string) => Promise<void>;
 
 export async function acquireFileLock(
   lock: LockOptions,
-  writeLockRecord: LockRecordWriter = defaultWriteLockRecord
+  writeLockRecord: LockRecordWriter = defaultWriteLockRecord,
+  signal?: AbortSignal
 ): Promise<() => Promise<void>> {
   if (lock.staleMs !== undefined)
     throw new TypeError("Automatic stale lock takeover is unsupported.");
@@ -240,6 +249,7 @@ export async function acquireFileLock(
   };
 
   for (let attempt = 0; ; attempt++) {
+    signal?.throwIfAborted();
     // Preserve one initial attempt, including a zero wait budget.
     if (attempt > 0) remainingWaitMs();
     let handle: FileHandle;
@@ -247,7 +257,12 @@ export async function acquireFileLock(
       handle = await open(lock.path, "wx");
     } catch (error) {
       if (!isAlreadyExistsError(error)) throw error;
-      await delay(Math.min(lock.retryMs, remainingWaitMs()));
+      try {
+        await delay(Math.min(lock.retryMs, remainingWaitMs()), undefined, { signal });
+      } catch (error) {
+        signal?.throwIfAborted();
+        throw error;
+      }
       continue;
     }
     const ownerToken = randomUUID();
@@ -260,7 +275,9 @@ export async function acquireFileLock(
       );
     try {
       identity = await handle.stat({ bigint: true });
+      signal?.throwIfAborted();
       await writeLockRecord(handle, `${ownerToken}\n${process.pid}\n${new Date().toISOString()}\n`);
+      signal?.throwIfAborted();
     } catch (error) {
       // Initialization errors are not lock contention and must never be retried.
       await withAuditCleanup(
