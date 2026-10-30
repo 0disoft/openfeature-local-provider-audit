@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: "17 3 * * 1"
   workflow_dispatch:
+    inputs:
+      qualify_node26:
+        description: Run full Node 26 qualification sequentially on Linux, Windows and macOS
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: read
@@ -14,6 +20,7 @@ concurrency:
 
 jobs:
   latest-compatible-peer:
+    if: ${{ !inputs.qualify_node26 }}
     name: latest compatible OpenFeature peer
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -39,9 +46,14 @@ jobs:
         run: pnpm run packed-smoke
 
   node-26-canary:
-    name: experimental Node.js 26 packed consumer (Linux)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: Node.js 26 compatibility on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        os: ${{ inputs.qualify_node26 && fromJSON('["ubuntu-latest", "windows-latest", "macos-15"]') || fromJSON('["ubuntu-latest"]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -61,7 +73,69 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Test experimental runtime with latest compatible OpenFeature peer
+      - name: Record and verify actual Node 26 LTS runtime
+        run: node -e "if (process.versions.node.split('.')[0] !== '26' || !process.release.lts) throw new Error('Node 26 LTS required'); console.log(JSON.stringify({node:process.version,lts:process.release.lts,platform:process.platform,arch:process.arch}));"
+
+      - name: Check formatting
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run format:check
+
+      - name: Lint
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run lint
+
+      - name: Build once for all qualification gates
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run build
+
+      - name: Typecheck
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run typecheck:built
+
+      - name: Check API surface
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run api:check:built
+
+      - name: Test with coverage
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run test:coverage
+
+      - name: Migration check
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run migration-check
+
+      - name: Stable release gate
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run stable-release-gate
+
+      - name: Package check
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run pack:check:built
+
+      - name: Release readiness
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm run release-readiness
+
+      - name: File reload and audit smoke
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm --filter openfeature-local-provider-node-basic-example start
+
+      - name: Application lifecycle smoke
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm --filter openfeature-local-provider-node-basic-example run smoke:lifecycle
+
+      - name: Signed GitOps and recovery smoke
+        if: ${{ inputs.qualify_node26 }}
+        run: pnpm --filter openfeature-local-provider-node-basic-example run smoke:gitops
+
+      - name: Qualify actual packed consumer with latest compatible OpenFeature peer
+        if: ${{ inputs.qualify_node26 }}
+        env:
+          OPENFEATURE_SERVER_SDK_VERSION: peer
+        run: pnpm run packed-smoke:built
+
+      - name: Test packed consumer with latest compatible OpenFeature peer
+        if: ${{ !inputs.qualify_node26 }}
         env:
           OPENFEATURE_SERVER_SDK_VERSION: peer
         run: pnpm run packed-smoke

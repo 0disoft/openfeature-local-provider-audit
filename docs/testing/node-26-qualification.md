@@ -9,6 +9,25 @@ package's supported runtime range. Node.js 22/24 remain supported and
 No package runtime behavior, public export, dependency range or published version
 changes as part of this test correction.
 
+## Repeat the full cross-platform qualification
+
+The existing [compatibility workflow](../../.github/workflows/compatibility.yml)
+has a manual boolean input, `qualify_node26`, defaulting to `false`. On a revision
+containing the candidate fixes, select it to run Linux (`ubuntu-latest`), Windows
+(`windows-latest`) and macOS (`macos-15`) sequentially with `max-parallel: 1`.
+Every lane records the actual Node 26 LTS version/platform, uses the frozen
+lockfile, builds once, and runs format/lint, typecheck, API checks, full coverage,
+migration/release/pack gates, real file reload, lifecycle and signed GitOps examples,
+then the actual tarball consumer with the latest compatible peer.
+
+The default/manual-unselected and weekly modes keep the previous two Linux jobs:
+Node 24 peer compatibility and Node 26 packed-only compatibility. Full qualification
+skips the redundant Node 24 peer job and adds no automatic per-push or scheduled
+platform runs. Workflows have read-only repository permissions and no publishing
+steps. Record the candidate commit, each job URL, actual versions, failures and
+platform skips before considering promotion. A prepared workflow is not execution
+evidence; no full hosted run is claimed here.
+
 ## Windows execution, 2026-10-30 KST
 
 - Source: local `main` after `09d6502`, including the allocator-independent

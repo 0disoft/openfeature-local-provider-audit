@@ -66,11 +66,14 @@ Detailed compatibility contracts live in:
 ## Node.js 26 Qualification
 
 Node.js 22 and 24 remain the supported runtimes (`engines.node: >=22 <25`). The
-weekly/manual compatibility workflow adds one Linux Node.js 26 packed-consumer job
-with the latest compatible OpenFeature peer. It covers build, ESM/CJS, declarations,
-CLI, provider registration/evaluation, replay, watcher shutdown, and audit flush. It
-does not add jobs to per-push CI or widen the published support promise. Canary
-failures remain visible and must record toolchain or dependency incompatibilities.
+weekly/default manual compatibility workflow runs one Linux Node.js 26
+packed-consumer job with the latest compatible OpenFeature peer. It covers build,
+ESM/CJS, declarations, CLI, provider registration/evaluation, replay, watcher
+shutdown, and audit flush. Selecting the manual `qualify_node26` boolean instead
+runs full qualification sequentially on Linux, Windows and macOS, building once
+per platform. It does not add per-push jobs or scheduled platform lanes, publish
+anything, or widen the supported runtime range. Failures remain visible and must
+record toolchain or dependency incompatibilities.
 
 Promote Node.js 26 only after it reaches LTS and the packed consumer plus the full
 supported checks pass on Linux, Windows, and macOS. Widen the engine range and public

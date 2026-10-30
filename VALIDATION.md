@@ -84,6 +84,14 @@ they do not establish freshness on their own. The standalone commands above reta
 their build behavior. packed-smoke:built still packs and installs the actual tarball,
 rejects absent build entries and cannot be combined with registry smoke.
 
+Node 26 qualification reuses these same configured commands. The compatibility
+workflow's optional boolean `qualify_node26` selects Linux, Windows and macOS with
+`max-parallel: 1`, one build per platform, the full coverage/consumer gates and
+file/lifecycle/GitOps examples. Its default and scheduled mode remain the existing
+Linux packed-consumer probe plus the Node 24 peer check. Qualification must be
+manually selected; editing this workflow does not execute it or widen Node engines.
+See `docs/testing/node-26-qualification.md` for local evidence and pending platforms.
+
 ## Hygiene Validation
 
 Repository hygiene file changes must check line-ending churn, binary diff pollution,
