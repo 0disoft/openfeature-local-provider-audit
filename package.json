@@ -27,6 +27,7 @@
     "packed-smoke": "node scripts/packed-smoke.mjs",
     "packed-smoke:built": "node scripts/packed-smoke.mjs --reuse-build",
     "release-readiness": "node scripts/release-readiness.mjs",
+    "qualify:linux-vm": "node scripts/linux-qualification.mjs",
     "registry-smoke": "node scripts/packed-smoke.mjs",
     "stable-release-gate": "node scripts/stable-release-gate.mjs",
     "test": "pnpm run schemas:check && pnpm --filter @0disoft/openfeature-local-provider test && pnpm run test:api-tools && pnpm run test:benchmark-tools && pnpm run test:migration-tools && pnpm run test:release-tools",

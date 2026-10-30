@@ -3,7 +3,7 @@
 ## Support decision
 
 Node.js 26 is LTS according to the [official release table](https://nodejs.org/en/about/previous-releases).
-The local Windows checks below are qualification evidence, not promotion of the
+The local Windows and Linux checks below are qualification evidence, not promotion of the
 package's supported runtime range. Node.js 22/24 remain supported and
 `engines.node` remains `>=22 <25` until Linux, Windows and macOS qualification passes.
 No package runtime behavior, public export, dependency range or published version
@@ -78,11 +78,94 @@ equating the runtime's private allocator size to the public pool setting. File
 growth/shrinkage, exact maxBytes, one-byte overflow, UTF-8 and handle-close checks
 remain in the same suite. No production buffer or file-read logic was changed.
 
+## Linux execution, 2026-10-30 KST
+
+- Source: committed local `main`, `05542603a0bb90ae125688890b7fa50878ceb1fb`.
+  The new host/guest verification fixture was read from the working tree; product
+  code and the gates ran from that commit's clean `git archive`, SHA-256
+  `dc38c0ac5793b2e7719200af3f83ce83e610edd9efb051fc3011629f05bc56b5`.
+- OS: actual Debian GNU/Linux 12 (bookworm), x64; kernel `6.1.0-54-amd64`,
+  Debian `6.1.190-1`. Native Linux filesystem/watch behavior was not simulated by
+  overriding Node's platform value. Guest tests ran as root.
+- Runtime: Node.js `v26.13.0`, LTS `Lithium`, pnpm `12.16.1`. The official
+  `node-v26.13.0-linux-x64.tar.xz` matched its SHA-256 list:
+  `d28a96af6c38596f6d9d97c0ee531c13d238d757742387d1928de822d959e997`.
+- Host fixture: portable QEMU `11.1.0` with WHPX, 2 virtual CPUs, 4 GiB RAM,
+  a disposable disk snapshot and a read-only source disk. The Windows QEMU
+  installer was extracted without running it, and matched the maintainer's
+  [SHA-512 list](https://qemu.weilnetz.de/w64/qemu-w64-setup-20260811.sha512).
+- The [Debian 12 nocloud image](https://cloud.debian.org/images/cloud/bookworm/latest/)
+  matched the HTTPS-delivered SHA-512 list:
+  `3b7c3342105085c60097147c7f7491e761c115170213ba7d9c87685e32d234bdafe0ddf8d6fd6600a6a837c761fa229ce8b9fe2086d1235f8eebeb778d05b977`.
+  Its checksum was unchanged after the VM exited. Both latest-image URLs and
+  latest 26.x resolution can change; record fresh hashes when repeating a run.
+
+| Validation | Result |
+| --- | --- |
+| `pnpm install --frozen-lockfile` | Passed inside the Linux guest |
+| Format, lint, build, `typecheck:built`, `api:check:built` | Passed; API 127 exports/35 values, core 26 exports/7 values; four existing lint warnings and two notices |
+| `test:coverage` | 96 files passed; 1,364 tests passed, five Windows-only skips, zero failures |
+| Coverage | 95.67% statements, 93.72% branches, 98.67% functions, 97.19% lines |
+| Script suites | API tools 4, benchmark tools 9, migration tools 7 and release tools 53 passed |
+| Migration, stable gate, `pack:check:built`, readiness | Passed; the migration gate also repeated its seven tool tests |
+| Node example | Real file reload/override/rollout/replay passed; three redacted audit events |
+| Lifecycle example | 32 concurrent clients, one shared startup/close, 32 flushed records and unrelated domain preserved |
+| Signed GitOps example | Releases 1/2/3, rollback/restart recovery, conditional hit, two rejected updates, ten evaluations without fetch and 15 audit events passed |
+| `OPENFEATURE_SERVER_SDK_VERSION=peer pnpm run packed-smoke:built` | Actual 612,914-byte local tarball installed and passed ESM/CJS/core/types/schemas/CLI/provider/watch/audit/recovery checks on Linux Node 26; TypeScript 5.9.3 full-library and 7.0.2 surface checks passed |
+| VM result/cleanup | Explicit guest result 0 and QEMU exit 0; no QEMU child remained |
+
+The five skips are the Windows polling-cleanup case, three Windows case-alias
+queue cases, and Windows case-insensitive sparse-rotation matching. Linux path,
+link and native directory-watch tests ran. No provider production change was
+needed. Host WSL probes did not respond within eight seconds and were stopped;
+no WSL distribution or Windows feature was installed. The complete successful
+guest boot/setup/gates/shutdown took about 192 seconds on this fixture; this is
+validation duration, not an application latency or throughput benchmark.
+
 ## Remaining qualification
 
-Linux and macOS Node 26 runs have not been executed in this local session. The
-machine has no verified usable Linux/macOS runner; a WSL listing did not return and
-was stopped. No GitHub workflow was dispatched, code pushed or package published.
+macOS still requires a real Mac or an existing macOS CI executor. This Windows
+machine has no registered Mac SSH target; no new paid runner was provisioned.
+The prepared qualification workflow cannot run unpublished local workflow edits:
+GitHub dispatch uses a workflow on a remote ref. Pushing or updating that remote
+ref is outside this local-only task. An existing Mac can instead receive a
+`git archive HEAD` source archive and run the configured qualification commands;
+this transfers committed source without pushing a branch. A mock of
+`process.platform`, Linux emulation, or macOS cross-compilation is not execution
+evidence for native macOS watcher/filesystem behavior.
+
 Keep the support gate in [compatibility](../library/compatibility.md) until actual
-cross-platform checks on the same candidate revision are available. A local
-Windows success or the existing Linux packed-only probe alone is insufficient.
+cross-platform checks on the candidate runtime code are available. No GitHub
+workflow was dispatched, code pushed or package published during local testing.
+
+## Local Linux VM procedure
+
+`pnpm run qualify:linux-vm` is an optional, bounded verification fixture, not
+application runtime infrastructure. Supply an already verified QEMU executable
+as `QUALIFY_QEMU_BINARY` and a Debian 12 nocloud x64 qcow2 as
+`QUALIFY_LINUX_IMAGE`. It archives committed HEAD from the existing main branch;
+uncommitted edits are explicitly excluded. Guest writes use QEMU snapshot mode,
+and the source archive is attached read-only. No branch/worktree, WSL installation,
+host shared directory, SSH credential or guest port forwarding is created. The
+temporary serial console listens only on host loopback and closes with the owned
+QEMU child. Each attempt has a 20-minute limit; an absent/nonzero guest result is
+a failure, independently of QEMU's exit code. The reported temporary directory
+retains the source archive and full console log for inspection.
+
+The guest resolves the latest 26.x from the official Node index, verifies its
+Linux x64 archive against that release's HTTPS SHA-256 list, checks the actual
+Linux platform/26 major/LTS metadata, installs the frozen lockfile, and executes
+the existing CI gates serially. Build reuse matches the compatibility workflow.
+The Windows host's installed Node and package manager are not changed. QEMU's
+WHPX accelerator can fall back to software emulation; these runs do not establish
+production throughput or latency.
+
+The first Debian 13 image stopped at interactive first-boot setup, so the fixture
+uses the Debian 12 nocloud image with its intended local root console. Its first
+Node 26 start exposed a missing `libatomic.so.1` (exit 127), before any package
+test ran. The guest now installs `libatomic1` explicitly. This is a documented
+[Node 26 Linux runtime prerequisite](https://github.com/nodejs/node/blob/v26.13.0/BUILDING.md),
+not a provider defect: official Linux binaries have linked libatomic since Node
+25. Minimal Linux installations need the corresponding distribution package;
+an existing richer CI image may already include it. The disposable image runs
+tests as root; results do not establish non-root installation/permission behavior.

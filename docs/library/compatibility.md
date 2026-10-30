@@ -82,10 +82,13 @@ cross-platform CI lanes. The canary alone is insufficient promotion evidence.
 
 Node.js 26 reached LTS before the 2026-10-30 local qualification. Windows x64 on
 26.13.0 passes the full suite, real packed consumer and lifecycle/GitOps examples
-after correcting a test's assumption about Buffer pool backing size. Linux and
-macOS full qualification remain pending. See the
+after correcting a test's assumption about Buffer pool backing size. Debian 12
+Linux x64 on 26.13.0 also passes the full suite (1,364 passed, five Windows-only
+skips), actual packed consumer and lifecycle/GitOps examples. Minimal Linux
+images need the Node runtime's `libatomic`/`libatomic1` system dependency.
+macOS full qualification remains pending. See the
 [exact execution record and limits](../testing/node-26-qualification.md); no engine
-range or support promise has been widened by this Windows-only evidence.
+range or support promise has been widened by this Windows/Linux evidence.
 
 ## 0.13.2 Local I/O Hardening
 

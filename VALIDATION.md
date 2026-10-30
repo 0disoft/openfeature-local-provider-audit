@@ -92,6 +92,19 @@ Linux packed-consumer probe plus the Node 24 peer check. Qualification must be
 manually selected; editing this workflow does not execute it or widen Node engines.
 See `docs/testing/node-26-qualification.md` for local evidence and pending platforms.
 
+Optional local Linux qualification: `pnpm run qualify:linux-vm` requires a verified
+QEMU executable (`QUALIFY_QEMU_BINARY`) and Debian 12 nocloud x64 qcow2 image
+(`QUALIFY_LINUX_IMAGE`). It boots one disposable snapshot with 2 CPUs/4 GiB,
+exports committed HEAD from existing main (excluding uncommitted edits), and runs
+the same sequential Node 26 gates inside actual Linux. The runner installs only
+inside the disposable guest, forwards no guest port or host filesystem mount,
+logs to a reported temporary directory, and terminates its QEMU child after at
+most 20 minutes. WHPX falls back to software emulation if unavailable; emulated
+timings do not establish performance. No host installer, OS feature change,
+credential, hosted CI dispatch, push or deployment is involved. A temporary
+loopback-only serial socket closes with the VM. A missing guest
+success marker is a failure, even if QEMU exits cleanly. This cannot verify macOS.
+
 ## Hygiene Validation
 
 Repository hygiene file changes must check line-ending churn, binary diff pollution,
