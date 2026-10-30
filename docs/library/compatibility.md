@@ -33,6 +33,18 @@ Detailed compatibility contracts live in:
 - Deprecation and migration policy: compatibility notes must include replay fixture expectations.
 - Dependency compatibility: `@openfeature/server-sdk` remains a peer dependency.
 
+## 2.2.1 Audit Evidence Cancellation
+
+- The existing optional export `signal` now cancels process-queue admission and
+  file-lock retry sleeps without waiting for an earlier writer or the acquisition
+  timeout. A cancelled queue entry cannot later create destination files or let
+  subsequent writers overtake earlier work.
+- Admitted work retains ownership until its handles and lock are cleaned up;
+  in-flight filesystem calls remain non-preemptible. Cancellation preserves the
+  original signal reason and foreign lock markers.
+- Public exports, types, evaluation results, audit formats, runtime support and
+  dependency ranges are unchanged. See [audit evidence](audit-evidence.md).
+
 ## 0.13.0 Audit Context Migration
 
 - Audit context now includes `keyMode: "names"` under the unchanged default policy.

@@ -70,46 +70,55 @@ export async function exportChainedAuditEvidence(
     if (inside(sourceReal, destinationReal) || inside(destinationReal, sourceReal))
       throw new Error("Audit evidence source and destination must not overlap.");
     let captured!: ChainManifest;
-    await serializeProcessWrite(manifestPath, () => {
-      signal?.throwIfAborted();
-      return withFileLock(lock, async () => {
+    await serializeProcessWrite(
+      manifestPath,
+      () => {
         signal?.throwIfAborted();
-        const currentDirectory = await assertDirectory(directory);
-        if (
-          currentDirectory.ino !== originalDirectory.ino ||
-          currentDirectory.dev !== originalDirectory.dev
-        )
-          throw new Error("Audit evidence source directory changed.");
-        const before = await lstat(manifestPath, { bigint: true });
-        assertOwnedFile(before);
-        captured = parseChainManifest(await readChainMetadata(manifestPath, true));
-        const allowed = new Set([
-          "manifest.json",
-          "manifest.json.lock",
-          ...captured.segments.map((segment) => segment.file)
-        ]);
-        let entries = 0;
-        for await (const entry of await opendir(directory)) {
-          signal?.throwIfAborted();
-          if (++entries > allowed.size || !allowed.has(entry.name))
-            throw new Error("Uncommitted or unexpected audit artifact blocks export.");
-        }
-        const expectedBytes =
-          Number(before.size) + captured.segments.reduce((sum, segment) => sum + segment.size, 0);
-        if (expectedBytes > maxBytes) throw new Error("Audit evidence byte limit exceeded.");
-        const declaredStart = captured.segments[0]?.start ?? captured.initial;
-        const declaredHead = captured.segments.at(-1)?.head ?? captured.initial;
-        if (declaredHead.sequence - declaredStart.sequence > maxRecords)
-          throw new Error("Audit evidence record limit exceeded.");
-        // Never overwrite an existing directory, even when empty. Failed exports
-        // may leave a partial new destination, but cannot destroy previous evidence.
-        await mkdir(destination, { mode: 0o700 });
-        await copy("manifest.json", Number(before.size));
-        for (const segment of captured.segments) await copy(segment.file, segment.size);
-        if (!sameFile(before, await lstat(manifestPath, { bigint: true })))
-          throw new Error("Audit evidence manifest changed during export.");
-      });
-    });
+        return withFileLock(
+          lock,
+          async () => {
+            signal?.throwIfAborted();
+            const currentDirectory = await assertDirectory(directory);
+            if (
+              currentDirectory.ino !== originalDirectory.ino ||
+              currentDirectory.dev !== originalDirectory.dev
+            )
+              throw new Error("Audit evidence source directory changed.");
+            const before = await lstat(manifestPath, { bigint: true });
+            assertOwnedFile(before);
+            captured = parseChainManifest(await readChainMetadata(manifestPath, true));
+            const allowed = new Set([
+              "manifest.json",
+              "manifest.json.lock",
+              ...captured.segments.map((segment) => segment.file)
+            ]);
+            let entries = 0;
+            for await (const entry of await opendir(directory)) {
+              signal?.throwIfAborted();
+              if (++entries > allowed.size || !allowed.has(entry.name))
+                throw new Error("Uncommitted or unexpected audit artifact blocks export.");
+            }
+            const expectedBytes =
+              Number(before.size) +
+              captured.segments.reduce((sum, segment) => sum + segment.size, 0);
+            if (expectedBytes > maxBytes) throw new Error("Audit evidence byte limit exceeded.");
+            const declaredStart = captured.segments[0]?.start ?? captured.initial;
+            const declaredHead = captured.segments.at(-1)?.head ?? captured.initial;
+            if (declaredHead.sequence - declaredStart.sequence > maxRecords)
+              throw new Error("Audit evidence record limit exceeded.");
+            // Never overwrite an existing directory, even when empty. Failed exports
+            // may leave a partial new destination, but cannot destroy previous evidence.
+            await mkdir(destination, { mode: 0o700 });
+            await copy("manifest.json", Number(before.size));
+            for (const segment of captured.segments) await copy(segment.file, segment.size);
+            if (!sameFile(before, await lstat(manifestPath, { bigint: true })))
+              throw new Error("Audit evidence manifest changed during export.");
+          },
+          signal
+        );
+      },
+      signal
+    );
 
     // CPU verification and checkpoint publication no longer hold the writer lock.
     const start = captured.segments[0]?.start ?? captured.initial;

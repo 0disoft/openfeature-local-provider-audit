@@ -13,6 +13,7 @@ import {
   writeFile
 } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { getEventListeners } from "node:events";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -22,6 +23,7 @@ import {
   evaluateFlag,
   exportChainedAuditEvidence
 } from "../../src/index.js";
+import { serializeProcessWrite } from "../../src/audit/audit-sink.js";
 
 vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof import("node:fs/promises")>();
@@ -241,6 +243,74 @@ it("closes both copy handles and releases the lock on cancellation", async () =>
   ]);
   expect(existsSync(join(directory, "manifest.json.lock"))).toBe(false);
   expect(existsSync(join(destination, "evidence.json"))).toBe(false);
+});
+
+it("cancels queued export before a blocked writer finishes without later creating output", async () => {
+  await prepare();
+  const before = await capture();
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const manifest = join(directory, "manifest.json");
+  const writer = serializeProcessWrite(manifest, () => gate);
+  const controller = new AbortController();
+  const reason = new Error("cancel waiting export");
+  const onError = vi.fn();
+  const exporting = exportChainedAuditEvidence({
+    directory,
+    destination,
+    signal: controller.signal,
+    onError
+  });
+  const rejected = expect(exporting).rejects.toBe(reason);
+  try {
+    await vi.waitFor(() => expect(getEventListeners(controller.signal, "abort")).toHaveLength(1));
+    controller.abort(reason);
+    await rejected;
+    expect(existsSync(destination)).toBe(false);
+    expect(await capture()).toEqual(before);
+    expect(onError).not.toHaveBeenCalled();
+  } finally {
+    controller.abort(reason);
+    release();
+    await Promise.allSettled([writer, exporting]);
+    await serializeProcessWrite(manifest, async () => {});
+  }
+  expect(existsSync(destination)).toBe(false);
+  expect(await capture()).toEqual(before);
+  expect((await exportChainedAuditEvidence({ directory, destination })).records).toBe(1);
+});
+
+it("cancels export while waiting for a foreign file lock without replacing the marker", async () => {
+  await prepare();
+  await writeFile(join(directory, "manifest.json.lock"), "foreign owner");
+  const before = await capture();
+  const controller = new AbortController();
+  const reason = new Error("cancel lock wait");
+  const onError = vi.fn();
+  const exporting = exportChainedAuditEvidence({
+    directory,
+    destination,
+    signal: controller.signal,
+    onError
+  });
+  const rejected = expect(exporting).rejects.toBe(reason);
+  try {
+    await vi.waitFor(() => {
+      expect(open).toHaveBeenCalledWith(join(directory, "manifest.json.lock"), "wx");
+      expect(getEventListeners(controller.signal, "abort")).toHaveLength(1);
+    });
+    controller.abort(reason);
+    await rejected;
+    expect(getEventListeners(controller.signal, "abort")).toHaveLength(0);
+    expect(await capture()).toEqual(before);
+    expect(existsSync(destination)).toBe(false);
+    expect(onError).not.toHaveBeenCalled();
+  } finally {
+    controller.abort(reason);
+    await Promise.allSettled([exporting]);
+  }
 });
 
 it("preserves trusted diagnostic causes while isolating rejected observers", async () => {

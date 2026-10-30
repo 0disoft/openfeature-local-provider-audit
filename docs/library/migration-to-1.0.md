@@ -3,7 +3,7 @@
 Status: Stable guidance
 Owner: 0disoft
 
-Current repository package version: `2.2.0`.
+Current repository package version: `2.2.1`.
 
 This remains the historical 1.0 migration guide. The 2.0 release is covered by
 `migration-to-2.0.md`. Current installations use npm `latest`; pin `@^1` when

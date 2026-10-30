@@ -71,13 +71,18 @@ Copying, hashing, fsync and reading the destination still add O(total bytes) I/O
 and hold writers during the copy; do not use frequent exports as a request-path
 operation. CPU verification and caller-owned delivery do not hold the capture lock.
 
-`AbortSignal` is checked before admission, after queue waiting, at copy chunks and
-verification records, and before completion publication. In-flight filesystem calls,
-queue waiting, lock acquisition and synchronous cryptographic work are not
-preemptible. Lock waiting uses the existing `lockTimeoutMs` policy (default 5,000 ms;
-zero allows one immediate attempt); cancellation can therefore wait for admission
-or that acquisition timeout. All opened handles and the owned lock are released
-on failure/cancellation. Publication already in progress may finish successfully.
+`AbortSignal` interrupts process-queue admission and file-lock retry sleeps. A
+queued export can reject before an earlier writer finishes; its cancelled entry
+never starts capture later, and subsequent writers still wait for earlier work.
+Once admitted, cancellation waits for that operation's cleanup before rejecting.
+Lock waiting otherwise retains `lockTimeoutMs` (default 5,000 ms; zero allows one
+immediate attempt). Cancellation during lock initialization closes the acquired
+handle and removes only its own marker; foreign replacement markers are preserved.
+
+The signal is also checked at copy chunks and verification records, and before
+completion publication. In-flight filesystem calls and synchronous cryptographic
+work are not preemptible. All opened handles and the owned lock are released on
+failure/cancellation. Publication already in progress may finish successfully.
 
 Storage failures reject with generic `AUDIT_SINK_ERROR`; cancellation propagates
 the caller's original signal reason. Optional `onError` receives raw operator-only
