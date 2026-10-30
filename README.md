@@ -67,7 +67,7 @@ This minimal example does not enable audit persistence; choose a sink below to r
   [opt-in HMAC pseudonyms](docs/library/audit-pseudonyms.md), and
   [operational status](docs/library/operational-status.md).
 - **Review configuration changes:** [inspection CLI](docs/library/local-inspection.md),
-  [human-readable reports and PR check recipe](docs/ops/flag-change-review.md),
+  [offline visual reports and PR check recipe](docs/ops/flag-change-review.md),
   [offline schemas and type generation](docs/library/authoring.md), and
   [reusable conditions](docs/library/reusable-conditions.md).
 - **Evaluation without Node APIs:** the separate [`/core` entry](docs/library/compatibility.md)

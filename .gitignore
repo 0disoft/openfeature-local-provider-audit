@@ -20,3 +20,6 @@ coverage/
 tmp/
 *.tsbuildinfo
 # <<< ssealed ignore patterns <<<
+
+# Local browser review artifacts.
+output/playwright/

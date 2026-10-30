@@ -20,7 +20,7 @@ export interface FlagChanges {
   changedDecisions: number;
 }
 
-interface ComparisonReport {
+export interface ComparisonReport {
   readonly total: number;
   readonly changedValues: number;
   readonly changedDecisions: number;

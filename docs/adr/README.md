@@ -42,3 +42,4 @@ which behavior becomes part of the public compatibility contract.
 - The change relies on generated, cache, or build output as source truth.
 
 - [ADR0016: Offline condition reuse](0016-offline-condition-reuse.md)
+- [ADR0017: Offline static comparison view](0017-static-comparison-view.md)

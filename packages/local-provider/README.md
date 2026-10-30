@@ -19,6 +19,11 @@ Default output stays JSON; Markdown output retains the existing exit codes and
 change limits. Names may still be sensitive. See the repository's
 `docs/library/local-inspection.md` for report limits and deployment availability.
 
+Version 2.2 or a built checkout also accepts `--output html > review.html` for a
+standalone static view with summary cards, per-flag change meters, expandable tables
+and print styles. Open the file locally; it contains no scripts, external assets
+or live connection. It preserves the same redaction, sample limits and exit codes.
+
 ## Managed local file monitoring
 
 `createWatchedLocalProvider({ path })` starts the existing JSON/YAML watcher and

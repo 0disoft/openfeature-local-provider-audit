@@ -60,6 +60,14 @@ Unconfigured runner commands must fail, not pass with a fake success.
 - GitOps recipe smoke (targeted, optional): `pnpm run smoke:gitops`; creates and removes
   ephemeral loopback TLS/key/recovery/audit artifacts and requires OpenSSL. It does
   not provision a service or add a hosted workflow.
+- Static review browser smoke (targeted, optional): `pnpm run smoke:review-html`;
+  builds then generates an HTML report through the real CLI and opens it with
+  Playwright Core at desktop/mobile widths. Checks keyboard details, meters,
+  no external requests and hostile-identifier escaping. Requires installed Edge
+  on Windows or a locally installed Playwright Chromium elsewhere;
+  `REVIEW_BROWSER_BINARY` selects another local Chromium executable. No download,
+  web server or hosted CI job is added. Screenshots/report are ignored under
+  `output/playwright/`; temporary inputs and the browser are closed in finally.
 - docs: `pnpm run release-readiness`
 - check: `pnpm run check`
 

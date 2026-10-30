@@ -681,6 +681,30 @@ void result;
       )
         throw new Error("Packed Markdown comparison contract failed");
     }
+    if (major > 2 || (major === 2 && minor >= 2)) {
+      const { stdout } = await run(
+        "pnpm",
+        [
+          "exec",
+          "openfeature-local-provider",
+          "compare",
+          "targeted.json",
+          "stopped.json",
+          "--requests",
+          "requests.json",
+          "--output",
+          "html"
+        ],
+        consumerDirectory
+      );
+      if (
+        !stdout.startsWith("<!doctype html>") ||
+        !stdout.includes('value="2"') ||
+        stdout.includes("must-not-appear") ||
+        /<script\b/i.test(stdout)
+      )
+        throw new Error("Packed HTML comparison contract failed");
+    }
   }
 
   if (installTarget.source === "registry") {

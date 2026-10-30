@@ -13,6 +13,7 @@ import type {
 } from "../public-types.js";
 import type { CliIo } from "./run.js";
 import { comparisonMarkdown, type FlagChanges } from "./comparison-markdown.js";
+import { comparisonHtml } from "./comparison-html.js";
 
 export const INSPECTION_HELP = `Usage:
   openfeature-local-provider evaluate <snapshot> --request <request.json> [--format auto|json|yaml]
@@ -20,7 +21,7 @@ export const INSPECTION_HELP = `Usage:
   openfeature-local-provider simulate <snapshot> --requests <requests.json> [--format auto|json|yaml]
   openfeature-local-provider compare <before> <after> --requests <requests.json> [--format auto|json|yaml]
 
-Output defaults to JSON. Compare also accepts --output markdown for review summaries.
+Output defaults to JSON. Compare also accepts --output markdown or --output html.
 Evaluation/explanation omits values and raw context.
 Simulation/comparison emits aggregate counts only. No process environment is read.
 Compare accepts --max-changed-values-percent and --max-changed-decisions-percent
@@ -33,7 +34,7 @@ interface InspectionOptions {
   readonly input: string;
   readonly format: SnapshotFileFormat;
   readonly diagnostics: boolean;
-  readonly output: "json" | "markdown";
+  readonly output: "json" | "markdown" | "html";
   readonly maxChangedValuesPercent?: number;
   readonly maxChangedDecisionsPercent?: number;
 }
@@ -92,7 +93,7 @@ export async function runInspection(
     );
     let changedValues = 0;
     let changedDecisions = 0;
-    const flagChanges = options.output === "markdown" ? new Map<string, FlagChanges>() : undefined;
+    const flagChanges = options.output !== "json" ? new Map<string, FlagChanges>() : undefined;
     const valuesEqual = createValueComparer();
     for (let i = 0; i < baseline.length; i++) {
       const previous = baseline[i];
@@ -148,7 +149,9 @@ export async function runInspection(
     io.stdout(
       flagChanges === undefined
         ? `${JSON.stringify(report)}\n`
-        : comparisonMarkdown(report, [...flagChanges.values()])
+        : options.output === "html"
+          ? comparisonHtml(report, [...flagChanges.values()])
+          : comparisonMarkdown(report, [...flagChanges.values()])
     );
     if ([...baseline, ...candidate].some((result) => result.errorCode !== undefined)) return 1;
     return policy?.passed === false ? 3 : 0;
@@ -178,7 +181,7 @@ function parseOptions(command: string, args: readonly string[]): InspectionOptio
   let input: string | undefined;
   let format: SnapshotFileFormat = "auto";
   let diagnostics = false;
-  let output: "json" | "markdown" | undefined;
+  let output: "json" | "markdown" | "html" | undefined;
   let jsonRequested = false;
   let maxChangedValuesPercent: number | undefined;
   let maxChangedDecisionsPercent: number | undefined;
@@ -189,7 +192,7 @@ function parseOptions(command: string, args: readonly string[]): InspectionOptio
     if (arg === "--output") {
       if (command !== "compare" || output !== undefined) return undefined;
       const value = args[++i];
-      if (value !== "json" && value !== "markdown") return undefined;
+      if (value !== "json" && value !== "markdown" && value !== "html") return undefined;
       output = value;
     } else if (arg === "--diagnostics") {
       if (diagnostics) return undefined;
@@ -225,7 +228,7 @@ function parseOptions(command: string, args: readonly string[]): InspectionOptio
     else files.push(arg);
   }
   if (!input || files.length !== (command === "compare" ? 2 : 1)) return undefined;
-  if (jsonRequested && output === "markdown") return undefined;
+  if (jsonRequested && output !== undefined && output !== "json") return undefined;
   return {
     files,
     input,

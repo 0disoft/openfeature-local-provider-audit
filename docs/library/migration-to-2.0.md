@@ -34,6 +34,14 @@ to 2.1.0. Existing JSON output, provider evaluation, audit wire formats and exit
 precedence are unchanged. No migration of configuration or audit data is needed.
 Checkout availability does not imply npm publication; see the registry evidence.
 
+## 2.2 Static Review View
+
+The checkout adds `compare --output html`, a self-contained offline comparison
+visualization; see `local-inspection.md` and ADR0017. This additive CLI option stages
+2.2.0 without changing JSON/Markdown semantics, public provider exports or stored
+data. The opt-in browser verification uses developer tools only. This does not
+establish publication; the registry evidence retains its exact released version.
+
 ## Development History
 
 Alpha.124 reuses active per-flag hashes after a newly supplied snapshot passes full

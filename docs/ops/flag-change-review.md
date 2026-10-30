@@ -22,6 +22,19 @@ and two changed decisions; the inclusive 50% limit passes. A limit of 49 exits 3
 and an evaluation failure exits 1 even if the policy also fails. JSON is still the
 default. Redirect stdout to a Markdown file for a normal document preview.
 
+For a standalone visual report from CLI 2.2.0 or this checkout, change the output:
+
+```sh
+node packages/local-provider/bin/openfeature-local-provider.js compare \
+  examples/flag-review/before.json examples/flag-review/after.json \
+  --requests examples/flag-review/requests.json --output html \
+  --max-changed-values-percent 50 > review.html
+```
+
+Open that local file in a browser. It includes summary cards, per-flag change meters,
+expandable decision tables and print styles, with no scripts or external resources.
+It needs no installation of a web UI, server startup or configuration write access.
+
 The report shows schema validation, content hashes, sample size, per-flag changes,
 selected rule counts and policy status. It omits configuration values, request
 contexts and condition operands. Identifiers and small-group counts still need
@@ -72,8 +85,8 @@ and [secure use](https://docs.github.com/en/actions/reference/security/secure-us
 
 ## Next adoption improvements
 
-Keep the local library boundary. A static read-only inspection view and framework
-lifecycle recipes can follow demonstrated user needs. Do not introduce global signal
+Keep the local library boundary. The static read-only comparison view is implemented
+in this checkout; framework lifecycle recipes are a separate integration concern. Do not introduce global signal
 handlers by default: managed providers already coordinate close and bounded audit
 flush, while the application must first stop accepting requests. Flush timeouts cannot
 promise that every write is durable or that stalled I/O has been cancelled.

@@ -56,7 +56,10 @@ async function exercise(
       code,
       output,
       error,
-      data: output && !args.includes("markdown") ? JSON.parse(output) : undefined
+      data:
+        output && !args.includes("markdown") && !args.includes("html")
+          ? JSON.parse(output)
+          : undefined
     };
   } finally {
     await rm(directory, { recursive: true, force: true });
@@ -64,6 +67,42 @@ async function exercise(
 }
 
 describe("offline inspection CLI", () => {
+  it("renders static HTML without changing aggregate results or policy/error precedence", async () => {
+    const args = [
+      "compare",
+      "before.json",
+      "after.json",
+      "--requests",
+      "request.json",
+      "--max-changed-values-percent",
+      "0"
+    ];
+    const requests = [request, { ...request, context: { tenant: "other" } }];
+    const json = await exercise(args, requests);
+    const html = await exercise([...args, "--output", "html"], requests);
+    expect(html.code).toBe(json.code);
+    expect(html.code).toBe(3);
+    expect(html.output).toContain("<!doctype html>");
+    expect(html.output).toContain("Change limit exceeded");
+    expect(html.output).toContain('value="1"');
+    expect(html.output).toContain("1 / 2");
+    expect(html.output).not.toContain("tenant");
+    expect(html.error).toBe("");
+    const errors = await exercise(
+      [...args, "--output", "html"],
+      [request, { ...request, flagKey: "missing" }]
+    );
+    expect(errors.code).toBe(1);
+    expect(errors.output).toContain("Evaluation errors found");
+    const malformed = await exercise(
+      [...args, "--output", "html", "--diagnostics"],
+      [request, { ...request, expectedType: "invalid" }]
+    );
+    expect(malformed.output).toBe("");
+    expect(malformed.code).toBe(1);
+    expect(malformed.error).toContain('"requestIndex":1');
+  });
+
   it("renders redacted review tables with the same counts and policy exit status as JSON", async () => {
     const args = [
       "compare",
@@ -115,10 +154,12 @@ describe("offline inspection CLI", () => {
   });
 
   it.each([
-    ["--output", "html"],
+    ["--output", "csv"],
     ["--output"],
     ["--output", "markdown", "--json"],
     ["--json", "--output", "markdown"],
+    ["--output", "html", "--json"],
+    ["--json", "--output", "html"],
     ["--output", "markdown", "--output", "json"]
   ])("rejects invalid or conflicting comparison presentation: %j", async (...options) => {
     const result = await exercise([

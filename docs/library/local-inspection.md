@@ -111,7 +111,7 @@ The opt-in report shows snapshot validation, complete aggregate counts, content 
 change-policy status, per-sampled-flag changes, and before/after reason, variant and
 selected rule counts. No extra evaluation or network call is performed. JSON output
 and all exit codes remain unchanged, including error precedence over policy rejection.
-`--output json` is explicit JSON; mixing `--json` with `--output markdown`, duplicate
+`--output json` is explicit JSON; mixing `--json` with a non-JSON `--output`, duplicate
 `--output`, unsupported formats, and using `--output` on other commands exit 2.
 `--format` still selects snapshot input parsing and is independent of presentation.
 
@@ -129,6 +129,33 @@ the full JSON report for identification. The renderer escapes Markdown/HTML, men
 table delimiters and control/bidirectional characters in every displayed identifier.
 Malformed later input emits no partial report. No file is written by the command;
 redirect stdout to a report file or CI step summary in caller-owned tooling.
+
+## Static visualization (2.2)
+
+```sh
+openfeature-local-provider compare before.json after.json --requests synthetic-requests.json --output html > review.html
+```
+
+Open `review.html` locally. It is one self-contained, read-only document: summary
+cards, accessible per-flag change meters, expandable before/after tables, policy
+status and snapshot hashes. Responsive and print styles are included. It uses the
+same comparison, complete aggregate totals, redaction and exit-code precedence as
+JSON/Markdown; no additional evaluations occur. `--json` conflicts with HTML just
+as it conflicts with Markdown. Labels and tables have the same 160/100 display bounds.
+The displayed percentages are rounded to one decimal for readability; policy
+enforcement still uses the exact scaled-integer comparison described below.
+
+No scripts, embedded request data, external styles/fonts/images, telemetry, file
+picker, server or live audit/configuration connection is included. A restrictive
+Content-Security-Policy permits only the document's inline styles. Identifiers are
+escaped text, never markup, URL targets or executable attributes. Hashes and names
+remain potentially sensitive and the exported file needs normal access/retention
+controls. The view does not display condition operands or claim production impact.
+Native details sections provide keyboard navigation without JavaScript.
+
+This opt-in CLI presentation follows ADR0017. The browser smoke is
+`corepack pnpm run smoke:review-html`; see `VALIDATION.md` for browser prerequisites.
+It has no browser dependency in the published runtime package and adds no hosted CI.
 
 For repeated object-valued decisions, comparison remembers structural equality per
 before/after object pair within that single synchronous comparison. Only booleans
