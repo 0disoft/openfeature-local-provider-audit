@@ -63,7 +63,7 @@ Detailed compatibility contracts live in:
 - Canary failure blocks widening the peer range or claiming compatibility, but it does not alter
   an already published package or lockfile automatically.
 
-## Node.js 26 Experimental Canary
+## Node.js 26 Qualification
 
 Node.js 22 and 24 remain the supported runtimes (`engines.node: >=22 <25`). The
 weekly/manual compatibility workflow adds one Linux Node.js 26 packed-consumer job
@@ -76,6 +76,13 @@ Promote Node.js 26 only after it reaches LTS and the packed consumer plus the fu
 supported checks pass on Linux, Windows, and macOS. Widen the engine range and public
 runtime policy deliberately in a separate minor SemVer release, then add the normal
 cross-platform CI lanes. The canary alone is insufficient promotion evidence.
+
+Node.js 26 reached LTS before the 2026-10-30 local qualification. Windows x64 on
+26.13.0 passes the full suite, real packed consumer and lifecycle/GitOps examples
+after correcting a test's assumption about Buffer pool backing size. Linux and
+macOS full qualification remain pending. See the
+[exact execution record and limits](../testing/node-26-qualification.md); no engine
+range or support promise has been widened by this Windows-only evidence.
 
 ## 0.13.2 Local I/O Hardening
 

@@ -75,6 +75,10 @@ This is an input-buffer bound, not a total heap/RSS limit: decoding, JSON parsin
 signature verification and concurrent callers have separate memory costs.
 Small buffers can share a Node allocator pool, whose backing size exceeds the
 requested view length; include that pool overhead when measuring memory.
+The backing size need not equal `Buffer.poolSize`: Node 26 also reserves alignment
+padding. The regression contract is requested capacity plus one reused backing
+store for a stable file, not a fixed allocator slab size. See
+[Node 26 qualification](../testing/node-26-qualification.md).
 
 A local real-file probe capped read results to 1/7/65536 bytes for the same
 423-byte signed recovery journal. Before this change, cumulative requested input

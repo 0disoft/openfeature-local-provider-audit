@@ -31,6 +31,7 @@ let reportedSize: number | undefined;
 let allocatedBytes: number;
 let buffers: WeakSet<Buffer>;
 let backingBytes: number;
+let backingStoreCount: number;
 let backingStores: WeakSet<ArrayBufferLike>;
 let handles: FileHandle[];
 let closes: number;
@@ -39,7 +40,7 @@ beforeEach(async () => {
   path = join(directory, "state.json");
   cap = 65536;
   reportedSize = undefined;
-  allocatedBytes = backingBytes = closes = 0;
+  allocatedBytes = backingBytes = backingStoreCount = closes = 0;
   buffers = new WeakSet();
   backingStores = new WeakSet();
   handles = [];
@@ -65,6 +66,7 @@ beforeEach(async () => {
         }
         if (!backingStores.has(buffer.buffer)) {
           backingStores.add(buffer.buffer);
+          backingStoreCount++;
           backingBytes += buffer.buffer.byteLength;
         }
         return handle.read(buffer, offset, Math.min(length, cap), position);
@@ -102,11 +104,14 @@ it.each([1, 7, 65536])(
         journalBytes: journal.length,
         readCap: cap,
         inputBufferBytes: allocatedBytes,
-        distinctBackingBytes: backingBytes
+        distinctBackingBytes: backingBytes,
+        backingStoreCount
       })
     );
     expect(allocatedBytes).toBe(journal.length + 1);
-    expect(backingBytes).toBeLessThanOrEqual(Math.max(Buffer.poolSize, journal.length + 1));
+    // Node owns slab sizing/alignment (Node 26 over-allocates its pool). Check our
+    // resource contract instead: one backing store reused across every short read.
+    expect(backingStoreCount).toBe(1);
   }
 );
 it("grows geometrically when the opened file grows after stat", async () => {
