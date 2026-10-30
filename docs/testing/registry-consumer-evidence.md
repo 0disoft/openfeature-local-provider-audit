@@ -8,7 +8,40 @@ historical publication evidence. The release
 workflow verifies registry bytes and channels after publication; this record is updated only
 from those public results.
 
-## Current Published Release And Hosted Evidence (2026-10-29)
+## Current Published Release And Evidence (2026-10-31 KST)
+
+- Package: `@0disoft/openfeature-local-provider@2.2.2`, published through npm `latest`.
+- Source/tag commit: `319914ebc5565343ed50a355ca9bd709f1fc1623` on main; tag `v2.2.2`.
+- [Release run 41107524055](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/41107524055)
+  completed successfully on attempt 2. The initial npm publish succeeded, but registry
+  propagation exceeded the three-minute verification deadline with HTTP 404. Read-only
+  reconciliation subsequently matched the original candidate. Only failed downstream jobs
+  were resumed: the version probe returned `published: true`, publication was skipped,
+  and registry verification plus GitHub Release creation passed.
+- [GitHub Release v2.2.2](https://github.com/0disoft/openfeature-local-provider-audit/releases/tag/v2.2.2)
+  is non-draft, non-prerelease and selected as GitHub `Latest`; the public latest-release
+  endpoint and npm `latest` were checked after publication.
+- The tested hosted candidate, npm tarball and downloaded GitHub asset are all 615,558
+  bytes, SHA-256 `b9375c1982ac8e98468cac6ff2d0cfb132bd591d8cde2474c96e8319108cb1f9`.
+  npm supplies a SLSA provenance attestation for this version.
+- [Main CI run 41107524913](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/41107524913)
+  passed all six Node 22/24 lanes across Linux, Windows and macOS at the tagged commit.
+- Exact-version local registry smoke installed `2.2.2` from npm on Windows x64/Node
+  24.14.0, reported `registry-consumer-smoke-passed` and the digest above, and passed
+  full-library TypeScript 5.9.3 plus consumer-surface TypeScript 7.0.2 checks with
+  OpenFeature server SDK 1.22.0. This is registry artifact evidence, not a workspace link.
+- Local format, lint, full `check`, packed smoke and Node basic example passed.
+  Provider tests reported 1,372 passed and 11 platform-conditional skips. Lint retained
+  four existing warnings and two informational findings. API, migration, stable promotion,
+  package and readiness gates passed. No runtime implementation, API, dependency,
+  database, repository hygiene or CI runner change was made for publication.
+- Node 26 macOS qualification remains deferred; no Node 26 support promotion or portable
+  runtime qualification was repeated for this release. Hosted registry consumer run
+  [41107524699](https://github.com/0disoft/openfeature-local-provider-audit/actions/runs/41107524699)
+  passed during the push, but predates this publication and is not claimed as an exact
+  2.2.2 cross-platform registry result. See [release notes](../ops/releases/2.2.2.md).
+
+## Historical 2.0.0 Published Release And Hosted Evidence (2026-10-29)
 
 - Package: `@0disoft/openfeature-local-provider@2.0.0`, published through npm `latest`.
 - Source/tag commit: `4a7628a75ac9f774de46296d745cf00e86f3140b` on main; tag `v2.0.0`.
